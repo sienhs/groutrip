@@ -1,11 +1,11 @@
 spring:
   application:
-    name: teachers-drawer
+    name: enjoy-trip
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/teachers_drawer
-    username: drawer_user
-    password: drawer_pass
+    url: jdbc:postgresql://localhost:5432/enjoy_trip
+    username: enjoy_trip_user
+    password: enjoy_trip_pass
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -24,7 +24,7 @@ spring:
 server:
     port: 8080
 jwt:
-  secret: teachers-drawer-jwt-secret-key-must-be-at-least-256-bits-long-enough
+  secret: enjoy-trip-jwt-secret-key-must-be-at-least-256-bits-long-enough-for-hmac
   access-token-expiration: 900000
   refresh-token-expiration: 604800000
 
@@ -32,6 +32,6 @@ minio:
   endpoint: http://localhost:9000
   access-key: minioadmin
   secret-key: minioadmin123
-  bucket-name: hwp-files
+  bucket-name: enjoy-trip-files
 cors:
   allowed-origins: http://localhost:5173

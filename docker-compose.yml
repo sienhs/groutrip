@@ -2,21 +2,21 @@ services:
 
   postgres:
     image: postgres:16
-    container_name: teachers-drawer-db
+    container_name: enjoy-trip-db
     environment:
-      POSTGRES_DB: teachers_drawer
-      POSTGRES_USER: drawer_user
-      POSTGRES_PASSWORD: drawer_pass
+      POSTGRES_DB: enjoy_trip
+      POSTGRES_USER: enjoy_trip_user
+      POSTGRES_PASSWORD: enjoy_trip_pass
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - drawer-network
+      - enjoy-trip-network
 
   minio:
     image: minio/minio
-    container_name: teachers-drawer-minio
+    container_name: enjoy-trip-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -27,12 +27,12 @@ services:
     volumes:
       - minio_data:/data
     networks:
-      - drawer-network
+      - enjoy-trip-network
 
 volumes:
   postgres_data:
   minio_data:
 
 networks:
-  drawer-network:
+  enjoy-trip-network:
     driver: bridge
