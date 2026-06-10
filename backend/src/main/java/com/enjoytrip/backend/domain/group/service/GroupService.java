@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
 import com.enjoytrip.backend.domain.group.dto.GroupCreateRequest;
+import com.enjoytrip.backend.domain.group.dto.GroupMemberResponse;
 import com.enjoytrip.backend.domain.group.dto.GroupResponse;
 import com.enjoytrip.backend.domain.group.dto.GroupUpdateRequest;
 import com.enjoytrip.backend.domain.group.entity.GroupMember;
@@ -138,6 +139,20 @@ public class GroupService {
 
         // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
         return GroupResponse.from(group);
+    }
+
+    /**
+     * FR-GROUP-05: 그룹 멤버 목록 조회.
+     * 그룹 멤버만 현재 활성 멤버 목록을 확인할 수 있다.
+     */
+    @Transactional(readOnly = true)
+    public List<GroupMemberResponse> findGroupMembers(Long groupId) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, user.getId());
+
+        return groupMemberRepository.findByTravelGroupIdAndLeftAtIsNull(groupId).stream()
+                .map(GroupMemberResponse::from)
+                .toList();
     }
 
     /**

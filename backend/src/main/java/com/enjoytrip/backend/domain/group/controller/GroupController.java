@@ -1,5 +1,7 @@
 package com.enjoytrip.backend.domain.group.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupOwner;
 import com.enjoytrip.backend.domain.group.dto.GroupCreateRequest;
+import com.enjoytrip.backend.domain.group.dto.GroupMemberResponse;
 import com.enjoytrip.backend.domain.group.dto.GroupResponse;
 import com.enjoytrip.backend.domain.group.dto.GroupUpdateRequest;
 import com.enjoytrip.backend.domain.group.service.GroupService;
@@ -58,6 +61,14 @@ public class GroupController {
     ) {
         GroupResponse response = groupService.updateGroupInfo(groupId, request);
         return ResponseEntity.ok(ApiResponse.success("Group updated.", response));
+    }
+
+    // FR-GROUP-05: 그룹 멤버만 현재 활성 멤버 목록을 조회할 수 있다.
+    @RequiredGroupMember
+    @GetMapping("/{groupId}/members")
+    public ResponseEntity<ApiResponse<List<GroupMemberResponse>>> findGroupMembers(@PathVariable Long groupId) {
+        List<GroupMemberResponse> response = groupService.findGroupMembers(groupId);
+        return ResponseEntity.ok(ApiResponse.success("Group members found.", response));
     }
 
     // FR-GROUP-07: Owner만 초대코드를 재발급할 수 있고, 응답의 inviteCode가 새 코드가 된다.

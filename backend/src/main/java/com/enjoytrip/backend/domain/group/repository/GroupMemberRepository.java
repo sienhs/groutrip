@@ -20,4 +20,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 
     // 내 그룹 목록(FR-GROUP-02)을 만들기 위해 사용자의 활성 그룹 멤버십을 조회한다.
     List<GroupMember> findByUserIdAndLeftAtIsNull(Long userId);
+
+    // FR-GROUP-05: 그룹 멤버 관리 화면에서 현재 활성 멤버 목록을 조회한다.
+    List<GroupMember> findByTravelGroupIdAndLeftAtIsNull(Long groupId);
 }
