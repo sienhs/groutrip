@@ -175,8 +175,18 @@ public class GroupService {
      * FR-GROUP-05: 그룹 나가기 TODO.
      * Owner는 바로 나갈 수 없고 Owner 이전 또는 그룹 해체가 선행되어야 한다.
      */
-    public void leaveGroupTodo(Long groupId) {
-        throw new UnsupportedOperationException("TODO: implement FR-GROUP-05 leave group.");
+    public void leaveGroup(Long groupId) {
+        User user = currentUserResolver.getCurrentUser();
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        GroupMember member = groupAccessValidator.validateMember(group.getId(), user.getId());
+
+        if (member.isOwner()) {
+            throw new BusinessException(ErrorCode.GROUP_OWNER_CANNOT_LEAVE);
+        }
+
+        member.leave();
+        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 MEMBER_LEFT 이벤트를 발행한다.
     }
 
     /**

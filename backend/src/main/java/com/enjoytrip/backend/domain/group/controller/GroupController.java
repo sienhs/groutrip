@@ -3,6 +3,7 @@ package com.enjoytrip.backend.domain.group.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -69,6 +70,14 @@ public class GroupController {
     public ResponseEntity<ApiResponse<List<GroupMemberResponse>>> findGroupMembers(@PathVariable Long groupId) {
         List<GroupMemberResponse> response = groupService.findGroupMembers(groupId);
         return ResponseEntity.ok(ApiResponse.success("Group members found.", response));
+    }
+
+    // FR-GROUP-05: 일반 멤버는 그룹을 나갈 수 있고, Owner는 위임 또는 해체 전에는 나갈 수 없다.
+    @RequiredGroupMember
+    @DeleteMapping("/{groupId}/members/me")
+    public ResponseEntity<ApiResponse<Void>> leaveGroup(@PathVariable Long groupId) {
+        groupService.leaveGroup(groupId);
+        return ResponseEntity.ok(ApiResponse.success("Left group."));
     }
 
     // FR-GROUP-07: Owner만 초대코드를 재발급할 수 있고, 응답의 inviteCode가 새 코드가 된다.

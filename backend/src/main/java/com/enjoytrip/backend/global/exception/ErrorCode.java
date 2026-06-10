@@ -25,6 +25,7 @@ public enum ErrorCode {
     GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Group not found."),
     GROUP_MEMBER_NOT_FOUND(HttpStatus.FORBIDDEN, "User is not a member of this group."),
     GROUP_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "Group owner permission is required."),
+    GROUP_OWNER_CANNOT_LEAVE(HttpStatus.BAD_REQUEST, "Owner must transfer ownership or dissolve group before leaving."),
     GROUP_FULL(HttpStatus.BAD_REQUEST, "Group member limit exceeded. Maximum is 8."),
     INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "Invalid invite code."),
     DUPLICATE_GROUP_MEMBER(HttpStatus.CONFLICT, "User already joined this group."),
