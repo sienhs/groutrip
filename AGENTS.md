@@ -74,28 +74,18 @@ Part B does not own the main implementation of these domains unless explicitly r
 
 When a task touches a Part A domain, avoid implementing broad changes there. Prefer defining a clear API/event contract and add only the minimum interface or integration code needed for Part B to work.
 
-## Learning mode for Codex
+## Korean comment guidance
 
-The contributor wants to learn while building. Do not take over the entire implementation unless explicitly asked.
+새 기능을 구현하거나 기존 기능을 크게 수정할 때는 유지보수자가 기능 단위를 빠르게 파악할 수 있도록 필요한 곳에 한글 주석을 남긴다.
 
-Default working style:
+주석 작성 원칙:
 
-1. Explain the intended approach before editing.
-2. Break work into small steps.
-3. Prefer generating skeletons, TODO-guided code, tests, and examples over completing large features silently.
-4. When implementing code, explain the key concepts involved.
-5. Ask the contributor to fill in small, educational parts when appropriate.
-6. After changes, summarize what was changed and why.
-7. Mention which files the contributor should read next to understand the implementation.
-
-For large tasks, use this workflow:
-
-1. Propose a plan.
-2. Identify the smallest useful unit to implement first.
-3. Implement only that unit.
-4. Stop and explain how to continue.
-
-Do not hide important decisions inside generated code. Make architectural tradeoffs visible.
+1. 컨트롤러, 서비스, 엔티티, AOP, 배치, 이벤트 리스너처럼 역할이 나뉘는 코드에는 “이 코드가 어떤 기능 요구사항을 담당하는지”를 한글로 짧게 설명한다.
+2. 복잡한 비즈니스 규칙, 권한 분기, 상태 전이, 정렬 기준, 정산 알고리즘, SSE 이벤트 흐름에는 구현 의도를 한글 주석으로 남긴다.
+3. 단순 getter/setter, 명백한 변수 대입, 프레임워크 기본 애노테이션처럼 코드만 봐도 알 수 있는 내용에는 불필요한 주석을 달지 않는다.
+4. TODO 주석은 가능하면 관련 요구사항 ID와 함께 작성한다. 예: `// TODO(FR-GROUP-05): Owner 이전 로직 구현`
+5. 주석은 코드의 현재 동작과 다르면 안 된다. 기능을 수정할 때 관련 주석도 함께 갱신한다.
+6. Part A 영역과 맞닿는 인터페이스나 이벤트 계약은, Part B가 직접 구현하지 않는 범위와 기대 요청/응답 형태를 한글 주석으로 명확히 남긴다.
 
 ## Part B priority order
 
@@ -420,7 +410,6 @@ Do not:
 - Make broad unrelated refactors while completing a focused task.
 - Modify unrelated files unless necessary.
 - Implement all of Part B at once unless explicitly asked.
-- Replace the contributor's learning process with a complete black-box solution.
 
 ## Before finishing a task
 
@@ -432,4 +421,3 @@ Before reporting completion:
 4. Summarize changed files.
 5. Mention any commands not run.
 6. Mention any known limitations or follow-up work.
-7. For learning-mode tasks, explain the next concept or file the contributor should study.

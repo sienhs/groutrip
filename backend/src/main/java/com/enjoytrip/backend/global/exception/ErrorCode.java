@@ -21,6 +21,14 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     
+    // Group
+    GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Group not found."),
+    GROUP_MEMBER_NOT_FOUND(HttpStatus.FORBIDDEN, "User is not a member of this group."),
+    GROUP_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "Group owner permission is required."),
+    GROUP_FULL(HttpStatus.BAD_REQUEST, "Group member limit exceeded. Maximum is 8."),
+    INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "Invalid invite code."),
+    DUPLICATE_GROUP_MEMBER(HttpStatus.CONFLICT, "User already joined this group."),
+
     // Common
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),

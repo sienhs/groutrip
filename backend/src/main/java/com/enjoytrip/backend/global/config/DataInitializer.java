@@ -14,28 +14,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DataInitializer implements ApplicationRunner{
-	private final UserRepository userRepository;
-	private final PasswordEncoder passwordEncoder;
-	
-	
-	@Override
-	public void run(ApplicationArguments args) throws Exception {
-		
-		// 이미 테스트 유저가 있으면 스킵
-		if(userRepository.existsByEmail("test@test.com")) {
-			log.info("테스트 유저가 이미 있어 스킵함");
-			return;
-		}
-		
-		User testUser = User.builder()
-				.email("test@test.com")
-				.password(passwordEncoder.encode("test1234"))
-				.name("테스트선생님")
-				.build();
-		
-		userRepository.save(testUser);
-		log.info("테스트 유저 생성 : test@test.com / test1234");
-	}
+public class DataInitializer implements ApplicationRunner {
 
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public void run(ApplicationArguments args) {
+        if (userRepository.existsByEmail("test@test.com")) {
+            log.info("Test user already exists. Skip seed.");
+            return;
+        }
+
+        User testUser = User.builder()
+                .email("test@test.com")
+                .password(passwordEncoder.encode("test1234"))
+                .name("Test User")
+                .build();
+
+        userRepository.save(testUser);
+        log.info("Test user created: test@test.com / test1234");
+    }
 }
