@@ -193,8 +193,24 @@ public class GroupService {
      * FR-GROUP-05: 멤버 강퇴 TODO.
      * Owner만 실행할 수 있고, 작성 데이터는 보존하며 멤버십만 비활성화한다.
      */
-    public void kickMemberTodo(Long groupId, Long targetUserId) {
-        throw new UnsupportedOperationException("TODO: implement FR-GROUP-05 kick member.");
+    public void kickMember(Long groupId, Long targetUserId) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateOwner(groupId, user.getId());
+
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        GroupMember targetMember = groupMemberRepository.findByTravelGroupIdAndUserIdAndLeftAtIsNull(
+                        group.getId(),
+                        targetUserId
+                )
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_MEMBER_NOT_FOUND));
+
+        if (targetMember.isOwner()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        targetMember.leave();
+        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 MEMBER_LEFT 이벤트를 발행한다.
     }
 
     /**

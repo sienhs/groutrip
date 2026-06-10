@@ -80,6 +80,17 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("Left group."));
     }
 
+    // FR-GROUP-05: Owner는 일반 멤버를 강퇴할 수 있고, 강퇴 기록은 leftAt으로 보존한다.
+    @RequiredGroupOwner
+    @DeleteMapping("/{groupId}/members/{targetUserId}")
+    public ResponseEntity<ApiResponse<Void>> kickMember(
+            @PathVariable Long groupId,
+            @PathVariable Long targetUserId
+    ) {
+        groupService.kickMember(groupId, targetUserId);
+        return ResponseEntity.ok(ApiResponse.success("Member kicked."));
+    }
+
     // FR-GROUP-07: Owner만 초대코드를 재발급할 수 있고, 응답의 inviteCode가 새 코드가 된다.
     @RequiredGroupOwner
     @PatchMapping("/{groupId}/invite-code")
