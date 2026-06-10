@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.enjoytrip.backend.domain.auth.entity.User;
 import com.enjoytrip.backend.domain.group.dto.GroupCreateRequest;
 import com.enjoytrip.backend.domain.group.dto.GroupResponse;
+import com.enjoytrip.backend.domain.group.dto.GroupUpdateRequest;
 import com.enjoytrip.backend.domain.group.entity.GroupMember;
 import com.enjoytrip.backend.domain.group.entity.GroupRole;
 import com.enjoytrip.backend.domain.group.entity.GroupStatus;
@@ -101,20 +102,42 @@ public class GroupService {
     }
 
     /**
-     * FR-GROUP-02: 그룹 상세 조회 TODO.
-     * 멤버 권한 확인 후 삭제되지 않은 그룹만 응답하도록 구현한다.
+     * FR-GROUP-02: 그룹 상세 조회.
+     * 그룹 멤버만 삭제되지 않은 그룹의 기본 정보를 조회할 수 있다.
      */
     @Transactional(readOnly = true)
-    public void findGroupDetailTodo(Long groupId) {
-        throw new UnsupportedOperationException("TODO: implement group detail lookup.");
+    public GroupResponse findGroupDetail(Long groupId) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, user.getId());
+
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        return GroupResponse.from(group);
     }
 
     /**
-     * FR-GROUP-04: 그룹 정보 수정 TODO.
-     * Owner 권한 확인, 날짜 검증, GROUP_UPDATED 이벤트 발행 지점을 함께 구현한다.
+     * FR-GROUP-04: 그룹 정보 수정.
+     * Owner만 기본 정보를 수정할 수 있고, 날짜 변경 규칙을 함께 검증한다.
      */
-    public void updateGroupInfoTodo(Long groupId) {
-        throw new UnsupportedOperationException("TODO: implement FR-GROUP-04 update group info.");
+    public GroupResponse updateGroupInfo(Long groupId, GroupUpdateRequest request) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateOwner(groupId, user.getId());
+
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        validateUpdateDateRange(group, request);
+
+        group.updateInfo(
+                request.title(),
+                request.destination(),
+                request.startDate(),
+                request.endDate(),
+                request.coverImageKey()
+        );
+        group.updateStatus(LocalDate.now());
+
+        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
+        return GroupResponse.from(group);
     }
 
     /**
@@ -174,6 +197,20 @@ public class GroupService {
         if (startDate.plusDays(MAX_TRIP_DAYS - 1).isBefore(endDate)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
+    }
+
+    // FR-GROUP-04: 시작일 변경은 여행 시작 전까지만 허용하고, 종료일 단축의 일정 검사는 Schedule 계약이 생기면 연결한다.
+    private void validateUpdateDateRange(TravelGroup group, GroupUpdateRequest request) {
+        validateDateRange(request.startDate(), request.endDate());
+
+        LocalDate today = LocalDate.now();
+        if (!request.startDate().equals(group.getStartDate())) {
+            if (!today.isBefore(group.getStartDate()) || request.startDate().isBefore(today)) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT);
+            }
+        }
+
+        // TODO(FR-GROUP-04/FR-SCHEDULE-01): 종료일을 앞당길 때 제외되는 날짜에 일정이 있는지 Schedule 도메인 계약으로 검증한다.
     }
 
     // FR-GROUP-01/07: 6자리 초대코드 충돌을 피하기 위해 제한 횟수 안에서 재시도한다.

@@ -1,6 +1,7 @@
 package com.enjoytrip.backend.domain.group.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +13,7 @@ import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupOwner;
 import com.enjoytrip.backend.domain.group.dto.GroupCreateRequest;
 import com.enjoytrip.backend.domain.group.dto.GroupResponse;
+import com.enjoytrip.backend.domain.group.dto.GroupUpdateRequest;
 import com.enjoytrip.backend.domain.group.service.GroupService;
 import com.enjoytrip.backend.global.response.ApiResponse;
 
@@ -37,6 +39,25 @@ public class GroupController {
     public ResponseEntity<ApiResponse<GroupResponse>> join(@PathVariable String inviteCode) {
         GroupResponse response = groupService.joinByInviteCode(inviteCode);
         return ResponseEntity.ok(ApiResponse.success("Joined group.", response));
+    }
+
+    // FR-GROUP-02: 그룹 멤버만 그룹 상세 기본 정보를 조회할 수 있다.
+    @RequiredGroupMember
+    @GetMapping("/{groupId}")
+    public ResponseEntity<ApiResponse<GroupResponse>> findGroupDetail(@PathVariable Long groupId) {
+        GroupResponse response = groupService.findGroupDetail(groupId);
+        return ResponseEntity.ok(ApiResponse.success("Group detail found.", response));
+    }
+
+    // FR-GROUP-04: Owner만 그룹 제목, 목적지, 여행 기간, 커버 이미지를 수정할 수 있다.
+    @RequiredGroupOwner
+    @PatchMapping("/{groupId}")
+    public ResponseEntity<ApiResponse<GroupResponse>> updateGroupInfo(
+            @PathVariable Long groupId,
+            @RequestBody @Valid GroupUpdateRequest request
+    ) {
+        GroupResponse response = groupService.updateGroupInfo(groupId, request);
+        return ResponseEntity.ok(ApiResponse.success("Group updated.", response));
     }
 
     // FR-GROUP-07: Owner만 초대코드를 재발급할 수 있고, 응답의 inviteCode가 새 코드가 된다.
