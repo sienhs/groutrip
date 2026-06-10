@@ -24,9 +24,9 @@ spring:
 server:
     port: 8080
 jwt:
-  secret: enjoy-trip-jwt-secret-key-must-be-at-least-256-bits-long-enough-for-hmac
-  access-token-expiration: 900000
-  refresh-token-expiration: 604800000
+  secret: ${JWT_SECRET:enjoy-trip-jwt-secret-key-must-be-at-least-256-bits-long-enough-for-hmac}
+  access-token-expiration: ${JWT_ACCESS_EXP:1800000}  # 30분 (요구사항 반영)
+  refresh-token-expiration: ${JWT_REFRESH_EXP:604800000}  # 7일
 
 minio:
   endpoint: http://localhost:9000

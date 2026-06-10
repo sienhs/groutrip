@@ -21,5 +21,9 @@ public class SignupRequest {
 	private String password;
 	
 	@NotBlank(message = "이름을 입력해주세요")
+	@Pattern(
+			regexp = "^[가-힣a-zA-Z0-9]{2,20}$",
+			message = "이름은 2~20자의 한글, 영문, 숫자만 가능합니다."
+			)
 	private String name;
 }

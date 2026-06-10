@@ -7,6 +7,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import HomePage from './pages/home/HomePage';
+import SurveyPage from './pages/survey/SurveyPage';
+import SurveyResultPage from './pages/survey/SurveyResultPage';
 
 function App() {
   const [isRestoring, setIsRestoring] = useState(true);
@@ -50,6 +52,22 @@ function App() {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/survey"
+          element={
+            <ProtectedRoute>
+              <SurveyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/survey/result"
+          element={
+            <ProtectedRoute>
+              <SurveyResultPage />
             </ProtectedRoute>
           }
         />

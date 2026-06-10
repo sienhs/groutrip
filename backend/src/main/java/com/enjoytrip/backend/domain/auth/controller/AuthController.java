@@ -1,10 +1,9 @@
 package com.enjoytrip.backend.domain.auth.controller;
 
-import com.enjoytrip.backend.domain.auth.repository.RefreshTokenRepository;
-
 import java.util.Arrays;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,7 +25,6 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/auth") // 엔드 포인트
 @RequiredArgsConstructor
 public class AuthController {
-	private final RefreshTokenRepository refreshTokenRepository;
 	private final AuthService authService;
 	
 	// 쿠키 이름 상수
@@ -85,21 +83,20 @@ public class AuthController {
 	@PostMapping("/logout")
 	public ResponseEntity<ApiResponse<Void>> logout(
 				HttpServletRequest request,
-				HttpServletResponse response){
-		String refreshToken = extractRefreshTokenFromCookie(request);
-		
-		if(refreshToken != null && !refreshToken.isBlank()) {
-			// JWT 이메일 꺼내서 DB 토큰 삭제
-			// JwtUtil 직접 쓰지 않고 Service에서 처리하도록 email 추출은 생략
-            // TODO:실제로는 SecurityContext에서 꺼내는 게 맞음 -> 추후 개선
+				HttpServletResponse response,
+				Authentication authentication){
+
+		if (authentication != null && authentication.isAuthenticated()) {
+			String email = authentication.getName();
+			authService.logout(email);
 		}
-		
+
 		Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE, null);
 		cookie.setMaxAge(0);
 		cookie.setPath("/");
 		response.addCookie(cookie);
-		
-		return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));	
+
+		return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));
 	}
 	
 	@PostMapping("/signup")

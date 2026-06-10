@@ -1,0 +1,529 @@
+From 00385a13a913c689f310228e9e23e89ec07b946a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 2 Jun 2026 09:11:25 +0000
+Subject: [PATCH] migrate package from com.teachersdrawer to com.enjoytrip
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- rename all Java packages: com.teachersdrawer.backend → com.enjoytrip.backend
+- move source files to com/enjoytrip/backend directory structure
+- update build.gradle group to com.enjoytrip
+- update application.yml: app name, datasource (db name, credentials), JWT secret, MinIO bucket
+- update docker-compose.yml: container names, DB name/credentials, network name
+
+https://claude.ai/code/session_011sFMBnMNu2jD768mDRo1w2
+---
+ backend/build.gradle                          |  2 +-
+ .../backend/BackendApplication.java           |  2 +-
+ .../auth/controller/AuthController.java       | 14 ++++++------
+ .../backend/domain/auth/dto/LoginRequest.java |  2 +-
+ .../domain/auth/dto/LoginResponse.java        |  2 +-
+ .../domain/auth/dto/SignupRequest.java        |  2 +-
+ .../domain/auth/entity/RefreshToken.java      |  2 +-
+ .../backend/domain/auth/entity/User.java      |  2 +-
+ .../repository/RefreshTokenRepository.java    |  4 ++--
+ .../auth/repository/UserRepository.java       |  4 ++--
+ .../domain/auth/service/AuthService.java      | 22 +++++++++----------
+ .../auth/service/CustomUserDetailService.java |  4 ++--
+ .../backend/global/config/CorsConfig.java     |  2 +-
+ .../global/config/DataInitializer.java        |  6 ++---
+ .../backend/global/config/SecurityConfig.java |  4 ++--
+ .../global/exception/BusinessException.java   |  2 +-
+ .../backend/global/exception/ErrorCode.java   |  2 +-
+ .../exception/GlobalExceptionHandler.java     |  4 ++--
+ .../backend/global/response/ApiResponse.java  |  2 +-
+ .../backend/global/security/JwtFilter.java    |  2 +-
+ .../backend/global/security/JwtUtil.java      |  2 +-
+ backend/src/main/resources/application.yml    | 12 +++++-----
+ .../backend/BackendApplicationTests.java      |  2 +-
+ docker-compose.yml                            | 16 +++++++-------
+ 24 files changed, 59 insertions(+), 59 deletions(-)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/BackendApplication.java (94%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/controller/AuthController.java (89%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/dto/LoginRequest.java (90%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/dto/LoginResponse.java (87%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/dto/SignupRequest.java (93%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/entity/RefreshToken.java (98%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/entity/User.java (96%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/repository/RefreshTokenRepository.java (71%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/repository/UserRepository.java (83%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/service/AuthService.java (86%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/domain/auth/service/CustomUserDetailService.java (89%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/config/CorsConfig.java (97%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/config/DataInitializer.java (84%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/config/SecurityConfig.java (96%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/exception/BusinessException.java (83%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/exception/ErrorCode.java (96%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/exception/GlobalExceptionHandler.java (94%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/response/ApiResponse.java (93%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/security/JwtFilter.java (98%)
+ rename backend/src/main/java/com/{teachersdrawer => enjoytrip}/backend/global/security/JwtUtil.java (98%)
+ rename backend/src/test/java/com/{teachersdrawer => enjoytrip}/backend/BackendApplicationTests.java (83%)
+
+diff --git a/backend/build.gradle b/backend/build.gradle
+index fa29492..6ef70a5 100644
+--- a/backend/build.gradle
++++ b/backend/build.gradle
+@@ -19,7 +19,7 @@ clean {
+ 	delete generated
+ }
+ 
+-group = 'com.teachersdrawer'
++group = 'com.enjoytrip'
+ version = '0.0.1-SNAPSHOT'
+ 
+ java {
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/BackendApplication.java b/backend/src/main/java/com/enjoytrip/backend/BackendApplication.java
+similarity index 94%
+rename from backend/src/main/java/com/teachersdrawer/backend/BackendApplication.java
+rename to backend/src/main/java/com/enjoytrip/backend/BackendApplication.java
+index 7935fea..c2754eb 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/BackendApplication.java
++++ b/backend/src/main/java/com/enjoytrip/backend/BackendApplication.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend;
++package com.enjoytrip.backend;
+ 
+ import org.springframework.boot.SpringApplication;
+ import org.springframework.boot.autoconfigure.SpringBootApplication;
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/controller/AuthController.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/controller/AuthController.java
+similarity index 89%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/controller/AuthController.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/controller/AuthController.java
+index f937843..b286523 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/controller/AuthController.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/controller/AuthController.java
+@@ -1,6 +1,6 @@
+-package com.teachersdrawer.backend.domain.auth.controller;
++package com.enjoytrip.backend.domain.auth.controller;
+ 
+-import com.teachersdrawer.backend.domain.auth.repository.RefreshTokenRepository;
++import com.enjoytrip.backend.domain.auth.repository.RefreshTokenRepository;
+ 
+ import java.util.Arrays;
+ 
+@@ -10,11 +10,11 @@ import org.springframework.web.bind.annotation.RequestBody;
+ import org.springframework.web.bind.annotation.RequestMapping;
+ import org.springframework.web.bind.annotation.RestController;
+ 
+-import com.teachersdrawer.backend.domain.auth.dto.LoginRequest;
+-import com.teachersdrawer.backend.domain.auth.dto.LoginResponse;
+-import com.teachersdrawer.backend.domain.auth.dto.SignupRequest;
+-import com.teachersdrawer.backend.domain.auth.service.AuthService;
+-import com.teachersdrawer.backend.global.response.ApiResponse;
++import com.enjoytrip.backend.domain.auth.dto.LoginRequest;
++import com.enjoytrip.backend.domain.auth.dto.LoginResponse;
++import com.enjoytrip.backend.domain.auth.dto.SignupRequest;
++import com.enjoytrip.backend.domain.auth.service.AuthService;
++import com.enjoytrip.backend.global.response.ApiResponse;
+ 
+ import jakarta.servlet.http.Cookie;
+ import jakarta.servlet.http.HttpServletRequest;
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/LoginRequest.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/LoginRequest.java
+similarity index 90%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/LoginRequest.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/LoginRequest.java
+index 0bd7edc..ed41259 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/LoginRequest.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/LoginRequest.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.domain.auth.dto;
++package com.enjoytrip.backend.domain.auth.dto;
+ 
+ import jakarta.validation.constraints.Email;
+ import jakarta.validation.constraints.NotBlank;
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/LoginResponse.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/LoginResponse.java
+similarity index 87%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/LoginResponse.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/LoginResponse.java
+index 130f396..ec0efca 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/LoginResponse.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/LoginResponse.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.domain.auth.dto;
++package com.enjoytrip.backend.domain.auth.dto;
+ 
+ import lombok.Builder;
+ import lombok.Getter;
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/SignupRequest.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/SignupRequest.java
+similarity index 93%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/SignupRequest.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/SignupRequest.java
+index b250df7..e8ef312 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/dto/SignupRequest.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/dto/SignupRequest.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.domain.auth.dto;
++package com.enjoytrip.backend.domain.auth.dto;
+ 
+ import jakarta.validation.constraints.Email;
+ import jakarta.validation.constraints.NotBlank;
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/entity/RefreshToken.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/entity/RefreshToken.java
+similarity index 98%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/entity/RefreshToken.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/entity/RefreshToken.java
+index 9cdf08a..0c42a81 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/entity/RefreshToken.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/entity/RefreshToken.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.domain.auth.entity;
++package com.enjoytrip.backend.domain.auth.entity;
+ 
+ import java.time.LocalDateTime;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/entity/User.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/entity/User.java
+similarity index 96%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/entity/User.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/entity/User.java
+index 62b005a..6e5b9ea 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/entity/User.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/entity/User.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.domain.auth.entity;
++package com.enjoytrip.backend.domain.auth.entity;
+ 
+ import java.time.LocalDateTime;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/repository/RefreshTokenRepository.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/repository/RefreshTokenRepository.java
+similarity index 71%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/repository/RefreshTokenRepository.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/repository/RefreshTokenRepository.java
+index cf14537..5bd3677 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/repository/RefreshTokenRepository.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/repository/RefreshTokenRepository.java
+@@ -1,10 +1,10 @@
+-package com.teachersdrawer.backend.domain.auth.repository;
++package com.enjoytrip.backend.domain.auth.repository;
+ 
+ import java.util.Optional;
+ 
+ import org.springframework.data.jpa.repository.JpaRepository;
+ 
+-import com.teachersdrawer.backend.domain.auth.entity.RefreshToken;
++import com.enjoytrip.backend.domain.auth.entity.RefreshToken;
+ 
+ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+ 	
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/repository/UserRepository.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/repository/UserRepository.java
+similarity index 83%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/repository/UserRepository.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/repository/UserRepository.java
+index c39b73c..5ebf8ee 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/repository/UserRepository.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/repository/UserRepository.java
+@@ -1,10 +1,10 @@
+-package com.teachersdrawer.backend.domain.auth.repository;
++package com.enjoytrip.backend.domain.auth.repository;
+ 
+ import java.util.Optional;
+ 
+ import org.springframework.data.jpa.repository.JpaRepository;
+ 
+-import com.teachersdrawer.backend.domain.auth.entity.User;
++import com.enjoytrip.backend.domain.auth.entity.User;
+ 
+ public interface UserRepository extends JpaRepository<User, Long>{
+ 	// JpaRepository<Entity타입, PK타입>
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/service/AuthService.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/service/AuthService.java
+similarity index 86%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/service/AuthService.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/service/AuthService.java
+index 14f142b..103a89d 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/service/AuthService.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/service/AuthService.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.domain.auth.service;
++package com.enjoytrip.backend.domain.auth.service;
+ 
+ import java.time.LocalDateTime;
+ 
+@@ -9,16 +9,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
+ import org.springframework.stereotype.Service;
+ import org.springframework.transaction.annotation.Transactional;
+ 
+-import com.teachersdrawer.backend.domain.auth.dto.LoginRequest;
+-import com.teachersdrawer.backend.domain.auth.dto.LoginResponse;
+-import com.teachersdrawer.backend.domain.auth.dto.SignupRequest;
+-import com.teachersdrawer.backend.domain.auth.entity.RefreshToken;
+-import com.teachersdrawer.backend.domain.auth.entity.User;
+-import com.teachersdrawer.backend.domain.auth.repository.RefreshTokenRepository;
+-import com.teachersdrawer.backend.domain.auth.repository.UserRepository;
+-import com.teachersdrawer.backend.global.exception.BusinessException;
+-import com.teachersdrawer.backend.global.exception.ErrorCode;
+-import com.teachersdrawer.backend.global.security.JwtUtil;
++import com.enjoytrip.backend.domain.auth.dto.LoginRequest;
++import com.enjoytrip.backend.domain.auth.dto.LoginResponse;
++import com.enjoytrip.backend.domain.auth.dto.SignupRequest;
++import com.enjoytrip.backend.domain.auth.entity.RefreshToken;
++import com.enjoytrip.backend.domain.auth.entity.User;
++import com.enjoytrip.backend.domain.auth.repository.RefreshTokenRepository;
++import com.enjoytrip.backend.domain.auth.repository.UserRepository;
++import com.enjoytrip.backend.global.exception.BusinessException;
++import com.enjoytrip.backend.global.exception.ErrorCode;
++import com.enjoytrip.backend.global.security.JwtUtil;
+ import lombok.RequiredArgsConstructor;
+ import lombok.extern.slf4j.Slf4j;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/service/CustomUserDetailService.java b/backend/src/main/java/com/enjoytrip/backend/domain/auth/service/CustomUserDetailService.java
+similarity index 89%
+rename from backend/src/main/java/com/teachersdrawer/backend/domain/auth/service/CustomUserDetailService.java
+rename to backend/src/main/java/com/enjoytrip/backend/domain/auth/service/CustomUserDetailService.java
+index c64b222..5d4e1de 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/domain/auth/service/CustomUserDetailService.java
++++ b/backend/src/main/java/com/enjoytrip/backend/domain/auth/service/CustomUserDetailService.java
+@@ -1,11 +1,11 @@
+-package com.teachersdrawer.backend.domain.auth.service;
++package com.enjoytrip.backend.domain.auth.service;
+ 
+ import org.springframework.security.core.userdetails.UserDetails;
+ import org.springframework.security.core.userdetails.UserDetailsService;
+ import org.springframework.security.core.userdetails.UsernameNotFoundException;
+ import org.springframework.stereotype.Service;
+ 
+-import com.teachersdrawer.backend.domain.auth.repository.UserRepository;
++import com.enjoytrip.backend.domain.auth.repository.UserRepository;
+ 
+ import lombok.RequiredArgsConstructor;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/config/CorsConfig.java b/backend/src/main/java/com/enjoytrip/backend/global/config/CorsConfig.java
+similarity index 97%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/config/CorsConfig.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/config/CorsConfig.java
+index f415682..d52446f 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/config/CorsConfig.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/config/CorsConfig.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.global.config;
++package com.enjoytrip.backend.global.config;
+ 
+ import java.util.List;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/config/DataInitializer.java b/backend/src/main/java/com/enjoytrip/backend/global/config/DataInitializer.java
+similarity index 84%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/config/DataInitializer.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/config/DataInitializer.java
+index 90e53b9..27b9792 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/config/DataInitializer.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/config/DataInitializer.java
+@@ -1,12 +1,12 @@
+-package com.teachersdrawer.backend.global.config;
++package com.enjoytrip.backend.global.config;
+ 
+ import org.springframework.boot.ApplicationArguments;
+ import org.springframework.boot.ApplicationRunner;
+ import org.springframework.security.crypto.password.PasswordEncoder;
+ import org.springframework.stereotype.Component;
+ 
+-import com.teachersdrawer.backend.domain.auth.entity.User;
+-import com.teachersdrawer.backend.domain.auth.repository.UserRepository;
++import com.enjoytrip.backend.domain.auth.entity.User;
++import com.enjoytrip.backend.domain.auth.repository.UserRepository;
+ 
+ import lombok.RequiredArgsConstructor;
+ import lombok.extern.slf4j.Slf4j;
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/config/SecurityConfig.java b/backend/src/main/java/com/enjoytrip/backend/global/config/SecurityConfig.java
+similarity index 96%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/config/SecurityConfig.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/config/SecurityConfig.java
+index 7b86de0..7e11440 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/config/SecurityConfig.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/config/SecurityConfig.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.global.config;
++package com.enjoytrip.backend.global.config;
+ 
+ import org.springframework.beans.factory.annotation.Qualifier;
+ import org.springframework.context.annotation.Bean;
+@@ -13,7 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
+ import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+ import org.springframework.web.cors.CorsConfigurationSource;
+ 
+-import com.teachersdrawer.backend.global.security.JwtFilter;
++import com.enjoytrip.backend.global.security.JwtFilter;
+ 
+ import lombok.RequiredArgsConstructor;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/exception/BusinessException.java b/backend/src/main/java/com/enjoytrip/backend/global/exception/BusinessException.java
+similarity index 83%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/exception/BusinessException.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/exception/BusinessException.java
+index e6df200..02f77b8 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/exception/BusinessException.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/exception/BusinessException.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.global.exception;
++package com.enjoytrip.backend.global.exception;
+ 
+ import lombok.Getter;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/exception/ErrorCode.java b/backend/src/main/java/com/enjoytrip/backend/global/exception/ErrorCode.java
+similarity index 96%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/exception/ErrorCode.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/exception/ErrorCode.java
+index 620d831..1439807 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/exception/ErrorCode.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/exception/ErrorCode.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.global.exception;
++package com.enjoytrip.backend.global.exception;
+ 
+ import org.springframework.http.HttpStatus;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/exception/GlobalExceptionHandler.java b/backend/src/main/java/com/enjoytrip/backend/global/exception/GlobalExceptionHandler.java
+similarity index 94%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/exception/GlobalExceptionHandler.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/exception/GlobalExceptionHandler.java
+index 6f38124..e4c3a6b 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/exception/GlobalExceptionHandler.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/exception/GlobalExceptionHandler.java
+@@ -1,6 +1,6 @@
+-package com.teachersdrawer.backend.global.exception;
++package com.enjoytrip.backend.global.exception;
+ 
+-import com.teachersdrawer.backend.global.response.ApiResponse;
++import com.enjoytrip.backend.global.response.ApiResponse;
+ import lombok.extern.slf4j.Slf4j;
+ import org.springframework.http.ResponseEntity;
+ import org.springframework.web.bind.MethodArgumentNotValidException;
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/response/ApiResponse.java b/backend/src/main/java/com/enjoytrip/backend/global/response/ApiResponse.java
+similarity index 93%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/response/ApiResponse.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/response/ApiResponse.java
+index dcb979a..42f77a7 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/response/ApiResponse.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/response/ApiResponse.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.global.response;
++package com.enjoytrip.backend.global.response;
+ 
+ import lombok.Getter;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/security/JwtFilter.java b/backend/src/main/java/com/enjoytrip/backend/global/security/JwtFilter.java
+similarity index 98%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/security/JwtFilter.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/security/JwtFilter.java
+index cfa3114..a0988c0 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/security/JwtFilter.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/security/JwtFilter.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.global.security;
++package com.enjoytrip.backend.global.security;
+ 
+ import java.io.IOException;
+ 
+diff --git a/backend/src/main/java/com/teachersdrawer/backend/global/security/JwtUtil.java b/backend/src/main/java/com/enjoytrip/backend/global/security/JwtUtil.java
+similarity index 98%
+rename from backend/src/main/java/com/teachersdrawer/backend/global/security/JwtUtil.java
+rename to backend/src/main/java/com/enjoytrip/backend/global/security/JwtUtil.java
+index e3c6460..309720f 100644
+--- a/backend/src/main/java/com/teachersdrawer/backend/global/security/JwtUtil.java
++++ b/backend/src/main/java/com/enjoytrip/backend/global/security/JwtUtil.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend.global.security;
++package com.enjoytrip.backend.global.security;
+ 
+ import io.jsonwebtoken.Claims;
+ import io.jsonwebtoken.JwtException;
+diff --git a/backend/src/main/resources/application.yml b/backend/src/main/resources/application.yml
+index b05af96..199ea7f 100644
+--- a/backend/src/main/resources/application.yml
++++ b/backend/src/main/resources/application.yml
+@@ -1,11 +1,11 @@
+ spring:
+   application:
+-    name: teachers-drawer
++    name: enjoy-trip
+ 
+   datasource:
+-    url: jdbc:postgresql://localhost:5432/teachers_drawer
+-    username: drawer_user
+-    password: drawer_pass
++    url: jdbc:postgresql://localhost:5432/enjoy_trip
++    username: enjoy_trip_user
++    password: enjoy_trip_pass
+     driver-class-name: org.postgresql.Driver
+ 
+   jpa:
+@@ -24,7 +24,7 @@ spring:
+ server:
+     port: 8080
+ jwt:
+-  secret: teachers-drawer-jwt-secret-key-must-be-at-least-256-bits-long-enough
++  secret: enjoy-trip-jwt-secret-key-must-be-at-least-256-bits-long-enough-for-hmac
+   access-token-expiration: 900000
+   refresh-token-expiration: 604800000
+ 
+@@ -32,6 +32,6 @@ minio:
+   endpoint: http://localhost:9000
+   access-key: minioadmin
+   secret-key: minioadmin123
+-  bucket-name: hwp-files
++  bucket-name: enjoy-trip-files
+ cors:
+   allowed-origins: http://localhost:5173
+\ No newline at end of file
+diff --git a/backend/src/test/java/com/teachersdrawer/backend/BackendApplicationTests.java b/backend/src/test/java/com/enjoytrip/backend/BackendApplicationTests.java
+similarity index 83%
+rename from backend/src/test/java/com/teachersdrawer/backend/BackendApplicationTests.java
+rename to backend/src/test/java/com/enjoytrip/backend/BackendApplicationTests.java
+index 7613f6c..d0a5fa6 100644
+--- a/backend/src/test/java/com/teachersdrawer/backend/BackendApplicationTests.java
++++ b/backend/src/test/java/com/enjoytrip/backend/BackendApplicationTests.java
+@@ -1,4 +1,4 @@
+-package com.teachersdrawer.backend;
++package com.enjoytrip.backend;
+ 
+ import org.junit.jupiter.api.Test;
+ import org.springframework.boot.test.context.SpringBootTest;
+diff --git a/docker-compose.yml b/docker-compose.yml
+index bfced71..a154073 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -2,21 +2,21 @@ services:
+ 
+   postgres:
+     image: postgres:16
+-    container_name: teachers-drawer-db
++    container_name: enjoy-trip-db
+     environment:
+-      POSTGRES_DB: teachers_drawer
+-      POSTGRES_USER: drawer_user
+-      POSTGRES_PASSWORD: drawer_pass
++      POSTGRES_DB: enjoy_trip
++      POSTGRES_USER: enjoy_trip_user
++      POSTGRES_PASSWORD: enjoy_trip_pass
+     ports:
+       - "5432:5432"
+     volumes:
+       - postgres_data:/var/lib/postgresql/data
+     networks:
+-      - drawer-network
++      - enjoy-trip-network
+ 
+   minio:
+     image: minio/minio
+-    container_name: teachers-drawer-minio
++    container_name: enjoy-trip-minio
+     command: server /data --console-address ":9001"
+     environment:
+       MINIO_ROOT_USER: minioadmin
+@@ -27,12 +27,12 @@ services:
+     volumes:
+       - minio_data:/data
+     networks:
+-      - drawer-network
++      - enjoy-trip-network
+ 
+ volumes:
+   postgres_data:
+   minio_data:
+ 
+ networks:
+-  drawer-network:
++  enjoy-trip-network:
+     driver: bridge
+\ No newline at end of file
+-- 
+2.43.0
+

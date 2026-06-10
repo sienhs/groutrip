@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios';
 import { login } from '../../api/auth';
+import { getMyPreference } from '../../api/survey';
 import useAuthStore from '../../store/authStore';
 import type { ApiResponse } from '../../types/auth';
 
@@ -22,7 +23,13 @@ export default function LoginPage() {
     try {
       const res = await login({ email, password });
       setAuth(res.accessToken, { name: res.name, email: res.email });
-      navigate('/');
+
+      try {
+        await getMyPreference();
+        navigate('/');
+      } catch {
+        navigate('/survey');  // 성향 정보 없음 → 설문으로
+      }
     } catch (err) {
       const axiosError = err as AxiosError<ApiResponse<null>>;
       setError(axiosError.response?.data?.message ?? '로그인에 실패했습니다.');

@@ -2,12 +2,10 @@ package com.enjoytrip.backend.domain.auth.entity;
 
 import java.time.LocalDateTime;
 
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.enjoytrip.backend.global.entity.BaseEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -39,30 +37,25 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@EntityListeners(AuditingEntityListener.class)
-public class RefreshToken { // 재발급에 관여하는 토큰
+public class RefreshToken extends BaseEntity { // 재발급에 관여하는 토큰
 	// id, email, token, expiresAt, createdAt, updateToken()
-	
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	
+
 	// 유저 식별
 	@Column(nullable = false, unique = true)
 	private String email;
-	
+
 	// 실제 토큰
 	@Column(nullable = false)
 	private String token;
-	
+
 	@Column(nullable = false)
 	private LocalDateTime expiresAt;
-	
-	@CreatedDate
-	@Column(updatable = false)
-	private LocalDateTime createdAt;
-	
-	
+
+
 	// 토큰 갱신 - 로그인할 때 마다 새로운 토큰으로 교체
 	public void updateToken(String newToken, LocalDateTime newExpiresAt) {
 		this.token = newToken;
