@@ -102,6 +102,14 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("Group owner transferred."));
     }
 
+    // FR-GROUP-06: Owner는 그룹을 해체할 수 있고, 그룹과 활성 멤버십은 soft delete 처리한다.
+    @RequiredGroupOwner
+    @DeleteMapping("/{groupId}")
+    public ResponseEntity<ApiResponse<Void>> dissolveGroup(@PathVariable Long groupId) {
+        groupService.dissolveGroup(groupId);
+        return ResponseEntity.ok(ApiResponse.success("Group dissolved."));
+    }
+
     // FR-GROUP-07: Owner만 초대코드를 재발급할 수 있고, 응답의 inviteCode가 새 코드가 된다.
     @RequiredGroupOwner
     @PatchMapping("/{groupId}/invite-code")

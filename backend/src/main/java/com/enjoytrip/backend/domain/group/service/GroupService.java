@@ -247,8 +247,17 @@ public class GroupService {
      * FR-GROUP-06: 그룹 해체 TODO.
      * Owner만 실행할 수 있고, 그룹은 soft delete 후 30일 hard delete 배치 대상으로 남긴다.
      */
-    public void dissolveGroupTodo(Long groupId) {
-        throw new UnsupportedOperationException("TODO: implement FR-GROUP-06 dissolve group.");
+    public void dissolveGroup(Long groupId) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateOwner(groupId, user.getId());
+
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        group.softDelete();
+        groupMemberRepository.findByTravelGroupIdAndLeftAtIsNull(group.getId())
+                .forEach(GroupMember::leave);
+
+        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
     }
 
     // FR-GROUP-01/04: 여행 시작일과 종료일의 순서 및 최대 30일 제한을 검증한다.
