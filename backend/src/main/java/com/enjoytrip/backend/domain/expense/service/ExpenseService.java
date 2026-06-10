@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.enjoytrip.backend.domain.auth.entity.User;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseCreateRequest;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseResponse;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseUpdateRequest;
 import com.enjoytrip.backend.domain.expense.entity.Expense;
 import com.enjoytrip.backend.domain.expense.entity.ExpenseSplit;
 import com.enjoytrip.backend.domain.expense.entity.SplitType;
@@ -83,6 +84,51 @@ public class ExpenseService {
                 .toList();
     }
 
+    /**
+     * FR-EXPENSE-03: 지출 수정.
+     * 작성자 또는 그룹 Owner만 수정할 수 있고, 수정 후 분담 결과를 다시 계산한다.
+     */
+    public ExpenseResponse update(Long groupId, Long expenseId, ExpenseUpdateRequest request) {
+        User user = currentUserResolver.getCurrentUser();
+        GroupMember actorMember = groupAccessValidator.validateMember(groupId, user.getId());
+        Expense expense = findActiveExpense(groupId, expenseId);
+        validateWriterOrOwner(expense, actorMember, user.getId());
+
+        GroupMember payerMember = groupAccessValidator.validateMember(groupId, request.payerId());
+        List<GroupMember> participantMembers = resolveParticipants(groupId, request.participantIds());
+
+        expense.update(
+                payerMember.getUser(),
+                request.amount(),
+                request.category(),
+                request.splitType(),
+                request.description(),
+                request.paidAt(),
+                request.sourceScheduleId()
+        );
+
+        expenseSplitRepository.deleteByExpenseId(expense.getId());
+        List<ExpenseSplit> splits = createSplits(expense, participantMembers);
+        expenseSplitRepository.saveAll(splits);
+
+        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 EXPENSE_UPDATED 이벤트를 발행한다.
+        return ExpenseResponse.from(expense, splits);
+    }
+
+    /**
+     * FR-EXPENSE-03: 지출 삭제.
+     * 작성자 또는 그룹 Owner만 삭제할 수 있고, 지출 기록은 soft delete로 보존한다.
+     */
+    public void delete(Long groupId, Long expenseId) {
+        User user = currentUserResolver.getCurrentUser();
+        GroupMember actorMember = groupAccessValidator.validateMember(groupId, user.getId());
+        Expense expense = findActiveExpense(groupId, expenseId);
+        validateWriterOrOwner(expense, actorMember, user.getId());
+
+        expense.softDelete();
+        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 EXPENSE_DELETED 이벤트를 발행한다.
+    }
+
     // FR-EXPENSE-01: 중복 참여자를 제거한 뒤 모두 현재 그룹 멤버인지 확인한다.
     private List<GroupMember> resolveParticipants(Long groupId, List<Long> participantIds) {
         List<Long> distinctParticipantIds = new ArrayList<>(new LinkedHashSet<>(participantIds));
@@ -93,6 +139,19 @@ public class ExpenseService {
         return distinctParticipantIds.stream()
                 .map(userId -> groupAccessValidator.validateMember(groupId, userId))
                 .toList();
+    }
+
+    private Expense findActiveExpense(Long groupId, Long expenseId) {
+        return expenseRepository.findByIdAndTravelGroupIdAndDeletedAtIsNull(expenseId, groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    }
+
+    // FR-EXPENSE-03: 지출 작성자이거나 그룹 Owner인 경우에만 수정/삭제를 허용한다.
+    private void validateWriterOrOwner(Expense expense, GroupMember actorMember, Long actorUserId) {
+        if (expense.getCreatedBy().getId().equals(actorUserId) || actorMember.isOwner()) {
+            return;
+        }
+        throw new BusinessException(ErrorCode.GROUP_OWNER_REQUIRED);
     }
 
     // FR-EXPENSE-01: 첫 단위에서는 균등 분담만 실제 계산하고, 나머지 방식은 다음 단위에서 확장한다.

@@ -103,6 +103,25 @@ public class Expense {
         this.sourceScheduleId = sourceScheduleId;
     }
 
+    // FR-EXPENSE-03: 작성자 또는 Owner가 지출 기본 정보를 수정할 때 사용한다.
+    public void update(
+            User payer,
+            Long amount,
+            ExpenseCategory category,
+            SplitType splitType,
+            String description,
+            LocalDate paidAt,
+            Long sourceScheduleId
+    ) {
+        this.payer = payer;
+        this.amount = amount;
+        this.category = category;
+        this.splitType = splitType;
+        this.description = description;
+        this.paidAt = paidAt;
+        this.sourceScheduleId = sourceScheduleId;
+    }
+
     // FR-EXPENSE-03: 지출 삭제는 정산 이력 보존을 위해 hard delete 대신 삭제 시각만 기록한다.
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
