@@ -91,6 +91,17 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("Member kicked."));
     }
 
+    // FR-GROUP-05: Owner는 활성 멤버 중 한 명에게 Owner 권한을 이전할 수 있다.
+    @RequiredGroupOwner
+    @PatchMapping("/{groupId}/owner/{targetUserId}")
+    public ResponseEntity<ApiResponse<Void>> transferOwner(
+            @PathVariable Long groupId,
+            @PathVariable Long targetUserId
+    ) {
+        groupService.transferOwner(groupId, targetUserId);
+        return ResponseEntity.ok(ApiResponse.success("Group owner transferred."));
+    }
+
     // FR-GROUP-07: Owner만 초대코드를 재발급할 수 있고, 응답의 inviteCode가 새 코드가 된다.
     @RequiredGroupOwner
     @PatchMapping("/{groupId}/invite-code")

@@ -217,8 +217,30 @@ public class GroupService {
      * FR-GROUP-05: Owner 이전 TODO.
      * 기존 Owner 강등과 대상 멤버 승격은 하나의 트랜잭션에서 함께 처리한다.
      */
-    public void transferOwnerTodo(Long groupId, Long targetUserId) {
-        throw new UnsupportedOperationException("TODO: implement FR-GROUP-05 transfer owner.");
+    public void transferOwner(Long groupId, Long targetUserId) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateOwner(groupId, user.getId());
+
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        GroupMember currentOwner = groupMemberRepository.findByTravelGroupIdAndUserIdAndLeftAtIsNull(
+                        group.getId(),
+                        user.getId()
+                )
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_MEMBER_NOT_FOUND));
+        GroupMember targetMember = groupMemberRepository.findByTravelGroupIdAndUserIdAndLeftAtIsNull(
+                        group.getId(),
+                        targetUserId
+                )
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_MEMBER_NOT_FOUND));
+
+        if (targetMember.isOwner()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        currentOwner.becomeMember();
+        targetMember.transferOwner();
+        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
     }
 
     /**
