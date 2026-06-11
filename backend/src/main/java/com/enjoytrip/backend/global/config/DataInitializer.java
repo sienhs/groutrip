@@ -21,6 +21,10 @@ public class DataInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        seedTestUser();
+    }
+
+    private void seedTestUser() {
         if (userRepository.existsByEmail("test@test.com")) {
             log.info("Test user already exists. Skip seed.");
             return;
