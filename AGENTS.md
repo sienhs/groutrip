@@ -6,27 +6,38 @@ This file is the entry point for Codex agents working on this repository.
 
 Do not treat this file as the full product specification. It only tells you what to read first, which project rules are non-negotiable, what the current contributor owns, and what mistakes to avoid.
 
+
+---
+
 ## Read first
 
-Before making changes, read these in order:
+Before making code changes, read these files in order:
 
-1. `docs/requirements.md` or the latest SRS document for the group travel collaboration platform.
-   - If the file name differs, locate the document titled `그룹여행협업플랫폼_요구사항명세서_v1.1`.
-   - Pay special attention to:
-     - Section 2: External interface strategy
-     - Section 3: Functional requirements
-     - Section 4: Non-functional requirements
-     - Section 6: UI / UX requirements
-     - Section 7: Permission matrix
-     - Section 9: Message catalog
-     - Section 10: Constraints
-2. `README.md`
-3. Existing package/build configuration files:
+1. `docs/requirements.md`
+   - This is the primary source of truth for product behavior.
+   - If the file name differs, locate the latest SRS document titled `그룹여행협업플랫폼_요구사항명세서`.
+   - Pay special attention to external interface rules, functional requirements, non-functional requirements, permission matrix, message catalog, and constraints.
+2. `docs/codex/CODEX_DOCUMENT_INDEX.md`, if present
+   - This explains how Codex should use project documents.
+3. `docs/codex/PART_B_WORKING_RULES.md`, if present
+   - This contains Part B-specific working rules.
+4. `README.md`, if present
+5. Existing package/build configuration files:
+   - Backend: Gradle/Maven config, `application.yml`, domain package structure
    - Frontend: `package.json`, router setup, API client, state/query setup
-   - Backend: Gradle/Maven config, application config, domain package structure
-4. Existing `.env.example` files, if present.
+6. Existing `.env.example` files, if present
 
-If these files do not exist yet, create or update them only when the task explicitly requires it.
+For cross-domain or merge-related work, also read:
+
+1. `docs/team/MASTER_PLAN.md`
+2. `docs/team/PROJECT.md`
+3. `docs/team/MERGE_READINESS_REVIEW.md`
+
+Do not add the Part A internal task document to the active Codex document set. If that file exists elsewhere, do not read or execute it unless the user explicitly asks for Part A historical analysis.
+
+If any of these files do not exist yet, do not create them unless the task explicitly asks for document setup.
+
+---
 
 ## Project summary
 
@@ -45,6 +56,8 @@ Core product areas:
 - SSE-based real-time synchronization
 - Home, my page, and recommendations
 
+---
+
 ## Current contributor role
 
 The current contributor is responsible for **Part B: foundation, cost, and infrastructure**.
@@ -58,7 +71,7 @@ Part B owns these domains:
 - Notification
 - Group permission AOP
 
-Part B does not own the main implementation of these domains unless explicitly requested:
+Part B does not own broad implementation of these domains unless explicitly requested:
 
 - Auth
 - Survey
@@ -72,9 +85,11 @@ Part B does not own the main implementation of these domains unless explicitly r
 - Kakao Mobility integration
 - TourAPI integration
 
-When a task touches a Part A domain, avoid implementing broad changes there. Prefer defining a clear API/event contract and add only the minimum interface or integration code needed for Part B to work.
+When a task touches a Part A domain, avoid implementing broad changes there. Prefer a clear API/event contract and add only the minimum integration code needed for Part B to work.
 
-## Korean comment guidance
+---
+
+## Korean comment and encoding guidance
 
 새 기능을 구현하거나 기존 기능을 크게 수정할 때는 유지보수자가 기능 단위를 빠르게 파악할 수 있도록 필요한 곳에 한글 주석을 남긴다.
 
@@ -86,6 +101,15 @@ When a task touches a Part A domain, avoid implementing broad changes there. Pre
 4. TODO 주석은 가능하면 관련 요구사항 ID와 함께 작성한다. 예: `// TODO(FR-GROUP-05): Owner 이전 로직 구현`
 5. 주석은 코드의 현재 동작과 다르면 안 된다. 기능을 수정할 때 관련 주석도 함께 갱신한다.
 6. Part A 영역과 맞닿는 인터페이스나 이벤트 계약은, Part B가 직접 구현하지 않는 범위와 기대 요청/응답 형태를 한글 주석으로 명확히 남긴다.
+
+Encoding rules:
+
+- Save all source and document files as UTF-8.
+- Do not convert files to CP949, EUC-KR, or Windows-949.
+- If Korean comments appear garbled, do not guess and rewrite their meaning silently. Report the affected file and ask before rewriting.
+- If adding Gradle compiler settings, preserve UTF-8 and `-parameters` where needed by Spring/AOP parameter-name resolution.
+
+---
 
 ## Part B priority order
 
@@ -107,8 +131,8 @@ Work in this order unless the user gives a different instruction:
    - owner/member roles
    - group status
 3. Group permission AOP
-   - `@GroupMember`
-   - `@GroupOwner`
+   - `@RequiredGroupMember`
+   - `@RequiredGroupOwner`
    - group membership validation
    - owner validation
 4. Expense domain
@@ -119,7 +143,7 @@ Work in this order unless the user gives a different instruction:
 5. Settlement domain
    - balance calculation
    - greedy minimum-transfer algorithm
-   - settlement status transition
+   - settlement status transition, if required by the SRS
 6. SSE infrastructure
    - emitter registry
    - event bridge
@@ -129,6 +153,8 @@ Work in this order unless the user gives a different instruction:
 8. Cross-domain integration
    - FR-EXPENSE-07 transport cost auto-registration contract
    - ApplicationEvent bridge from Part A domains to SSE
+
+---
 
 ## Part B table ownership
 
@@ -142,7 +168,7 @@ group_members
 [Expense / Settlement]
 expenses
 expense_splits
-settlements
+settlements, if implemented as persisted records
 
 [Notification / SSE]
 notifications
@@ -155,6 +181,33 @@ ConcurrentHashMap<groupId, Set<SseEmitter>>
 ```
 
 If the app later becomes multi-server, leave room for Redis Pub/Sub, but do not implement it prematurely.
+
+---
+
+## Merge and cross-team safety rules
+
+Before merge-related work, read `docs/team/MERGE_READINESS_REVIEW.md` if present.
+
+Known high-risk files and areas:
+
+- `backend/src/main/java/com/enjoytrip/backend/global/exception/ErrorCode.java`
+- `backend/src/main/java/com/enjoytrip/backend/global/config/DataInitializer.java`
+- `backend/build.gradle`
+- `backend/src/main/resources/application.yml`
+- Temporary or duplicate `domain/group/` stubs from Part A
+
+Rules:
+
+1. Do not keep duplicate group domain classes.
+2. The canonical group entity is `TravelGroup`, mapped to the `groups` table.
+3. The canonical membership entity is `GroupMember`, mapped to the `group_members` table.
+4. Prefer Part B's official group domain over any temporary Part A stubs.
+5. For member-not-found permission errors, prefer a single canonical `ErrorCode`, currently `GROUP_MEMBER_NOT_FOUND`, unless the existing codebase has standardized another name.
+6. Keep `GROUP_NOT_FOUND` defined only once.
+7. When merging `DataInitializer`, preserve both test-user initialization and always-needed seed data such as survey questions.
+8. Do not remove build settings required for UTF-8 encoding, Java parameter names, QueryDSL, WebClient, or test/build stability.
+
+---
 
 ## Part B cross-domain contracts
 
@@ -181,9 +234,10 @@ Rules:
 
 - `sourceScheduleId` is optional.
 - If the referenced schedule is deleted, settlement history should remain.
-- Prefer `ON DELETE SET NULL` or equivalent behavior for `source_schedule_id`.
+- Prefer a loose reference by storing only `sourceScheduleId` unless the SRS or current schema requires a hard FK.
 - Part B should not calculate Kakao Mobility transport data directly.
 - Part B only records the finalized amount submitted through the expense API.
+- Do not implement both `registerAutoExpense()` and `registerTransportExpense()` without confirming the final method/API name. Keep one canonical contract.
 
 ### Domain events to SSE
 
@@ -210,11 +264,16 @@ Part A should not depend directly on the SSE implementation.
 
 Part B owns:
 
-- `@GroupMember`
-- `@GroupOwner`
+- `@RequiredGroupMember`
+- `@RequiredGroupOwner`
 - AOP implementation
+- `GroupAccessValidator`
 
-Part A should only attach these annotations to APIs that require group membership or owner permission.
+Use service-level validation as the final authority for business-critical permissions. AOP may be used as an entry-point guard, but do not rely on controller annotations alone when a service method can be called from multiple places.
+
+Avoid duplicate permission checks when possible, but prefer safety over removing checks prematurely.
+
+---
 
 ## Scope constraints
 
@@ -223,6 +282,8 @@ Part A should only attach these annotations to APIs that require group membershi
 - The project assumes a small team and short development period, so prefer simple, maintainable implementations over over-engineered abstractions.
 - Treat SHOULD-level recommendation features, such as TourAPI recommendations, as lower priority than MUST-level core group, schedule, place, auth, and expense flows.
 - For this contributor, prioritize Part B backend correctness before UI polish.
+
+---
 
 ## Non-negotiable product rules
 
@@ -303,6 +364,8 @@ Important examples:
 - Expense update/delete is allowed for the original creator or Owner.
 - Schedule CRUD is collaborative and available to group members.
 
+---
+
 ## Architecture guidance
 
 If this repository is a monorepo, keep frontend and backend responsibilities separated.
@@ -314,12 +377,19 @@ Recommended structure:
 ├─ frontend/
 ├─ backend/
 ├─ docs/
+│  ├─ requirements.md
+│  ├─ codex/
+│  └─ team/
 └─ AGENTS.md
 ```
 
 Do not mix frontend components, backend controllers, DTOs, services, and database code in the same unstructured location.
 
+---
+
 ## Frontend guidance
+
+For Part B tasks, avoid frontend changes unless the user explicitly asks or a contract must be verified end-to-end.
 
 - Keep UI mobile-first.
 - Use existing component patterns before creating new ones.
@@ -334,6 +404,8 @@ Do not mix frontend components, backend controllers, DTOs, services, and databas
   - Spacing based on multiples of 4
 - Do not use `dangerouslySetInnerHTML` unless the task explicitly requires it and sanitization is handled.
 
+---
+
 ## Backend guidance
 
 - Keep domain packages separated:
@@ -344,6 +416,7 @@ Do not mix frontend components, backend controllers, DTOs, services, and databas
   - schedule
   - vote
   - expense
+  - settlement
   - sse
   - notification
   - recommend
@@ -354,18 +427,23 @@ Do not mix frontend components, backend controllers, DTOs, services, and databas
 - Use Flyway or the existing migration system for schema changes.
 - Do not put external API keys in frontend-accessible responses.
 - For Part B work, prefer backend tests before frontend polish.
+- Keep entities focused on state and domain behavior. Put authorization and orchestration in services or AOP.
+
+---
 
 ## API contract guidance
 
 When changing request/response shapes:
 
 1. Update backend DTOs.
-2. Update frontend API types/client code if this task owns the frontend integration.
+2. Update frontend API types/client code only if this task owns the frontend integration.
 3. Update affected UI logic only when it is inside the task scope.
 4. Update tests or examples.
 5. Mention the changed contract in the final summary.
 
 Do not silently change API contracts.
+
+---
 
 ## Migration ownership
 
@@ -375,6 +453,8 @@ To avoid Flyway version conflicts:
 - Part A should prefer odd-numbered migrations: `V3`, `V5`, `V7`, ...
 
 If an existing migration already uses the expected number, choose the next available version and mention it in the final summary.
+
+---
 
 ## Testing priorities
 
@@ -393,11 +473,16 @@ Add or update tests when touching:
 
 If tests cannot be run, clearly say which commands were skipped and why.
 
+---
+
 ## What to avoid
 
 Do not:
 
 - Duplicate the full SRS inside this file.
+- Execute the Part A internal task document as a work plan.
+- Implement broad Part A features unless explicitly requested.
+- Keep temporary Part A group stubs when Part B official group domain exists.
 - Implement Kakao place search.
 - Call Google/Kakao/TourAPI directly from the frontend.
 - Expose API keys or secrets.
@@ -410,6 +495,8 @@ Do not:
 - Make broad unrelated refactors while completing a focused task.
 - Modify unrelated files unless necessary.
 - Implement all of Part B at once unless explicitly asked.
+
+---
 
 ## Before finishing a task
 

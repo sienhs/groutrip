@@ -1,16 +1,23 @@
 package com.enjoytrip.backend.domain.auth.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
+@Schema(description = "로그인 응답")
 public class LoginResponse {
-	// 로그인 성공시 클라에게 반환하는 데이터
-	// accessToken만 바디에 담음
-	// refresh는 보안성을 위해 httpOnly Cookie로 별도로 전달
-	private String accessToken;
-	private String refreshToken;
-	private String name;
-	private String email;
+
+    @Schema(description = "API 인증에 사용할 JWT access token", example = "eyJhbGciOiJIUzI1NiJ9...")
+    private String accessToken;
+
+    @Schema(description = "HttpOnly 쿠키로 전달되는 refresh token. 응답 본문에서는 보통 제외된다.", example = "null")
+    private String refreshToken;
+
+    @Schema(description = "로그인한 사용자 이름", example = "홍길동")
+    private String name;
+
+    @Schema(description = "로그인한 사용자 이메일", example = "test@test.com")
+    private String email;
 }
