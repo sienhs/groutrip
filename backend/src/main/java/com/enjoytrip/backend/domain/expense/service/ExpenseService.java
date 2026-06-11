@@ -3,6 +3,8 @@ package com.enjoytrip.backend.domain.expense.service;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,8 +81,20 @@ public class ExpenseService {
         User user = currentUserResolver.getCurrentUser();
         groupAccessValidator.validateMember(groupId, user.getId());
 
-        return expenseRepository.findByTravelGroupIdAndDeletedAtIsNullOrderByPaidAtDescIdDesc(groupId).stream()
-                .map(expense -> ExpenseResponse.from(expense, expenseSplitRepository.findByExpenseId(expense.getId())))
+        List<Expense> expenses = expenseRepository.findByTravelGroupIdAndDeletedAtIsNullOrderByPaidAtDescIdDesc(groupId);
+        List<Long> expenseIds = expenses.stream()
+                .map(Expense::getId)
+                .toList();
+        Map<Long, List<ExpenseSplit>> splitsByExpenseId = expenseIds.isEmpty()
+                ? Map.of()
+                : expenseSplitRepository.findByExpenseIdIn(expenseIds).stream()
+                        .collect(Collectors.groupingBy(split -> split.getExpense().getId()));
+
+        return expenses.stream()
+                .map(expense -> ExpenseResponse.from(
+                        expense,
+                        splitsByExpenseId.getOrDefault(expense.getId(), List.of())
+                ))
                 .toList();
     }
 
