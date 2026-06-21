@@ -41,6 +41,7 @@ public class ExpenseController {
             description = """
                     FR-EXPENSE-01/07: 그룹 멤버가 지출 내역을 등록하고 참여자별 부담 금액을 생성한다.
                     금액은 1원 이상 100,000,000원 이하이며, 결제자와 참여자는 현재 그룹의 활성 멤버여야 한다.
+                    EQUAL은 participantIds, RATIO/AMOUNT는 splitDetails로 참여자별 입력을 전달한다.
                     sourceScheduleId는 선택값이며, Part A 일정/이동 비용에서 확정된 금액을 정산에 연결할 때 사용한다.
                     """
     )
@@ -78,7 +79,7 @@ public class ExpenseController {
             summary = "지출 수정",
             description = """
                     FR-EXPENSE-03: 지출 작성자 또는 그룹 Owner가 지출 정보와 분담 참여자를 수정한다.
-                    수정 시 기존 분담 내역은 삭제 후 새 요청 기준으로 다시 생성되며, 정산 결과는 다음 조회부터 즉시 반영된다.
+                    수정 시 기존 분담 내역은 삭제 후 EQUAL/RATIO/AMOUNT 요청 기준으로 다시 생성되며, 정산 결과는 다음 조회부터 즉시 반영된다.
                     """
     )
     public ResponseEntity<ApiResponse<ExpenseResponse>> update(

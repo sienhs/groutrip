@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.enjoytrip.backend.domain.auth.entity.User;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseCreateRequest;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseResponse;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseSplitRequest;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseUpdateRequest;
 import com.enjoytrip.backend.domain.expense.entity.Expense;
 import com.enjoytrip.backend.domain.expense.entity.ExpenseSplit;
@@ -41,7 +42,7 @@ public class ExpenseService {
 
     /**
      * FR-EXPENSE-01: 지출 등록.
-     * 그룹 멤버가 결제자와 참여자를 선택하면 우선 균등 분담 금액을 계산해 저장한다.
+     * 그룹 멤버가 결제자와 참여자를 선택하면 분담 방식에 따라 부담 금액을 계산해 저장한다.
      */
     public ExpenseResponse create(Long groupId, ExpenseCreateRequest request) {
         User creator = currentUserResolver.getCurrentUser();
@@ -50,7 +51,13 @@ public class ExpenseService {
         TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
         GroupMember payerMember = groupAccessValidator.validateMember(groupId, request.payerId());
-        List<GroupMember> participantMembers = resolveParticipants(groupId, request.participantIds());
+        List<ResolvedSplit> resolvedSplits = resolveSplits(
+                groupId,
+                request.amount(),
+                request.splitType(),
+                request.participantIds(),
+                request.splitDetails()
+        );
 
         Expense expense = Expense.builder()
                 .travelGroup(group)
@@ -65,7 +72,7 @@ public class ExpenseService {
                 .build();
         Expense savedExpense = expenseRepository.save(expense);
 
-        List<ExpenseSplit> splits = createSplits(savedExpense, participantMembers);
+        List<ExpenseSplit> splits = createSplits(savedExpense, resolvedSplits);
         expenseSplitRepository.saveAll(splits);
 
         // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 EXPENSE_ADDED 이벤트를 발행한다.
@@ -109,7 +116,13 @@ public class ExpenseService {
         validateWriterOrOwner(expense, actorMember, user.getId());
 
         GroupMember payerMember = groupAccessValidator.validateMember(groupId, request.payerId());
-        List<GroupMember> participantMembers = resolveParticipants(groupId, request.participantIds());
+        List<ResolvedSplit> resolvedSplits = resolveSplits(
+                groupId,
+                request.amount(),
+                request.splitType(),
+                request.participantIds(),
+                request.splitDetails()
+        );
 
         expense.update(
                 payerMember.getUser(),
@@ -122,7 +135,7 @@ public class ExpenseService {
         );
 
         expenseSplitRepository.deleteByExpenseId(expense.getId());
-        List<ExpenseSplit> splits = createSplits(expense, participantMembers);
+        List<ExpenseSplit> splits = createSplits(expense, resolvedSplits);
         expenseSplitRepository.saveAll(splits);
 
         // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 EXPENSE_UPDATED 이벤트를 발행한다.
@@ -145,10 +158,10 @@ public class ExpenseService {
 
     // FR-EXPENSE-01: 중복 참여자를 제거한 뒤 모두 현재 그룹 멤버인지 확인한다.
     private List<GroupMember> resolveParticipants(Long groupId, List<Long> participantIds) {
-        List<Long> distinctParticipantIds = new ArrayList<>(new LinkedHashSet<>(participantIds));
-        if (distinctParticipantIds.isEmpty()) {
+        if (!hasValues(participantIds) || participantIds.stream().anyMatch(id -> id == null)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
+        List<Long> distinctParticipantIds = new ArrayList<>(new LinkedHashSet<>(participantIds));
 
         return distinctParticipantIds.stream()
                 .map(userId -> groupAccessValidator.validateMember(groupId, userId))
@@ -168,24 +181,146 @@ public class ExpenseService {
         throw new BusinessException(ErrorCode.GROUP_OWNER_REQUIRED);
     }
 
-    // FR-EXPENSE-01: 첫 단위에서는 균등 분담만 실제 계산하고, 나머지 방식은 다음 단위에서 확장한다.
-    private List<ExpenseSplit> createSplits(Expense expense, List<GroupMember> participantMembers) {
-        if (expense.getSplitType() != SplitType.EQUAL) {
+    // FR-EXPENSE-01: 분담 방식별 입력을 검증하고 참여자별 최종 부담 금액을 확정한다.
+    private List<ResolvedSplit> resolveSplits(
+            Long groupId,
+            long totalAmount,
+            SplitType splitType,
+            List<Long> participantIds,
+            List<ExpenseSplitRequest> splitDetails
+    ) {
+        return switch (splitType) {
+            case EQUAL -> resolveEqualSplits(groupId, totalAmount, participantIds, splitDetails);
+            case RATIO -> resolveRatioSplits(groupId, totalAmount, participantIds, splitDetails);
+            case AMOUNT -> resolveAmountSplits(groupId, totalAmount, participantIds, splitDetails);
+        };
+    }
+
+    private List<ResolvedSplit> resolveEqualSplits(
+            Long groupId,
+            long totalAmount,
+            List<Long> participantIds,
+            List<ExpenseSplitRequest> splitDetails
+    ) {
+        if (hasValues(splitDetails)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
-        long baseAmount = expense.getAmount() / participantMembers.size();
-        long remainder = expense.getAmount() % participantMembers.size();
+        List<GroupMember> participantMembers = resolveParticipants(groupId, participantIds);
+        long baseAmount = totalAmount / participantMembers.size();
+        long remainder = totalAmount % participantMembers.size();
 
-        List<ExpenseSplit> splits = new ArrayList<>();
+        List<ResolvedSplit> splits = new ArrayList<>();
         for (int i = 0; i < participantMembers.size(); i++) {
             long owedAmount = baseAmount + (i < remainder ? 1 : 0);
+            splits.add(new ResolvedSplit(participantMembers.get(i), owedAmount));
+        }
+        return splits;
+    }
+
+    private List<ResolvedSplit> resolveRatioSplits(
+            Long groupId,
+            long totalAmount,
+            List<Long> participantIds,
+            List<ExpenseSplitRequest> splitDetails
+    ) {
+        validateDetailedSplitInput(participantIds, splitDetails);
+
+        long ratioTotal = 0;
+        for (ExpenseSplitRequest detail : splitDetails) {
+            if (detail.ratio() == null || detail.ratio() <= 0 || detail.amount() != null) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT);
+            }
+            ratioTotal += detail.ratio();
+        }
+        if (ratioTotal != 100) {
+            throw new BusinessException(ErrorCode.EXPENSE_RATIO_SUM_INVALID);
+        }
+
+        List<GroupMember> members = resolveDetailedParticipants(groupId, splitDetails);
+        List<ResolvedSplit> splits = new ArrayList<>();
+        long allocated = 0;
+        for (int i = 0; i < splitDetails.size(); i++) {
+            long owedAmount = totalAmount * splitDetails.get(i).ratio() / 100;
+            allocated += owedAmount;
+            splits.add(new ResolvedSplit(members.get(i), owedAmount));
+        }
+
+        // 정수 비율 계산에서 남는 원 단위는 요청 순서대로 1원씩 배분해 총액을 보존한다.
+        long remainder = totalAmount - allocated;
+        for (int i = 0; i < remainder; i++) {
+            ResolvedSplit split = splits.get(i);
+            splits.set(i, new ResolvedSplit(split.member(), split.owedAmount() + 1));
+        }
+        return splits;
+    }
+
+    private List<ResolvedSplit> resolveAmountSplits(
+            Long groupId,
+            long totalAmount,
+            List<Long> participantIds,
+            List<ExpenseSplitRequest> splitDetails
+    ) {
+        validateDetailedSplitInput(participantIds, splitDetails);
+
+        long amountTotal = 0;
+        for (ExpenseSplitRequest detail : splitDetails) {
+            if (detail.amount() == null || detail.amount() <= 0 || detail.amount() > totalAmount || detail.ratio() != null) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT);
+            }
+            amountTotal += detail.amount();
+        }
+        if (amountTotal != totalAmount) {
+            throw new BusinessException(ErrorCode.EXPENSE_AMOUNT_SUM_INVALID);
+        }
+
+        List<GroupMember> members = resolveDetailedParticipants(groupId, splitDetails);
+        List<ResolvedSplit> splits = new ArrayList<>();
+        for (int i = 0; i < splitDetails.size(); i++) {
+            splits.add(new ResolvedSplit(members.get(i), splitDetails.get(i).amount()));
+        }
+        return splits;
+    }
+
+    private void validateDetailedSplitInput(
+            List<Long> participantIds,
+            List<ExpenseSplitRequest> splitDetails
+    ) {
+        if (hasValues(participantIds) || !hasValues(splitDetails) || splitDetails.stream().anyMatch(detail -> detail == null)) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private List<GroupMember> resolveDetailedParticipants(Long groupId, List<ExpenseSplitRequest> splitDetails) {
+        List<Long> participantIds = splitDetails.stream()
+                .map(ExpenseSplitRequest::participantId)
+                .toList();
+        if (participantIds.stream().anyMatch(id -> id == null)
+                || new LinkedHashSet<>(participantIds).size() != participantIds.size()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        return participantIds.stream()
+                .map(userId -> groupAccessValidator.validateMember(groupId, userId))
+                .toList();
+    }
+
+    private boolean hasValues(List<?> values) {
+        return values != null && !values.isEmpty();
+    }
+
+    private List<ExpenseSplit> createSplits(Expense expense, List<ResolvedSplit> resolvedSplits) {
+        List<ExpenseSplit> splits = new ArrayList<>();
+        for (ResolvedSplit resolvedSplit : resolvedSplits) {
             splits.add(ExpenseSplit.builder()
                     .expense(expense)
-                    .user(participantMembers.get(i).getUser())
-                    .owedAmount(owedAmount)
+                    .user(resolvedSplit.member().getUser())
+                    .owedAmount(resolvedSplit.owedAmount())
                     .build());
         }
         return splits;
+    }
+
+    private record ResolvedSplit(GroupMember member, long owedAmount) {
     }
 }

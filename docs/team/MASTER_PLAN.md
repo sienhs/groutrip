@@ -164,7 +164,7 @@
 
 - Part A 도메인: 그룹 성향 매칭(FR-SURVEY-03), 장소, 일정, 투표, 추천, 홈 집계, 마이페이지
 - 그룹: 내 그룹 목록/상태별 필터, 일정 삭제 여부를 확인하는 종료일 단축 계약
-- 지출: `EQUAL`만 구현됨. `RATIO`, `AMOUNT`는 enum만 존재
+- 지출: `EQUAL`, `RATIO`, `AMOUNT` 분담과 합계 검증 구현됨
 - 정산: 송금 확인 상태, 딥링크/QR, 전체 완료 처리
 - SSE: emitter registry, heartbeat, event bridge, 재연결/폴링 폴백
 - Notification 저장/읽음 처리
@@ -182,7 +182,7 @@
 | 회원가입 이름 길이 Validation (2~20자) | 🟠 |
 | `AuthController.logout`의 TODO 정리 | 🟠 |
 | `AuthController`의 불필요한 `RefreshTokenRepository` 주입 제거 | 🟠 |
-| `RATIO`/`AMOUNT` 지출 분담 구현 | 🟠 |
+| `RATIO`/`AMOUNT` 지출 분담 구현 | ✅ |
 | SSE + Notification 구현 | 🟠 |
 
 ---
@@ -705,7 +705,7 @@ public class ScheduleExpenseService {
 ### 즉시 시작 가능
 
 1. Flyway를 도입하고 `BaseEntity`/soft delete 표준을 Group/Expense까지 통합한다.
-2. 지출 `RATIO`, `AMOUNT` 분담과 정산 완료 상태를 구현한다.
+2. 정산 송금 확인/완료 상태와 딥링크를 구현한다.
 3. `DomainEvent`/`EventType` 계약을 기준으로 SSE emitter, heartbeat, event bridge를 구현한다.
 4. Part A의 Place/Schedule/Vote가 `TravelGroup`, 권한 AOP, `sourceScheduleId` 계약을 사용하는지 통합 검증한다.
 

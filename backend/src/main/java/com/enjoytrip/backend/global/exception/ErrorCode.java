@@ -30,6 +30,10 @@ public enum ErrorCode {
     INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "Invalid invite code."),
     DUPLICATE_GROUP_MEMBER(HttpStatus.CONFLICT, "User already joined this group."),
 
+    // Expense
+    EXPENSE_RATIO_SUM_INVALID(HttpStatus.BAD_REQUEST, "분담 비율의 합이 100%가 아닙니다."),
+    EXPENSE_AMOUNT_SUM_INVALID(HttpStatus.BAD_REQUEST, "분담 금액의 합이 총 금액과 일치하지 않습니다."),
+
     // Common
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),

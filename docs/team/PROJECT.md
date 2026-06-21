@@ -89,7 +89,7 @@ backend/
     │   │   ├── auth/          # 회원가입, 로그인, 토큰 재발급, 로그아웃
     │   │   ├── survey/        # 12문항, 5차원 성향 벡터
     │   │   ├── group/         # 그룹 CRUD, 멤버 관리, 초대 코드, 권한 AOP
-    │   │   ├── expense/       # 지출 CRUD, 균등 분담, 일정 출처 참조
+    │   │   ├── expense/       # 지출 CRUD, 균등/비율/금액 분담, 일정 출처 참조
     │   │   └── settlement/    # 잔액 매트릭스, Greedy 최소 송금 계산
     │   └── global/
     │       ├── config/         # Security, CORS, OpenAPI, 테스트 시드
@@ -169,7 +169,7 @@ frontend/
 - [ ] 일정 관리 + 카카오 모빌리티
 - [ ] 일정 투표
 - [ ] 그룹 목록/상태별 필터 응답 및 일정 도메인과의 종료일 단축 검증
-- [ ] 지출 `RATIO`, `AMOUNT` 분담 — enum은 있지만 서비스는 `EQUAL`만 지원
+- [x] 지출 `EQUAL`, `RATIO`, `AMOUNT` 분담 및 합계 검증
 - [ ] 정산 송금 확인 상태, 송금 딥링크/QR, 전체 완료 처리 (FR-EXPENSE-05, 06)
 - [ ] SSE 연결·Emitter·heartbeat·event bridge — `DomainEvent`, `EventType` 계약만 존재
 - [ ] Notification 저장/읽음 처리
@@ -297,7 +297,7 @@ CORS_ALLOWED_ORIGINS=https://myapp.com ./gradlew bootRun
 | PATCH/DELETE | `/api/groups/{groupId}/expenses/{expenseId}` | 지출 수정 / soft delete |
 | GET | `/api/groups/{groupId}/settlements` | 잔액 매트릭스 + Greedy 송금 목록 |
 
-> 지출 분담은 현재 `EQUAL`만 구현되었다. Place / Schedule / Vote / SSE / Notification / Dashboard API는 현재 브랜치에 없다.
+> EQUAL은 `participantIds`를 사용한다. RATIO/AMOUNT는 `splitDetails` 배열에 `participantId` 및 `ratio` 또는 `amount`를 전달하며, 비율 합계 100%/금액 합계 총액을 검증한다.
 
 ---
 
@@ -444,7 +444,7 @@ tourapi.service-key             # 한국관광공사 TourAPI
 - [ ] **`AuthController`에서 `RefreshTokenRepository` 직접 주입 제거** — Service 계층으로 이동
 - [ ] **`Soft Delete` 표준 도입** (`@SQLDelete + @Where`, `deleted_at` 컬럼)
 - [ ] **`ErrorCode` 보완** — Group/Expense 기본 항목은 있으며 Place/Schedule/Vote/SSE 도메인 구현 시 메시지 카탈로그와 맞추기
-- [ ] **지출 분담 완성** — `RATIO`, `AMOUNT` 요청 DTO와 합계 검증 로직 추가
+- [x] **지출 분담 완성** — `EQUAL`, `RATIO`, `AMOUNT` 요청 DTO와 합계 검증 로직 구현
 - [ ] **SSE 인프라 구현** — 현재 공통 이벤트 계약만 있음
 
 ### 🟡 품질 / 보안 강화

@@ -17,6 +17,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.enjoytrip.backend.domain.auth.entity.User;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseCreateRequest;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseResponse;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseSplitRequest;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseUpdateRequest;
 import com.enjoytrip.backend.domain.expense.entity.Expense;
 import com.enjoytrip.backend.domain.expense.entity.ExpenseCategory;
 import com.enjoytrip.backend.domain.expense.entity.ExpenseSplit;
@@ -99,14 +101,90 @@ class ExpenseServiceTest {
     }
 
     @Test
-    void createRejectsUnsupportedSplitType() {
+    void createSplitsByRatioAndAssignsRemainderInRequestOrder() {
+        TravelGroup group = group(1L);
+        User creator = user(1L, "owner");
+        User participantB = user(2L, "member-b");
+        User participantC = user(3L, "member-c");
+
+        when(currentUserResolver.getCurrentUser()).thenReturn(creator);
+        when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group));
+        when(groupAccessValidator.validateMember(1L, 1L)).thenReturn(member(group, creator, GroupRole.OWNER));
+        when(groupAccessValidator.validateMember(1L, 2L)).thenReturn(member(group, participantB, GroupRole.MEMBER));
+        when(groupAccessValidator.validateMember(1L, 3L)).thenReturn(member(group, participantC, GroupRole.MEMBER));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(invocation -> {
+            Expense expense = invocation.getArgument(0);
+            ReflectionTestUtils.setField(expense, "id", 11L);
+            return expense;
+        });
+        when(expenseSplitRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExpenseCreateRequest request = new ExpenseCreateRequest(
+                10_001L,
+                1L,
+                ExpenseCategory.MEAL,
+                SplitType.RATIO,
+                "meal",
+                LocalDate.of(2026, 7, 1),
+                null,
+                List.of(
+                        new ExpenseSplitRequest(1L, 50, null),
+                        new ExpenseSplitRequest(2L, 30, null),
+                        new ExpenseSplitRequest(3L, 20, null)
+                ),
+                null
+        );
+
+        ExpenseResponse response = expenseService.create(1L, request);
+
+        assertEquals(List.of(5001L, 3000L, 2000L), response.splits().stream()
+                .map(split -> split.owedAmount())
+                .toList());
+    }
+
+    @Test
+    void createSplitsByDirectAmount() {
+        TravelGroup group = group(1L);
+        User creator = user(1L, "owner");
+        User participantB = user(2L, "member-b");
+
+        when(currentUserResolver.getCurrentUser()).thenReturn(creator);
+        when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group));
+        when(groupAccessValidator.validateMember(1L, 1L)).thenReturn(member(group, creator, GroupRole.OWNER));
+        when(groupAccessValidator.validateMember(1L, 2L)).thenReturn(member(group, participantB, GroupRole.MEMBER));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(expenseSplitRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExpenseCreateRequest request = new ExpenseCreateRequest(
+                10_000L,
+                1L,
+                ExpenseCategory.LODGING,
+                SplitType.AMOUNT,
+                "hotel",
+                LocalDate.of(2026, 7, 1),
+                null,
+                List.of(
+                        new ExpenseSplitRequest(1L, null, 4_000L),
+                        new ExpenseSplitRequest(2L, null, 6_000L)
+                ),
+                null
+        );
+
+        ExpenseResponse response = expenseService.create(1L, request);
+
+        assertEquals(List.of(4000L, 6000L), response.splits().stream()
+                .map(split -> split.owedAmount())
+                .toList());
+    }
+
+    @Test
+    void createRejectsRatioWhenTotalIsNotOneHundred() {
         TravelGroup group = group(1L);
         User creator = user(1L, "owner");
 
         when(currentUserResolver.getCurrentUser()).thenReturn(creator);
         when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group));
         when(groupAccessValidator.validateMember(1L, 1L)).thenReturn(member(group, creator, GroupRole.OWNER));
-        when(expenseRepository.save(any(Expense.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ExpenseCreateRequest request = new ExpenseCreateRequest(
                 10_000L,
@@ -115,13 +193,87 @@ class ExpenseServiceTest {
                 SplitType.RATIO,
                 "meal",
                 LocalDate.of(2026, 7, 1),
-                List.of(1L),
+                null,
+                List.of(new ExpenseSplitRequest(1L, 90, null)),
                 null
         );
 
         BusinessException exception = assertThrows(BusinessException.class, () -> expenseService.create(1L, request));
 
-        assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
+        assertEquals(ErrorCode.EXPENSE_RATIO_SUM_INVALID, exception.getErrorCode());
+    }
+
+    @Test
+    void createRejectsDirectAmountsWhenTotalDiffersFromExpense() {
+        TravelGroup group = group(1L);
+        User creator = user(1L, "owner");
+
+        when(currentUserResolver.getCurrentUser()).thenReturn(creator);
+        when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group));
+        when(groupAccessValidator.validateMember(1L, 1L)).thenReturn(member(group, creator, GroupRole.OWNER));
+
+        ExpenseCreateRequest request = new ExpenseCreateRequest(
+                10_000L,
+                1L,
+                ExpenseCategory.MEAL,
+                SplitType.AMOUNT,
+                "meal",
+                LocalDate.of(2026, 7, 1),
+                null,
+                List.of(new ExpenseSplitRequest(1L, null, 9_000L)),
+                null
+        );
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> expenseService.create(1L, request));
+
+        assertEquals(ErrorCode.EXPENSE_AMOUNT_SUM_INVALID, exception.getErrorCode());
+    }
+
+    @Test
+    void updateRecalculatesSplitsWithDirectAmounts() {
+        TravelGroup group = group(1L);
+        User creator = user(1L, "owner");
+        User participantB = user(2L, "member-b");
+        Expense expense = Expense.builder()
+                .travelGroup(group)
+                .payer(creator)
+                .createdBy(creator)
+                .amount(10_000L)
+                .category(ExpenseCategory.MEAL)
+                .splitType(SplitType.EQUAL)
+                .description("before")
+                .paidAt(LocalDate.of(2026, 7, 1))
+                .build();
+        ReflectionTestUtils.setField(expense, "id", 10L);
+
+        when(currentUserResolver.getCurrentUser()).thenReturn(creator);
+        when(expenseRepository.findByIdAndTravelGroupIdAndDeletedAtIsNull(10L, 1L))
+                .thenReturn(Optional.of(expense));
+        when(groupAccessValidator.validateMember(1L, 1L)).thenReturn(member(group, creator, GroupRole.OWNER));
+        when(groupAccessValidator.validateMember(1L, 2L)).thenReturn(member(group, participantB, GroupRole.MEMBER));
+        when(expenseSplitRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExpenseUpdateRequest request = new ExpenseUpdateRequest(
+                12_000L,
+                1L,
+                ExpenseCategory.LODGING,
+                SplitType.AMOUNT,
+                "after",
+                LocalDate.of(2026, 7, 2),
+                null,
+                List.of(
+                        new ExpenseSplitRequest(1L, null, 5_000L),
+                        new ExpenseSplitRequest(2L, null, 7_000L)
+                ),
+                null
+        );
+
+        ExpenseResponse response = expenseService.update(1L, 10L, request);
+
+        assertEquals(SplitType.AMOUNT, response.splitType());
+        assertEquals(List.of(5000L, 7000L), response.splits().stream()
+                .map(split -> split.owedAmount())
+                .toList());
     }
 
     private TravelGroup group(Long id) {
