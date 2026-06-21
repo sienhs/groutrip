@@ -71,6 +71,8 @@ public class SecurityConfig {
 		.authorizeHttpRequests(auth -> auth
 				// 로그인 회원가입은 토큰 없이 누구나 가능하게 끔
 				.requestMatchers("/api/auth/**").permitAll()
+				// Swagger UI와 OpenAPI 명세는 개발 중 API 확인을 위해 인증 없이 접근을 허용한다.
+				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
 				// 나머지 요청은 인증이 필요하게
 				.anyRequest().authenticated())
 		.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

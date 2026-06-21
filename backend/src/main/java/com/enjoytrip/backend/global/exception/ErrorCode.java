@@ -21,6 +21,15 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     
+    // Group
+    GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Group not found."),
+    GROUP_MEMBER_NOT_FOUND(HttpStatus.FORBIDDEN, "User is not a member of this group."),
+    GROUP_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "Group owner permission is required."),
+    GROUP_OWNER_CANNOT_LEAVE(HttpStatus.BAD_REQUEST, "Owner must transfer ownership or dissolve group before leaving."),
+    GROUP_FULL(HttpStatus.BAD_REQUEST, "Group member limit exceeded. Maximum is 8."),
+    INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "Invalid invite code."),
+    DUPLICATE_GROUP_MEMBER(HttpStatus.CONFLICT, "User already joined this group."),
+
     // Common
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
@@ -54,11 +63,7 @@ public enum ErrorCode {
     VOTE_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "투표 세션을 찾을 수 없습니다."),
     VOTE_CANDIDATE_NOT_FOUND(HttpStatus.NOT_FOUND, "투표 후보를 찾을 수 없습니다."),
     VOTE_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "이미 마감된 투표입니다."),
-    VOTE_SCORE_INVALID(HttpStatus.BAD_REQUEST, "투표 점수는 1~5 사이여야 합니다."),
-
-    // Group (B 도메인이지만 A 코드에서 참조 필요)
-    GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."),
-    NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "해당 그룹의 멤버가 아닙니다.");
+    VOTE_SCORE_INVALID(HttpStatus.BAD_REQUEST, "투표 점수는 1~5 사이여야 합니다.");
 
     /**
      * HTTP 응답 상태코드
