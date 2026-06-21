@@ -2,17 +2,21 @@ spring:
   application:
     name: enjoy-trip
 
+  config:
+    # backend 디렉터리 또는 저장소 루트에서 실행해도 로컬 .env를 선택적으로 읽는다.
+    import: optional:file:.env[.properties],optional:file:backend/.env[.properties]
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/enjoy_trip
-    username: enjoy_trip_user
-    password: enjoy_trip_pass
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/enjoy_trip}
+    username: ${DB_USER:enjoy_trip_user}
+    password: ${DB_PASS}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     open-in-view: false
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:true}
     hibernate:
-      ddl-auto: create	
+      ddl-auto: ${JPA_DDL_AUTO:create}
     properties:
       hibernate:
         format_sql: true
@@ -22,16 +26,29 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
 server:
-    port: 8080
+  port: ${SERVER_PORT:8080}
+
 jwt:
-  secret: ${JWT_SECRET:enjoy-trip-jwt-secret-key-must-be-at-least-256-bits-long-enough-for-hmac}
-  access-token-expiration: ${JWT_ACCESS_EXP:1800000}  # 30분 (요구사항 반영)
-  refresh-token-expiration: ${JWT_REFRESH_EXP:604800000}  # 7일
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_EXP:1800000} # 30분
+  refresh-token-expiration: ${JWT_REFRESH_EXP:604800000} # 7일
 
 minio:
-  endpoint: http://localhost:9000
-  access-key: minioadmin
-  secret-key: minioadmin123
-  bucket-name: enjoy-trip-files
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:}
+  secret-key: ${MINIO_SECRET_KEY:}
+  bucket-name: ${MINIO_BUCKET_NAME:enjoy-trip-files}
+
+google:
+  maps:
+    api-key: ${GOOGLE_MAPS_API_KEY:}
+
+kakao:
+  mobility:
+    api-key: ${KAKAO_MOBILITY_API_KEY:}
+
+tourapi:
+  service-key: ${TOURAPI_SERVICE_KEY:}
+
 cors:
-  allowed-origins: http://localhost:5173
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

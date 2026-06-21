@@ -4,9 +4,9 @@ services:
     image: postgres:16
     container_name: enjoy-trip-db
     environment:
-      POSTGRES_DB: enjoy_trip
-      POSTGRES_USER: enjoy_trip_user
-      POSTGRES_PASSWORD: enjoy_trip_pass
+      POSTGRES_DB: ${DB_NAME:-enjoy_trip}
+      POSTGRES_USER: ${DB_USER:-enjoy_trip_user}
+      POSTGRES_PASSWORD: ${DB_PASS}
     ports:
       - "5432:5432"
     volumes:
@@ -17,7 +17,6 @@ services:
 
 volumes:
   postgres_data:
-  minio_data:
 
 networks:
   enjoy-trip-network:

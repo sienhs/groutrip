@@ -174,8 +174,8 @@
 
 | 항목 | 우선순위 |
 | --- | --- |
-| JWT secret 환경변수화 | 🔴 |
-| Access Token 만료 15분 → 30분 (요구사항 통일) | 🔴 |
+| JWT/DB/MinIO/외 API 비밀값 환경변수 계약 | ✅ |
+| Access Token 만료 30분 (요구사항 통일) | ✅ |
 | `ddl-auto: create` 제거 + Flyway 도입 | 🔴 |
 | 운영 환경 Refresh Token cookie `Secure=true` | 🔴 |
 | `BaseEntity` 적용을 Group/Expense까지 확장하고 soft delete 표준 통합 | 🟠 |
@@ -704,11 +704,10 @@ public class ScheduleExpenseService {
 
 ### 즉시 시작 가능
 
-1. JWT/DB/MinIO 비밀값을 환경변수로 옮기고 Access Token 30분 정책을 맞춘다.
-2. Flyway를 도입하고 `BaseEntity`/soft delete 표준을 Group/Expense까지 통합한다.
-3. 지출 `RATIO`, `AMOUNT` 분담과 정산 완료 상태를 구현한다.
-4. `DomainEvent`/`EventType` 계약을 기준으로 SSE emitter, heartbeat, event bridge를 구현한다.
-5. Part A의 Place/Schedule/Vote가 `TravelGroup`, 권한 AOP, `sourceScheduleId` 계약을 사용하는지 통합 검증한다.
+1. Flyway를 도입하고 `BaseEntity`/soft delete 표준을 Group/Expense까지 통합한다.
+2. 지출 `RATIO`, `AMOUNT` 분담과 정산 완료 상태를 구현한다.
+3. `DomainEvent`/`EventType` 계약을 기준으로 SSE emitter, heartbeat, event bridge를 구현한다.
+4. Part A의 Place/Schedule/Vote가 `TravelGroup`, 권한 AOP, `sourceScheduleId` 계약을 사용하는지 통합 검증한다.
 
 ---
 

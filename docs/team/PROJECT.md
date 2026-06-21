@@ -221,12 +221,12 @@ throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
 ```
 
 **토큰 정책**
-- Access Token: 15분 (`jwt.access-token-expiration: 900000` ms)
+- Access Token: 30분 (`JWT_ACCESS_EXP`, 기본 1,800,000ms)
 - Refresh Token: 7일 (`jwt.refresh-token-expiration: 604800000` ms)
 - Access는 메모리(Zustand) 전용
 - Refresh는 HttpOnly 쿠키 + DB 영속화 (현재 로컬 설정은 `Secure=false`, 운영 HTTPS에서 `true` 필요)
 
-> ⚠️ 요구사항 v1.1은 Access Token 30분 명시. 현재 15분이라 차이 있음. 운영 전 통일 필요.
+JWT 서명 키는 기본값 없이 `JWT_SECRET`로만 주입하며, 32바이트 이상의 랜덤 값을 사용한다.
 
 ### 5.4 axios 인터셉터 — 자동 토큰 재발급
 
@@ -322,12 +322,19 @@ GRANT ALL PRIVILEGES ON DATABASE enjoy_trip TO enjoy_trip_user;
 ### 7.2 Backend
 
 ```bash
+cp backend/.env.example backend/.env
+
+# 저장소 루트에서 PostgreSQL 실행
+docker compose --env-file backend/.env up -d
+
 cd backend
 ./gradlew bootRun
 # 또는
 ./gradlew clean build
 java -jar build/libs/backend-0.0.1-SNAPSHOT.jar
 ```
+
+`backend/.env`의 `JWT_SECRET`, `DB_PASS`를 반드시 로컬 값으로 교체한다. Spring Boot는 `backend/.env`를 선택적으로 읽으며, OS/IDE 환경변수가 있으면 그 값이 우선한다.
 
 - 포트: `8080`
 - 시작 시 `DataInitializer`가 테스트 유저 자동 생성
@@ -365,7 +372,7 @@ spring.datasource.password      # DB 비밀번호
 spring.jpa.hibernate.ddl-auto   # create (개발) / validate (운영)
 
 jwt.secret                      # JWT 서명 키 (32바이트 이상)
-jwt.access-token-expiration     # ms 단위 (현재 15분)
+jwt.access-token-expiration     # ms 단위 (현재 30분)
 jwt.refresh-token-expiration    # ms 단위 (현재 7일)
 
 cors.allowed-origins            # 쉼표 구분 (FE origin)
@@ -390,7 +397,7 @@ kakao.mobility.api-key          # 카카오 모빌리티 (이동/비용)
 tourapi.service-key             # 한국관광공사 TourAPI
 ```
 
-> ⚠️ **모든 키는 환경변수로만 관리하고 절대 Git에 커밋 금지.** 현재 `application.yml`에 평문으로 있는 JWT secret도 운영 전 환경변수로 이전 필요.
+> ⚠️ **모든 키는 환경변수로만 관리하고 절대 Git에 커밋하지 않는다.** `application.yml`은 JWT/DB/MinIO/외부 API 비밀값을 환경변수로 참조한다.
 
 ---
 
@@ -424,11 +431,11 @@ tourapi.service-key             # 한국관광공사 TourAPI
 코드 리뷰 결과 발견된 항목들. 우선순위 표시.
 
 ### 🔴 운영 전 필수
-- [ ] **JWT secret을 환경변수로 이전** (`application.yml`에 평문 노출 중)
+- [x] **JWT/DB/MinIO/외부 API 비밀값 환경변수 계약 적용**
 - [ ] **`ddl-auto: create` → `validate` 변경** (운영 전환 시. 개발 중에는 유지)
 - [ ] **Refresh Token 쿠키 `Secure: true`** (`AuthController` 참고. 현재 false, HTTPS 환경에서 활성화)
 - [ ] **패키지명 정리**: `com.enjoytrip.backend` → 새 프로젝트명으로 변경 검토
-- [ ] **Access Token 만료 시간 통일**: 현재 15분 vs 요구사항 30분 → 정책 결정
+- [x] **Access Token 만료 시간 30분으로 통일**
 
 ### 🟠 다음 도메인 작업 전
 - [ ] **`BaseEntity` 적용 범위 확장** — Auth/Survey에는 적용됨. Group/Expense 엔티티와 auditing/soft delete 표준 통합 필요
@@ -449,9 +456,9 @@ tourapi.service-key             # 한국관광공사 TourAPI
 
 ### 🟢 운영 / 인프라
 - [ ] **Flyway 마이그레이션 도입** — 현재 `ddl-auto`로 스키마 관리 중. 운영 전 필수
-- [x] **Docker Compose 기본 구성** — Postgres + MinIO 실행 구성 존재 (Redis는 미도입)
+- [x] **Docker Compose 기본 구성** — PostgreSQL 실행 구성 존재 (MinIO/Redis는 미도입)
 - [ ] **GitHub Actions CI** — 빌드 + 테스트 자동화
-- [ ] **`.env.example` 파일 생성** — 환경변수 템플릿 제공
+- [x] **`backend/.env.example` 파일 생성** — 비밀값 없는 환경변수 템플릿 제공
 
 ---
 
