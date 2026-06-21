@@ -129,7 +129,7 @@
 
 ## 5. 현재 구현 상태
 
-### ✅ 완료 (D+0 ~ D+1)
+### ✅ 현재 브랜치에 구현됨 (2026-06-22, `hodu42` 기준)
 
 **Backend**
 - Spring Boot 4.0.6 셋업, PostgreSQL 연결
@@ -141,17 +141,31 @@
 - 글로벌 예외 처리 + 표준 응답 (`ApiResponse<T>`, `ErrorCode`)
 - JPA Auditing 활성화
 - `DataInitializer`로 테스트 유저 자동 생성
+- OpenAPI/Swagger UI 설정
+- 그룹 생성·참여·상세·수정, 멤버 조회·탈퇴·강퇴, Owner 위임, 해체, 초대 코드 재발급
+- `@RequiredGroupMember`, `@RequiredGroupOwner` AOP와 서비스 레벨 `GroupAccessValidator`
+- 지출 등록·목록·수정·삭제 + 작성자/Owner 권한 검증
+- `sourceScheduleId` 선택 참조를 포함한 FR-EXPENSE-07 저장 계약
+- 지출 기반 멤버 잔액 매트릭스와 Greedy 최소 송금 목록 계산
+- `DomainEvent`, `EventType` SSE 연동용 공통 계약
+- 그룹 상태, 지출 생성, 정산 알고리즘 테스트
 
 **Frontend**
 - Vite + React 19 + TypeScript + Tailwind 셋업
 - axios 인스턴스 + 토큰 재발급 인터셉터
 - Zustand 인증 스토어
-- 로그인 / 회원가입 페이지
+- 로그인 / 회원가입 / 홈 스캐폴딩 페이지
+- 보호 라우트
 
-**B 도메인 (그룹)**
-- `TravelGroup` 엔티티 (groups 테이블)
-- `GroupMember` 엔티티 (group_members 테이블, soft leave)
-- `GroupRole`, `GroupStatus` enum
+### 🚧 아직 없거나 부분 구현됨
+
+- Part A 도메인: 성향 설문, 장소, 일정, 투표, 추천, 홈 집계, 마이페이지
+- 그룹: 내 그룹 목록/상태별 필터, 일정 삭제 여부를 확인하는 종료일 단축 계약
+- 지출: `EQUAL`만 구현됨. `RATIO`, `AMOUNT`는 enum만 존재
+- 정산: 송금 확인 상태, 딥링크/QR, 전체 완료 처리
+- SSE: emitter registry, heartbeat, event bridge, 재연결/폴링 폴백
+- Notification 저장/읽음 처리
+- 그룹·지출·정산 프론트엔드
 
 ### 🔴 운영 전 손봐야 할 것 (Phase 0에서 정리)
 
@@ -159,11 +173,14 @@
 | --- | --- |
 | JWT secret 환경변수화 | 🔴 |
 | Access Token 만료 15분 → 30분 (요구사항 통일) | 🔴 |
+| `ddl-auto: create` 제거 + Flyway 도입 | 🔴 |
+| 운영 환경 Refresh Token cookie `Secure=true` | 🔴 |
 | `BaseEntity` 공통 클래스 추출 (User/RefreshToken에 적용) | 🟠 |
 | 회원가입 이름 길이 Validation (2~20자) | 🟠 |
 | `AuthController.logout`의 TODO 정리 | 🟠 |
 | `AuthController`의 불필요한 `RefreshTokenRepository` 주입 제거 | 🟠 |
-| `ErrorCode`에 도메인별 항목 추가 | 🟠 |
+| `RATIO`/`AMOUNT` 지출 분담 구현 | 🟠 |
+| SSE + Notification 구현 | 🟠 |
 
 ---
 
@@ -203,14 +220,16 @@ private TravelGroup travelGroup;
 GroupStatus current = GroupStatus.fromDates(group.getStartDate(), group.getEndDate(), LocalDate.now());
 ```
 
-### B가 만들 예정 (A가 인터페이스만 사용)
+### B가 제공하는 현재 인터페이스
 
-| 산출물 | 형태 | A 사용 시점 |
+| 산출물 | 현재 상태 | A 연동 방법 |
 | --- | --- | --- |
-| `@RequiredGroupMember` 어노테이션 + AOP | 메서드에 붙임 | Phase 2부터 모든 그룹 API |
-| `@RequiredGroupOwner` 어노테이션 + AOP | 메서드에 붙임 | 그룹 수정/삭제 API에 |
-| `SseEventBridge` | `@EventListener` Bean | Phase 3부터 이벤트 발행 |
-| `ExpenseService.create()` | 외부 서비스 호출 | Phase 3 FR-EXPENSE-07 |
+| `@RequiredGroupMember` + AOP | 구현됨 | 그룹 멤버 전용 API 진입점에 적용 |
+| `@RequiredGroupOwner` + AOP | 구현됨 | Owner 전용 API 진입점에 적용 |
+| `GroupAccessValidator` | 구현됨 | 서비스 레벨 최종 권한 검증 |
+| `POST /api/groups/{groupId}/expenses` | 구현됨 | `sourceScheduleId` 선택값으로 FR-EXPENSE-07 연결 |
+| `DomainEvent`, `EventType` | 계약만 구현됨 | Part A가 Spring application event를 발행 |
+| `SseEventBridge` | 미구현 | Part B가 후속 구현해 SSE로 broadcast |
 
 ---
 
@@ -627,7 +646,7 @@ public class ScheduleExpenseService {
 
 ## 10. 통합 일정표
 
-A의 모든 작업과 B와의 머지 시점을 한 표로 정리.
+아래 표는 초기 14일 계획을 보존한 것이며 **현재 구현 상태를 나타내지 않는다.** 실제 현황은 5장을 기준으로 한다.
 
 | Day | A 작업 | B 작업 | 머지/합의 |
 | --- | --- | --- | --- |
@@ -653,12 +672,12 @@ A의 모든 작업과 B와의 머지 시점을 한 표로 정리.
 
 | # | 리스크 | 확률 | 영향 | 대응 |
 | --- | --- | --- | --- | --- |
-| 1 | B의 그룹 도메인이 D+3에 안 끝남 | 중 | 매우 높음 | MSW로 프론트 모킹, 서비스 내 권한 체크 임시 코드 |
+| 1 | Part A/B 병합 시 Auth, `DataInitializer`, `ErrorCode` 충돌 | 높음 | 높음 | 시드 독립 실행, 공식 Group 코드 유지, 빌드/테스트 후 병합 |
 | 2 | Google Places 비용 폭주 | 중 | 중 | 24h DB 캐시 강제, Budget Alert $50 |
 | 3 | 카카오 모빌리티 대중교통 API 미지원 | 중 | 중 | D+1에 실제 호출 검증, 안 되면 ODsay로 전환 |
 | 4 | SSE 다중 그룹 채널 관리 버그 | 중 | 높음 | D+10에 폴링 폴백 코드 준비 (5초 refetch) |
 | 5 | 드래그앤드롭 + 시간 동기화 복잡도 | 중 | 중 | order_index만 변경, 시간은 수동 입력 |
-| 6 | 정산 Greedy 알고리즘 오류 | 낮 | 낮 | 단위 테스트 필수 |
+| 6 | 정산 Greedy 알고리즘 회귀 | 낮 | 높음 | 현재 단위 테스트 유지 + 병합 후 회귀 테스트 |
 | 7 | 한 명이 아픔 | 낮 | 매우 높음 | Feature Freeze를 D+11로 당기는 옵션 사전 합의 |
 | 8 | AI 토큰 한도 도달 | 중 | 중 | 핵심 도메인부터 작업, 후순위는 수기 |
 
@@ -682,29 +701,13 @@ A의 모든 작업과 B와의 머지 시점을 한 표로 정리.
 
 ### 즉시 시작 가능
 
-✅ **Phase 0 공통 인프라 개선**
-- 파트 A 내부 작업 계획의 Phase 0 항목 참고
-- 파트 A 담당 도구에서 별도 진행
-
-### D+1 종료 전 B와 같이 결정
-
-- [ ] BaseEntity 도입 시 B의 TravelGroup도 함께 마이그레이션할지
-- [ ] ErrorCode의 GROUP_* 항목 분배 (중복 방지)
-- [ ] Flyway 도입 시점 (지금 vs 나중)
-
-### D+3 전 B에게 요청
-
-- [ ] 그룹 권한 어노테이션 시그니처 미리 공유 (`@RequiredGroupMember`, `@RequiredGroupOwner`)
-- [ ] 그룹 API 응답 DTO 형태 미리 공유 (A의 일정/장소 화면에서 사용)
-
-### D+5 전 B와 합의
-
-- [ ] FR-EXPENSE-07 DTO 구조 (ExpenseAutoRegisterRequest)
-
-### D+9 전 B와 합의
-
-- [ ] SSE EventType enum 항목
-- [ ] DomainEvent 페이로드 표준
+1. `sienhs` + `hodu42` 변경을 `develop`에 병합하고 `DataInitializer`, `ErrorCode`, Auth 공통 파일 충돌을 해결한다.
+2. 병합 후 설문 시드와 테스트 사용자 시드가 서로를 막지 않는지 검증한다.
+3. JWT/DB/MinIO 비밀값을 환경변수로 옮기고 Access Token 30분 정책을 맞춘다.
+4. Flyway와 `BaseEntity`/soft delete 표준을 도입한다.
+5. 지출 `RATIO`, `AMOUNT` 분담과 정산 완료 상태를 구현한다.
+6. `DomainEvent`/`EventType` 계약을 기준으로 SSE emitter, heartbeat, event bridge를 구현한다.
+7. Part A의 Place/Schedule/Vote가 `TravelGroup`, 권한 AOP, `sourceScheduleId` 계약을 사용하는지 통합 검증한다.
 
 ---
 
@@ -720,14 +723,17 @@ com.enjoytrip.backend.domain.{도메인}/
 └── dto/          # Request/Response
 
 com.enjoytrip.backend.global/
-├── config/       # SecurityConfig, CorsConfig, WebClientConfig
+├── config/       # SecurityConfig, CorsConfig, OpenApiConfig
+├── event/        # DomainEvent, EventType
 ├── exception/    # GlobalExceptionHandler, BusinessException, ErrorCode
 ├── response/     # ApiResponse
-├── security/     # JwtUtil, JwtFilter
-└── entity/       # BaseEntity
+└── security/     # JwtUtil, JwtFilter
 ```
 
 ### 엔티티 패턴
+
+> 아래는 `BaseEntity` 도입 후의 목표 패턴이다. 현재 브랜치에는 `BaseEntity`가 없고 각 엔티티가 auditing 필드를 개별 관리한다.
+
 ```java
 @Entity
 @Table(name = "...")
@@ -787,5 +793,5 @@ chore(deps): @dnd-kit 추가
 
 ---
 
-*Last updated: 2026-06-10 / Version 1.0*
-*다음 갱신 예정: Phase 0 완료 후 (D+1 저녁)*
+*Last updated: 2026-06-22 / Version 1.1 (current `hodu42` branch snapshot)*
+*다음 갱신 예정: `sienhs` + `hodu42` 통합 후*

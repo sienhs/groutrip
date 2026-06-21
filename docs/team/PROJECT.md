@@ -84,57 +84,31 @@
 backend/
 ├── build.gradle
 └── src/
-    ├── main/
-    │   ├── java/com/enjoytrip/backend/
-    │   │   ├── BackendApplication.java        # @EnableJpaAuditing
-    │   │   ├── domain/                         # 도메인 단위 패키지
-    │   │   │   └── auth/
-    │   │   │       ├── controller/AuthController.java
-    │   │   │       ├── service/
-    │   │   │       │   ├── AuthService.java
-    │   │   │       │   └── CustomUserDetailService.java
-    │   │   │       ├── repository/
-    │   │   │       │   ├── UserRepository.java
-    │   │   │       │   └── RefreshTokenRepository.java
-    │   │   │       ├── entity/
-    │   │   │       │   ├── User.java
-    │   │   │       │   └── RefreshToken.java
-    │   │   │       └── dto/
-    │   │   │           ├── LoginRequest.java
-    │   │   │           ├── LoginResponse.java
-    │   │   │           └── SignupRequest.java
-    │   │   └── global/                         # 공통 설정·인프라
-    │   │       ├── config/
-    │   │       │   ├── SecurityConfig.java
-    │   │       │   ├── CorsConfig.java
-    │   │       │   └── DataInitializer.java    # 테스트 유저 자동 생성
-    │   │       ├── exception/
-    │   │       │   ├── GlobalExceptionHandler.java
-    │   │       │   ├── BusinessException.java
-    │   │       │   └── ErrorCode.java          # enum
-    │   │       ├── response/
-    │   │       │   └── ApiResponse.java        # 표준 응답 포맷
-    │   │       └── security/
-    │   │           ├── JwtUtil.java
-    │   │           └── JwtFilter.java
-    │   └── resources/
-    │       └── application.yml
-    └── test/
+    ├── main/java/com/enjoytrip/backend/
+    │   ├── domain/
+    │   │   ├── auth/          # 회원가입, 로그인, 토큰 재발급, 로그아웃
+    │   │   ├── group/         # 그룹 CRUD, 멤버 관리, 초대 코드, 권한 AOP
+    │   │   ├── expense/       # 지출 CRUD, 균등 분담, 일정 출처 참조
+    │   │   └── settlement/    # 잔액 매트릭스, Greedy 최소 송금 계산
+    │   └── global/
+    │       ├── config/         # Security, CORS, OpenAPI, 테스트 시드
+    │       ├── event/          # DomainEvent, EventType 계약
+    │       ├── exception/      # ErrorCode, 전역 예외 처리
+    │       ├── response/       # ApiResponse
+    │       └── security/       # JWT 필터/유틸
+    └── test/java/com/enjoytrip/backend/domain/
+        ├── expense/
+        ├── group/
+        └── settlement/
 
 frontend/
-├── package.json
 └── src/
-    ├── api/
-    │   ├── instance.ts                         # axios 인스턴스 + 인터셉터
-    │   └── auth.ts                             # 인증 API 함수
-    ├── pages/
-    │   └── auth/
-    │       ├── LoginPage.tsx
-    │       └── SignupPage.tsx
-    ├── store/
-    │   └── authStore.ts                        # Zustand 인증 스토어
+    ├── api/             # axios 인스턴스, 인증 API
+    ├── components/      # 보호 라우트
+    ├── pages/auth/      # 로그인, 회원가입
+    ├── pages/home/      # 인증 후 홈 스캐폴딩
+    ├── store/           # Zustand 인증 상태
     └── types/
-        └── auth.ts
 ```
 
 ### 패키지 구조 규칙
@@ -146,12 +120,12 @@ frontend/
 
 ## 4. 현재 구현 상태
 
-### ✅ 완료
+### ✅ 구현됨
 
 #### Backend
 - [x] 프로젝트 셋업 (Spring Boot 4.0.6, JDK 21)
 - [x] PostgreSQL 연결 (`application.yml`)
-- [x] **인증 도메인 전체** (FR-AUTH-01 ~ 04)
+- [x] **인증 도메인 기본 흐름** (FR-AUTH-01 ~ 04)
   - 회원가입 (이메일·비밀번호·이름 + Validation)
   - 로그인 (Access Token + Refresh Token 발급)
   - 토큰 재발급
@@ -163,9 +137,16 @@ frontend/
 - [x] Spring Security 설정 (Stateless, CORS, CSRF disabled)
 - [x] 글로벌 예외 처리 (`GlobalExceptionHandler`)
 - [x] 표준 응답 포맷 (`ApiResponse<T>`)
-- [x] ErrorCode enum 기본 항목 (Auth, Common, File)
+- [x] ErrorCode enum (Auth, Common, File, Group, Expense)
 - [x] JPA Auditing (`@CreatedDate`, `@LastModifiedDate`)
 - [x] 테스트 사용자 자동 생성 (`DataInitializer`: `test@test.com` / `test1234`)
+- [x] OpenAPI/Swagger UI 설정
+- [x] 그룹 생성·참여·상세·수정, 멤버 조회·탈퇴·강퇴, Owner 위임, 해체, 초대 코드 재발급 (FR-GROUP-01 ~ 07)
+- [x] `@RequiredGroupMember`, `@RequiredGroupOwner` AOP + 서비스 레벨 `GroupAccessValidator`
+- [x] 지출 등록·목록·수정·삭제, 작성자 또는 Owner 권한 검증 (FR-EXPENSE-01 ~ 03)
+- [x] `sourceScheduleId` 선택 참조를 포함한 FR-EXPENSE-07 저장 계약
+- [x] 멤버별 잔액과 Greedy 최소 송금 목록 계산 (FR-EXPENSE-04)
+- [x] 그룹 상태, 지출 서비스, 정산 알고리즘 테스트
 
 #### Frontend
 - [x] Vite + React 19 + TypeScript 셋업
@@ -176,15 +157,18 @@ frontend/
 - [x] 인증 API 함수 (login, signup, logout, reissue)
 - [x] Tailwind CSS 디자인 토큰 (오렌지 `#FF9F66`)
 
-### 🚧 진행 중 / 다음 작업
-- [ ] 성향 설문 (FR-SURVEY-01 ~ 03) ← **다음 A 작업**
+### 🚧 미구현 / 부분 구현
+- [ ] 성향 설문 (FR-SURVEY-01 ~ 03) — 현재 브랜치에 코드 없음
 - [ ] 비밀번호 변경, 계정 탈퇴 (FR-AUTH-05, 06)
 - [ ] 장소 검색 (Google Places API 통합)
 - [ ] 일정 관리 + 카카오 모빌리티
 - [ ] 일정 투표
-- [ ] 그룹 (B 담당)
-- [ ] 정산 (B 담당)
-- [ ] SSE (B 담당)
+- [ ] 그룹 목록/상태별 필터 응답 및 일정 도메인과의 종료일 단축 검증
+- [ ] 지출 `RATIO`, `AMOUNT` 분담 — enum은 있지만 서비스는 `EQUAL`만 지원
+- [ ] 정산 송금 확인 상태, 송금 딥링크/QR, 전체 완료 처리 (FR-EXPENSE-05, 06)
+- [ ] SSE 연결·Emitter·heartbeat·event bridge — `DomainEvent`, `EventType` 계약만 존재
+- [ ] Notification 저장/읽음 처리
+- [ ] 그룹·지출·정산 프론트엔드 연동
 
 ---
 
@@ -235,7 +219,7 @@ throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
 - Access Token: 15분 (`jwt.access-token-expiration: 900000` ms)
 - Refresh Token: 7일 (`jwt.refresh-token-expiration: 604800000` ms)
 - Access는 메모리(Zustand) 전용
-- Refresh는 HttpOnly + Secure 쿠키 + DB 영속화
+- Refresh는 HttpOnly 쿠키 + DB 영속화 (현재 로컬 설정은 `Secure=false`, 운영 HTTPS에서 `true` 필요)
 
 > ⚠️ 요구사항 v1.1은 Access Token 30분 명시. 현재 15분이라 차이 있음. 운영 전 통일 필요.
 
@@ -277,10 +261,30 @@ CORS_ALLOWED_ORIGINS=https://myapp.com ./gradlew bootRun
 | POST | `/api/auth/reissue` | Cookie | Refresh Token으로 Access Token 재발급 |
 | POST | `/api/auth/logout` | Cookie | 로그아웃 (쿠키 + DB 삭제) |
 
-### 예정
+### Group (구현됨)
 
-> 요구사항 명세서 v1.1의 도메인별 엔드포인트 표 참고.
-> Survey / User / Place / Schedule / Vote / Group / Expense / SSE / Dashboard
+| Method | Path | 설명 |
+| --- | --- | --- |
+| POST | `/api/groups` | 그룹 생성 |
+| POST | `/api/groups/join/{inviteCode}` | 초대 코드로 참여 |
+| GET/PATCH/DELETE | `/api/groups/{groupId}` | 상세 조회 / Owner 수정 / Owner 해체 |
+| GET | `/api/groups/{groupId}/members` | 활성 멤버 목록 |
+| DELETE | `/api/groups/{groupId}/members/me` | 그룹 나가기 |
+| DELETE | `/api/groups/{groupId}/members/{targetUserId}` | Owner 멤버 강퇴 |
+| PATCH | `/api/groups/{groupId}/owner/{targetUserId}` | Owner 위임 |
+| PATCH | `/api/groups/{groupId}/invite-code` | 초대 코드 재발급 |
+
+`POST /api/groups/{groupId}/permission-check`는 권한 AOP 연동 확인용 임시 API다.
+
+### Expense / Settlement (구현됨)
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| POST/GET | `/api/groups/{groupId}/expenses` | 지출 등록 / 목록 조회 |
+| PATCH/DELETE | `/api/groups/{groupId}/expenses/{expenseId}` | 지출 수정 / soft delete |
+| GET | `/api/groups/{groupId}/settlements` | 잔액 매트릭스 + Greedy 송금 목록 |
+
+> 지출 분담은 현재 `EQUAL`만 구현되었다. Survey / Place / Schedule / Vote / SSE / Notification / Dashboard API는 현재 브랜치에 없다.
 
 ---
 
@@ -332,7 +336,7 @@ npm run dev
 ```
 이메일:   test@test.com
 비밀번호: test1234
-이름:     테스트선생님
+이름:     Test User
 ```
 
 ---
@@ -415,22 +419,24 @@ tourapi.service-key             # 한국관광공사 TourAPI
 
 ### 🟠 다음 도메인 작업 전
 - [ ] **`BaseEntity` 공통 클래스 추출** — 현재 User만 직접 `@EntityListeners`. 도메인 늘어나기 전에 공통화
-- [ ] **회원가입 이름 길이 Validation 추가** (현재 `@NotBlank`만, 요구사항은 2~20자)
+- [ ] **회원가입 이름 Validation 추가** — 현재 `@NotBlank`만 있으며 2~20자, 한글·영문·숫자 제한이 필요
 - [ ] **`AuthController.logout`의 SecurityContext에서 email 추출** (TODO 주석으로 남아있음)
 - [ ] **`AuthController`에서 `RefreshTokenRepository` 직접 주입 제거** — Service 계층으로 이동
 - [ ] **`Soft Delete` 표준 도입** (`@SQLDelete + @Where`, `deleted_at` 컬럼)
-- [ ] **`ErrorCode`에 Group/Place/Schedule/Vote/Expense/SSE 항목 추가** — 메시지 카탈로그 v1.1 기준
+- [ ] **`ErrorCode` 보완** — Group/Expense 기본 항목은 있으며 Place/Schedule/Vote/SSE 도메인 구현 시 메시지 카탈로그와 맞추기
+- [ ] **지출 분담 완성** — `RATIO`, `AMOUNT` 요청 DTO와 합계 검증 로직 추가
+- [ ] **SSE 인프라 구현** — 현재 공통 이벤트 계약만 있음
 
 ### 🟡 품질 / 보안 강화
 - [ ] **로그인 Rate Limiting** (5회/5분, FR-AUTH-02) — 현재 미구현
 - [ ] **회원가입 Rate Limiting** (3회/시간/IP)
 - [ ] **Refresh Token 만료 7일 후 자동 삭제 배치**
-- [ ] **단위 테스트** — 정산 알고리즘, 권한 검증 등 핵심 비즈니스 로직
+- [ ] **테스트 보강** — 그룹 서비스/권한 AOP 통합, 지출 수정·삭제, SSE 이벤트 흐름 (정산 알고리즘·지출 생성 테스트는 존재)
 - [ ] **MinIO 의존성 정리** — 아직 사용 안 함. 파일 업로드 도입 시점에 활성화
 
 ### 🟢 운영 / 인프라
 - [ ] **Flyway 마이그레이션 도입** — 현재 `ddl-auto`로 스키마 관리 중. 운영 전 필수
-- [ ] **Docker Compose 작성** — Postgres + (MinIO + Redis) 통합 실행
+- [x] **Docker Compose 기본 구성** — Postgres + MinIO 실행 구성 존재 (Redis는 미도입)
 - [ ] **GitHub Actions CI** — 빌드 + 테스트 자동화
 - [ ] **`.env.example` 파일 생성** — 환경변수 템플릿 제공
 
@@ -498,4 +504,4 @@ refactor(auth): 컨트롤러에서 직접 주입 제거
 
 ---
 
-*Last updated: 2026-06-10 / Version 1.0*
+*Last updated: 2026-06-22 / Version 1.1 (current `hodu42` branch snapshot)*
