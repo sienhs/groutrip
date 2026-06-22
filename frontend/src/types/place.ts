@@ -42,6 +42,8 @@ export interface PlaceSearchResult {
 
 /** ② 보관함 항목 안의 장소 정보. 검색 결과에서 category 제외 + Details 보강 3필드. */
 export interface PlaceResponse {
+  /** 내부 Place id. 일정 생성/투표 후보 등록(placeId)에 사용. */
+  placeId: number;
   googlePlaceId: string;
   name: string;
   address: string | null;

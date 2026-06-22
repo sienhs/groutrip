@@ -10,6 +10,7 @@ import com.enjoytrip.backend.domain.place.entity.Place;
  * {@code photoUrl}은 BE 사진 프록시 경로다.
  */
 public record PlaceResponse(
+        Long placeId,        // 내부 Place id. 일정 생성/투표 후보 등록(placeId)에 사용한다.
         String googlePlaceId,
         String name,
         String address,
@@ -31,6 +32,7 @@ public record PlaceResponse(
                 ? List.of()
                 : Arrays.asList(place.getTypes().split(","));
         return new PlaceResponse(
+                place.getId(),
                 place.getGooglePlaceId(),
                 place.getName(),
                 place.getAddress(),
