@@ -29,8 +29,10 @@ instance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config as RetryableRequest;
+    // reissue 호출 자체의 401은 "세션 없음"이므로 재발급/리다이렉트 대상이 아니다(무한 루프 방지).
+    const isReissueCall = originalRequest?.url?.includes('/api/auth/reissue') ?? false;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isReissueCall) {
       originalRequest._retry = true;
 
       try {
@@ -45,7 +47,10 @@ instance.interceptors.response.use(
         return instance(originalRequest);
       } catch {
         setAccessToken(null);
-        window.location.href = '/login';
+        // 이미 로그인 화면이면 리다이렉트하지 않는다(새로고침 루프 방지).
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(error);
       }
     }
