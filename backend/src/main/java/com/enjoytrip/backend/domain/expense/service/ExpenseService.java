@@ -1,26 +1,34 @@
 package com.enjoytrip.backend.domain.expense.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseCategoryTotalResponse;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseCreateRequest;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseDailyTotalResponse;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseResponse;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseSplitRequest;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseSummaryResponse;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseUpdateRequest;
 import com.enjoytrip.backend.domain.expense.entity.Expense;
+import com.enjoytrip.backend.domain.expense.entity.ExpenseCategory;
 import com.enjoytrip.backend.domain.expense.entity.ExpenseSplit;
 import com.enjoytrip.backend.domain.expense.entity.SplitType;
 import com.enjoytrip.backend.domain.expense.repository.ExpenseRepository;
 import com.enjoytrip.backend.domain.expense.repository.ExpenseSplitRepository;
 import com.enjoytrip.backend.domain.group.entity.GroupMember;
 import com.enjoytrip.backend.domain.group.entity.TravelGroup;
+import com.enjoytrip.backend.domain.group.repository.GroupMemberRepository;
 import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
@@ -37,6 +45,7 @@ public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final ExpenseSplitRepository expenseSplitRepository;
     private final TravelGroupRepository travelGroupRepository;
+    private final GroupMemberRepository groupMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
 
@@ -84,11 +93,18 @@ public class ExpenseService {
      * 그룹 멤버만 삭제되지 않은 지출을 결제일 최신순으로 확인할 수 있다.
      */
     @Transactional(readOnly = true)
-    public List<ExpenseResponse> findGroupExpenses(Long groupId) {
+    public List<ExpenseResponse> findGroupExpenses(
+            Long groupId,
+            ExpenseCategory category,
+            Long payerId,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
         User user = currentUserResolver.getCurrentUser();
         groupAccessValidator.validateMember(groupId, user.getId());
+        validateDateFilter(startDate, endDate);
 
-        List<Expense> expenses = expenseRepository.findByTravelGroupIdAndDeletedAtIsNullOrderByPaidAtDescIdDesc(groupId);
+        List<Expense> expenses = expenseRepository.findAllByFilters(groupId, category, payerId, startDate, endDate);
         List<Long> expenseIds = expenses.stream()
                 .map(Expense::getId)
                 .toList();
@@ -103,6 +119,46 @@ public class ExpenseService {
                         splitsByExpenseId.getOrDefault(expense.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    /**
+     * FR-EXPENSE-02: 지출 요약 조회.
+     * 목록과 동일한 필터를 적용해 총액, 활성 멤버 기준 평균, 카테고리/일자별 합계를 계산한다.
+     */
+    @Transactional(readOnly = true)
+    public ExpenseSummaryResponse summarize(
+            Long groupId,
+            ExpenseCategory category,
+            Long payerId,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, user.getId());
+        validateDateFilter(startDate, endDate);
+
+        List<Expense> expenses = expenseRepository.findAllByFilters(groupId, category, payerId, startDate, endDate);
+        long totalExpenseAmount = expenses.stream().mapToLong(Expense::getAmount).sum();
+        long activeMemberCount = groupMemberRepository.countByTravelGroupIdAndLeftAtIsNull(groupId);
+        long averagePerMemberAmount = activeMemberCount == 0 ? 0 : totalExpenseAmount / activeMemberCount;
+
+        Map<ExpenseCategory, Long> categoryTotals = new EnumMap<>(ExpenseCategory.class);
+        Map<LocalDate, Long> dailyTotals = new TreeMap<>();
+        for (Expense expense : expenses) {
+            categoryTotals.merge(expense.getCategory(), expense.getAmount(), Long::sum);
+            dailyTotals.merge(expense.getPaidAt(), expense.getAmount(), Long::sum);
+        }
+
+        return new ExpenseSummaryResponse(
+                totalExpenseAmount,
+                averagePerMemberAmount,
+                categoryTotals.entrySet().stream()
+                        .map(entry -> new ExpenseCategoryTotalResponse(entry.getKey(), entry.getValue()))
+                        .toList(),
+                dailyTotals.entrySet().stream()
+                        .map(entry -> new ExpenseDailyTotalResponse(entry.getKey(), entry.getValue()))
+                        .toList()
+        );
     }
 
     /**
@@ -307,6 +363,13 @@ public class ExpenseService {
 
     private boolean hasValues(List<?> values) {
         return values != null && !values.isEmpty();
+    }
+
+    // FR-EXPENSE-02: 시작일이 종료일보다 늦은 필터는 잘못된 요청으로 처리한다.
+    private void validateDateFilter(LocalDate startDate, LocalDate endDate) {
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
     }
 
     private List<ExpenseSplit> createSplits(Expense expense, List<ResolvedSplit> resolvedSplits) {

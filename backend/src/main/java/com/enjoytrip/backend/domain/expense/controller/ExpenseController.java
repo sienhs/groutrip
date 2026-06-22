@@ -1,7 +1,9 @@
 package com.enjoytrip.backend.domain.expense.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,11 +12,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.enjoytrip.backend.domain.expense.dto.ExpenseCreateRequest;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseResponse;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseSummaryResponse;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseUpdateRequest;
+import com.enjoytrip.backend.domain.expense.entity.ExpenseCategory;
 import com.enjoytrip.backend.domain.expense.service.ExpenseService;
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
 import com.enjoytrip.backend.global.response.ApiResponse;
@@ -66,10 +71,47 @@ public class ExpenseController {
     )
     public ResponseEntity<ApiResponse<List<ExpenseResponse>>> findGroupExpenses(
             @Parameter(description = "지출 목록을 조회할 그룹 ID", example = "1")
-            @PathVariable Long groupId
+            @PathVariable Long groupId,
+            @RequestParam(required = false) ExpenseCategory category,
+            @RequestParam(required = false) Long payerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        List<ExpenseResponse> response = expenseService.findGroupExpenses(groupId);
+        List<ExpenseResponse> response = expenseService.findGroupExpenses(
+                groupId,
+                category,
+                payerId,
+                startDate,
+                endDate
+        );
         return ResponseEntity.ok(ApiResponse.success("Expenses found.", response));
+    }
+
+    // FR-EXPENSE-02: 목록과 동일한 필터로 합계 및 차트 데이터를 조회한다.
+    @RequiredGroupMember
+    @GetMapping("/summary")
+    @Operation(
+            summary = "그룹 지출 요약 조회",
+            description = """
+                    FR-EXPENSE-02: 선택한 카테고리, 결제자, 날짜 범위에 해당하는 총 지출액과
+                    활성 멤버 기준 1인당 평균, 카테고리별 합계, 결제일별 합계를 반환한다.
+                    """
+    )
+    public ResponseEntity<ApiResponse<ExpenseSummaryResponse>> summarize(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) ExpenseCategory category,
+            @RequestParam(required = false) Long payerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        ExpenseSummaryResponse response = expenseService.summarize(
+                groupId,
+                category,
+                payerId,
+                startDate,
+                endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success("Expense summary found.", response));
     }
 
     // FR-EXPENSE-03: 작성자 또는 Owner가 지출 정보와 분담 결과를 수정한다.
