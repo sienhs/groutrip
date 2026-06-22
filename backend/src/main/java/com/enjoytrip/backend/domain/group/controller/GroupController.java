@@ -50,6 +50,20 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("Group created.", response));
     }
 
+    // FR-GROUP-02: 로그인한 사용자가 현재 참여 중인 그룹 목록을 조회한다.
+    @GetMapping
+    @Operation(
+            summary = "내 그룹 목록 조회",
+            description = """
+                    FR-GROUP-02: 현재 사용자가 활성 멤버로 참여 중인 그룹만 조회한다.
+                    삭제된 그룹은 제외하며, 진행 중 그룹, 가까운 예정 그룹, 최근 완료 그룹 순으로 반환한다.
+                    """
+    )
+    public ResponseEntity<ApiResponse<List<GroupResponse>>> findMyGroups() {
+        List<GroupResponse> response = groupService.findMyGroups();
+        return ResponseEntity.ok(ApiResponse.success("Groups found.", response));
+    }
+
     // FR-GROUP-03: 초대 코드로 그룹에 참여한다.
     @PostMapping("/join/{inviteCode}")
     @Operation(
@@ -220,21 +234,4 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("Invite code regenerated.", response));
     }
 
-    // 그룹 권한 AOP가 실제로 동작하는지 확인하기 위한 임시 엔드포인트다.
-    @RequiredGroupMember
-    @PostMapping("/{groupId}/permission-check")
-    @Operation(
-            summary = "그룹 멤버 권한 확인",
-            description = """
-                    개발/연동 확인용 API다.
-                    @RequiredGroupMember AOP가 현재 사용자가 해당 그룹의 활성 멤버인지 검증하는지 확인할 때 사용한다.
-                    실제 서비스 화면 기능이 안정화되면 제거하거나 테스트 전용으로 분리할 수 있다.
-                    """
-    )
-    public ResponseEntity<ApiResponse<Void>> permissionCheck(
-            @Parameter(description = "권한을 확인할 그룹 ID", example = "1")
-            @PathVariable Long groupId
-    ) {
-        return ResponseEntity.ok(ApiResponse.success("Group member permission check passed."));
-    }
 }
