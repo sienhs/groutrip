@@ -179,7 +179,7 @@ public class GroupService {
     }
 
     /**
-     * FR-GROUP-05: 그룹 나가기 TODO.
+     * FR-GROUP-05: 그룹 나가기.
      * Owner는 바로 나갈 수 없고 Owner 이전 또는 그룹 해체가 선행되어야 한다.
      */
     public void leaveGroup(Long groupId) {
@@ -197,7 +197,7 @@ public class GroupService {
     }
 
     /**
-     * FR-GROUP-05: 멤버 강퇴 TODO.
+     * FR-GROUP-05: 멤버 강퇴.
      * Owner만 실행할 수 있고, 작성 데이터는 보존하며 멤버십만 비활성화한다.
      */
     public void kickMember(Long groupId, Long targetUserId) {
@@ -221,7 +221,7 @@ public class GroupService {
     }
 
     /**
-     * FR-GROUP-05: Owner 이전 TODO.
+     * FR-GROUP-05: Owner 이전.
      * 기존 Owner 강등과 대상 멤버 승격은 하나의 트랜잭션에서 함께 처리한다.
      */
     public void transferOwner(Long groupId, Long targetUserId) {
@@ -251,7 +251,7 @@ public class GroupService {
     }
 
     /**
-     * FR-GROUP-06: 그룹 해체 TODO.
+     * FR-GROUP-06: 그룹 해체.
      * Owner만 실행할 수 있고, 그룹은 soft delete 후 30일 hard delete 배치 대상으로 남긴다.
      */
     public void dissolveGroup(Long groupId) {

@@ -26,14 +26,26 @@ public class SseEmitterRegistry {
     }
 
     public void send(Long groupId, String eventName, Object data) {
+        send(groupId, null, eventName, data);
+    }
+
+    public void send(Long groupId, Long eventId, String eventName, Object data) {
         for (SseEmitter emitter : Set.copyOf(emittersByGroup.getOrDefault(groupId, Set.of()))) {
-            sendTo(groupId, emitter, eventName, data);
+            sendTo(groupId, emitter, eventId, eventName, data);
         }
     }
 
     public void sendTo(Long groupId, SseEmitter emitter, String eventName, Object data) {
+        sendTo(groupId, emitter, null, eventName, data);
+    }
+
+    public void sendTo(Long groupId, SseEmitter emitter, Long eventId, String eventName, Object data) {
         try {
-            emitter.send(SseEmitter.event().name(eventName).data(data));
+            SseEmitter.SseEventBuilder event = SseEmitter.event().name(eventName).data(data);
+            if (eventId != null) {
+                event.id(Long.toString(eventId));
+            }
+            emitter.send(event);
         } catch (IOException | IllegalStateException exception) {
             remove(groupId, emitter);
             emitter.complete();

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,12 +24,14 @@ import com.enjoytrip.backend.global.event.EventType;
 class SseServiceTest {
 
     private SseEmitterRegistry emitterRegistry;
+    private SseEventStore eventStore;
     private GroupAccessValidator groupAccessValidator;
     private SseService sseService;
 
     @BeforeEach
     void setUp() {
         emitterRegistry = mock(SseEmitterRegistry.class);
+        eventStore = mock(SseEventStore.class);
         CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
         groupAccessValidator = mock(GroupAccessValidator.class);
 
@@ -40,7 +43,8 @@ class SseServiceTest {
         ReflectionTestUtils.setField(user, "id", 7L);
         when(currentUserResolver.getCurrentUser()).thenReturn(user);
 
-        sseService = new SseService(emitterRegistry, currentUserResolver, groupAccessValidator);
+        when(eventStore.lockFor(org.mockito.ArgumentMatchers.anyLong())).thenReturn(new Object());
+        sseService = new SseService(emitterRegistry, eventStore, currentUserResolver, groupAccessValidator);
     }
 
     @Test
@@ -58,10 +62,31 @@ class SseServiceTest {
     @Test
     void broadcastUsesDomainEventTypeAsSseEventName() {
         DomainEvent<String> event = DomainEvent.of(EventType.EXPENSE_ADDED, 3L, 7L, "payload");
+        SseEventStore.StoredSseEvent storedEvent = new SseEventStore.StoredSseEvent(
+                11L,
+                "EXPENSE_ADDED",
+                SseEventPayload.from(event)
+        );
+        when(eventStore.append(eq(3L), eq("EXPENSE_ADDED"), org.mockito.ArgumentMatchers.any(SseEventPayload.class)))
+                .thenReturn(storedEvent);
 
         sseService.broadcast(event);
 
-        verify(emitterRegistry).send(eq(3L), eq("EXPENSE_ADDED"), org.mockito.ArgumentMatchers.any(SseEventPayload.class));
+        verify(emitterRegistry).send(3L, 11L, "EXPENSE_ADDED", storedEvent.data());
+    }
+
+    @Test
+    void subscribeReplaysEventsAfterLastEventIdBeforeConnectedEvent() {
+        SseEmitter emitter = new SseEmitter();
+        SseEventStore.StoredSseEvent missedEvent = new SseEventStore.StoredSseEvent(12L, "GROUP_UPDATED", "payload");
+        when(emitterRegistry.add(15L)).thenReturn(emitter);
+        when(eventStore.findAfter(15L, 10L)).thenReturn(List.of(missedEvent));
+
+        SseEmitter result = sseService.subscribe(15L, 10L);
+
+        assertSame(emitter, result);
+        verify(emitterRegistry).sendTo(15L, emitter, 12L, "GROUP_UPDATED", "payload");
+        verify(emitterRegistry).sendTo(eq(15L), eq(emitter), eq("CONNECTED"), org.mockito.ArgumentMatchers.any(SseEventPayload.class));
     }
 
     @Test

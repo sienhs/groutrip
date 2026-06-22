@@ -4,6 +4,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -24,8 +25,11 @@ public class SseController {
 
     @RequiredGroupMember
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "그룹 SSE 연결")
-    public SseEmitter subscribe(@PathVariable Long groupId) {
-        return sseService.subscribe(groupId);
+    @Operation(summary = "그룹 SSE 연결", description = "재접속 시 Last-Event-ID 이후의 최근 이벤트를 재전송한다.")
+    public SseEmitter subscribe(
+            @PathVariable Long groupId,
+            @RequestHeader(value = "Last-Event-ID", required = false) Long lastEventId
+    ) {
+        return sseService.subscribe(groupId, lastEventId);
     }
 }

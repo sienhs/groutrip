@@ -18,22 +18,47 @@ import lombok.RequiredArgsConstructor;
 public class SseService {
 
     private final SseEmitterRegistry emitterRegistry;
+    private final SseEventStore eventStore;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
 
     // FR-SSE-01: 그룹 멤버만 연결하며 CONNECTED 이벤트를 즉시 보낸다.
     @Transactional(readOnly = true)
     public SseEmitter subscribe(Long groupId) {
+        return subscribe(groupId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public SseEmitter subscribe(Long groupId, Long lastEventId) {
         User user = currentUserResolver.getCurrentUser();
         groupAccessValidator.validateMember(groupId, user.getId());
 
-        SseEmitter emitter = emitterRegistry.add(groupId);
-        emitterRegistry.sendTo(groupId, emitter, "CONNECTED", SseEventPayload.system("CONNECTED", groupId));
-        return emitter;
+        synchronized (eventStore.lockFor(groupId)) {
+            SseEmitter emitter = emitterRegistry.add(groupId);
+            if (lastEventId != null) {
+                for (SseEventStore.StoredSseEvent event : eventStore.findAfter(groupId, lastEventId)) {
+                    emitterRegistry.sendTo(groupId, emitter, event.id(), event.eventName(), event.data());
+                }
+            }
+            emitterRegistry.sendTo(groupId, emitter, "CONNECTED", SseEventPayload.system("CONNECTED", groupId));
+            return emitter;
+        }
     }
 
     public void broadcast(DomainEvent<?> event) {
-        emitterRegistry.send(event.groupId(), event.type().name(), SseEventPayload.from(event));
+        synchronized (eventStore.lockFor(event.groupId())) {
+            SseEventStore.StoredSseEvent storedEvent = eventStore.append(
+                    event.groupId(),
+                    event.type().name(),
+                    SseEventPayload.from(event)
+            );
+            emitterRegistry.send(
+                    event.groupId(),
+                    storedEvent.id(),
+                    storedEvent.eventName(),
+                    storedEvent.data()
+            );
+        }
     }
 
     // FR-SSE-01: 연결 생존 여부를 확인할 수 있도록 모든 활성 그룹에 30초마다 heartbeat를 보낸다.
