@@ -34,6 +34,13 @@ public enum ErrorCode {
     EXPENSE_RATIO_SUM_INVALID(HttpStatus.BAD_REQUEST, "분담 비율의 합이 100%가 아닙니다."),
     EXPENSE_AMOUNT_SUM_INVALID(HttpStatus.BAD_REQUEST, "분담 금액의 합이 총 금액과 일치하지 않습니다."),
 
+    // Settlement
+    SETTLEMENT_ALREADY_STARTED(HttpStatus.CONFLICT, "이미 정산 확인이 시작되었습니다."),
+    SETTLEMENT_NOT_REQUIRED(HttpStatus.BAD_REQUEST, "완료할 송금 내역이 없습니다."),
+    SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "정산 송금 내역을 찾을 수 없습니다."),
+    SETTLEMENT_CONFIRMATION_FORBIDDEN(HttpStatus.FORBIDDEN, "본인의 정산 송금만 확인할 수 있습니다."),
+    SETTLEMENT_INVALID_STATUS(HttpStatus.CONFLICT, "현재 상태에서는 정산 확인을 진행할 수 없습니다."),
+
     // Common
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
