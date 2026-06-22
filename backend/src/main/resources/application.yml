@@ -2,6 +2,10 @@ spring:
   application:
     name: enjoy-trip
 
+  # 로컬 시크릿(.env, gitignore)을 properties 형식으로 읽는다. 파일이 없어도 기동에는 문제없다.
+  config:
+    import: "optional:file:.env[.properties]"
+
   datasource:
     url: jdbc:postgresql://localhost:5432/enjoy_trip
     username: enjoy_trip_user
@@ -35,3 +39,18 @@ minio:
   bucket-name: enjoy-trip-files
 cors:
   allowed-origins: http://localhost:5173
+
+# 외부 인터페이스: 모든 키는 BE 환경 변수/.env에서만 로드하며 절대 FE에 노출하지 않는다.
+# EI-01: 장소 검색은 BE 프록시를 통해 Google Places로 호출한다.
+google:
+  maps:
+    api-key: ${GOOGLE_MAPS_API_KEY:}
+
+# EI-02: 이동 시간/비용 전용 (FR-SCHEDULE). 장소 검색에는 사용하지 않는다.
+kakao:
+  mobility:
+    api-key: ${KAKAO_MOBILITY_API_KEY:}
+
+# EI-03: 관광지 추천 전용 (FR-RECOMMEND, SHOULD).
+tourapi:
+  service-key: ${TOURAPI_SERVICE_KEY:}

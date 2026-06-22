@@ -42,7 +42,8 @@ public class CorsConfig {
 		config.setAllowCredentials(true);
 		
 		// 응답 헤더 노출
-		config.setExposedHeaders(List.of("Authorization"));
+		// X-Next-Page-Token: 장소 검색 무한 스크롤용 다음 페이지 토큰을 FE가 읽을 수 있게 노출
+		config.setExposedHeaders(List.of("Authorization", "X-Next-Page-Token"));
 		
 		// preflight 요청 캐시 초 단위 시간
 		config.setMaxAge(3600L);
