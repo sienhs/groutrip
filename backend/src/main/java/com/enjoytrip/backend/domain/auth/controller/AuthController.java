@@ -78,6 +78,7 @@ public class AuthController {
 		setRefreshTokenCooke(response, loginResponse.getRefreshToken());
 		
 		LoginResponse safeResponse = LoginResponse.builder()
+				.userId(loginResponse.getUserId())
 				.accessToken(loginResponse.getAccessToken())
 				.name(loginResponse.getName())
 				.email(loginResponse.getEmail())

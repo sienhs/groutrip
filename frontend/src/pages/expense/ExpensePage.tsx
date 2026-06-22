@@ -6,9 +6,11 @@ import { ConfirmModal } from '../../components/Modal';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import ExpenseFormModal from './ExpenseFormModal';
+import SettlementPanel from './SettlementPanel';
 import { getExpenses, getExpenseSummary, deleteExpense } from '../../api/expense';
 import { expenseIcon, formatWon, type Expense, type ExpenseSummary } from '../../types/expense';
 import type { GroupMember } from '../../types/group';
+import useAuthStore from '../../store/authStore';
 
 /**
  * 정산 — 총 지출/1인당, 지출 내역, 정산 요약(누가 누구에게) + 송금 딥링크.
@@ -18,6 +20,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
   const toast = useToast();
+  const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
@@ -61,8 +64,6 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
       setDeleteLoading(false);
     }
   };
-
-  const payLink = (s: string) => toast.info(s, `${s} 송금 화면으로 이동합니다(딥링크).`);
 
   return (
     <div className="relative min-h-[60vh]">
@@ -125,30 +126,12 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
             )}
           </section>
 
-          {/* 정산 요약 */}
-          {summary && summary.settlements.length > 0 && (
-            <section>
-              <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-[#BCA48C]">정산 요약</h2>
-              <div className="space-y-2.5">
-                {summary.settlements.map((s, i) => (
-                  <div key={i} className="rounded-card border border-border bg-surface p-3.5">
-                    <div className="flex items-center gap-2 text-[14px] font-bold">
-                      <span>{s.fromName}</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                        <path d="M5 12h14M13 6l6 6-6 6" stroke="#A6907B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <span>{s.toName}</span>
-                      <span className="ml-auto font-extrabold text-[#E8742E]">{formatWon(s.amount)}</span>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button type="button" onClick={() => payLink('토스')} className="flex-1 rounded-button bg-[#3182F6] py-2.5 text-[13px] font-extrabold text-white">토스로 송금</button>
-                      <button type="button" onClick={() => payLink('카카오페이')} className="flex-1 rounded-button bg-[#FEE500] py-2.5 text-[13px] font-extrabold text-[#3C1E1E]">카카오페이</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          {/* 정산 워크플로우 (시작/송금 딥링크/완료 확인) */}
+          <SettlementPanel
+            groupId={groupId}
+            currentUserId={currentUserId}
+            fallback={summary?.settlements ?? []}
+          />
         </div>
       )}
 

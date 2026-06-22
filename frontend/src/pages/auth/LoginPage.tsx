@@ -30,7 +30,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const res = await login({ email, password });
-      setAuth(res.accessToken, { name: res.name, email: res.email });
+      setAuth(res.accessToken, { id: res.userId, name: res.name, email: res.email });
       try {
         await getMyPreference();
         navigate('/');

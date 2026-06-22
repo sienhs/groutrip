@@ -94,6 +94,7 @@ public class AuthService {
 		log.info("로그인 성공: {}", user.getEmail());
 		
 		return LoginResponse.builder()
+				.userId(user.getId())
 				.accessToken(accessToken)
 				.name(user.getName())
 				.email(user.getEmail())

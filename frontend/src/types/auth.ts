@@ -1,4 +1,5 @@
 export interface User {
+  id: number;
   name: string;
   email: string;
 }
@@ -9,6 +10,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
+  userId: number;
   accessToken: string;
   name: string;
   email: string;
