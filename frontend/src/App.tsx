@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import HomePage from './pages/home/HomePage';
+import GroupCreatePage from './pages/group/GroupCreatePage';
 import SurveyPage from './pages/survey/SurveyPage';
 import SurveyResultPage from './pages/survey/SurveyResultPage';
 
@@ -52,6 +53,14 @@ function App() {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups/new"
+          element={
+            <ProtectedRoute>
+              <GroupCreatePage />
             </ProtectedRoute>
           }
         />

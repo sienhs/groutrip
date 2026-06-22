@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useMyGroupsQuery } from '../../hooks/useGroupQueries';
 import useAuthStore from '../../store/authStore';
 import type { GroupResponse, GroupStatus } from '../../types/group';
@@ -94,12 +95,20 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#FFF8F0] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-8">
-          <p className="mb-2 text-sm font-semibold text-[#FF9F66]">나의 여행 서랍</p>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            {userName ? `${userName}님, 어디로 떠날까요?` : '어디로 떠날까요?'}
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-gray-500">친구들과 준비 중인 여행을 한눈에 확인하세요.</p>
+        <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-2 text-sm font-semibold text-[#FF9F66]">나의 여행 서랍</p>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              {userName ? `${userName}님, 어디로 떠날까요?` : '어디로 떠날까요?'}
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-gray-500">친구들과 준비 중인 여행을 한눈에 확인하세요.</p>
+          </div>
+          <Link
+            to="/groups/new"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#FF9F66] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#f08c52] focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
+          >
+            + 새 여행 만들기
+          </Link>
         </header>
 
         {isPending && <LoadingCards />}
@@ -123,6 +132,12 @@ export default function HomePage() {
             <div className="text-4xl" aria-hidden="true">🧳</div>
             <h2 className="mt-4 text-lg font-bold text-gray-800">아직 여행 그룹이 없어요</h2>
             <p className="mt-2 text-sm text-gray-500">첫 여행을 계획하고 친구들과 추억을 만들어 보세요!</p>
+            <Link
+              to="/groups/new"
+              className="mt-6 inline-flex rounded-lg bg-[#FF9F66] px-5 py-3 text-sm font-semibold text-white hover:bg-[#f08c52]"
+            >
+              첫 여행 만들기
+            </Link>
           </section>
         )}
 
