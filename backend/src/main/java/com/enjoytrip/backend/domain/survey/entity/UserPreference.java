@@ -8,8 +8,15 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+
+import org.springframework.data.domain.Persistable;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,11 +26,12 @@ import lombok.NoArgsConstructor;
 @Table(name = "user_preferences")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserPreference extends BaseEntity {
+public class UserPreference extends BaseEntity implements Persistable<Long> {
 
     @Id
-    private Long userId;  // User PK 공유
+    private Long userId;  // User PK 공유 (@MapsId로 user 식별자에서 파생)
 
+    @MapsId
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
@@ -63,5 +71,26 @@ public class UserPreference extends BaseEntity {
         this.pace = pace;
         this.urbanNature = urbanNature;
         this.timePref = timePref;
+    }
+
+    // 공유/할당 PK(@MapsId)라서 Spring Data save()가 신규 엔티티를 merge로 처리하면
+    // 식별자 null로 실패한다. Persistable로 신규 여부를 알려 persist 경로를 타게 한다.
+    @Transient
+    private boolean isNewEntity = true;
+
+    @Override
+    public Long getId() {
+        return userId;
+    }
+
+    @Override
+    public boolean isNew() {
+        return isNewEntity;
+    }
+
+    @PostPersist
+    @PostLoad
+    private void markPersisted() {
+        this.isNewEntity = false;
     }
 }
