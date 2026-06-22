@@ -9,6 +9,7 @@ import org.springframework.web.client.RestClient;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * EI-02: 카카오 모빌리티 BE 프록시 클라이언트. 이동 시간·비용 계산 전용(장소 검색에는 사용하지 않는다).
@@ -24,6 +25,8 @@ public class KakaoMobilityClient {
 
     private final RestClient restClient;
     private final String apiKey;
+    // Boot 4 RestClient(Jackson 3)에서 Jackson 2 JsonNode 역직렬화 불가 → String으로 받아 직접 파싱.
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public KakaoMobilityClient(@Value("${kakao.mobility.api-key:}") String apiKey) {
         this.apiKey = apiKey;
@@ -45,11 +48,12 @@ public class KakaoMobilityClient {
                 + "&priority=RECOMMEND";
 
         try {
-            JsonNode root = restClient.get()
+            String response = restClient.get()
                     .uri(path)
                     .header("Authorization", "KakaoAK " + apiKey)
                     .retrieve()
-                    .body(JsonNode.class);
+                    .body(String.class);
+            JsonNode root = (response == null || response.isBlank()) ? null : objectMapper.readTree(response);
 
             JsonNode route = (root != null && root.has("routes") && root.get("routes").size() > 0)
                     ? root.get("routes").get(0)

@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * EI-03: TourAPI(한국관광공사 국문 관광정보) BE 프록시 클라이언트. 추천 전용(검색 흐름과 분리).
@@ -27,6 +28,8 @@ public class TourApiClient {
 
     private final RestClient restClient;
     private final String serviceKey;
+    // Boot 4 RestClient(Jackson 3)에서 Jackson 2 JsonNode 역직렬화 불가 → String으로 받아 직접 파싱.
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public TourApiClient(@Value("${tourapi.service-key:}") String serviceKey) {
         this.serviceKey = serviceKey;
@@ -53,10 +56,11 @@ public class TourApiClient {
         }
 
         try {
-            JsonNode root = restClient.get()
+            String response = restClient.get()
                     .uri(path.toString())
                     .retrieve()
-                    .body(JsonNode.class);
+                    .body(String.class);
+            JsonNode root = (response == null || response.isBlank()) ? null : objectMapper.readTree(response);
             return parseItems(root);
         } catch (Exception e) {
             log.warn("TourAPI areaBasedList failed: {}", e.getMessage());

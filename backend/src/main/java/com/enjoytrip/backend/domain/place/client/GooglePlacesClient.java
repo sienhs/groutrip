@@ -16,6 +16,7 @@ import org.springframework.web.client.RestClient;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * EI-01: Google Maps Places API BE 프록시 클라이언트.
@@ -51,6 +52,9 @@ public class GooglePlacesClient {
 
     private final RestClient restClient;
     private final String apiKey;
+    // Boot 4의 RestClient는 Jackson 3 컨버터라 Jackson 2 JsonNode로 직접 역직렬화할 수 없다.
+    // 응답을 String으로 받아 Jackson 2 ObjectMapper로 직접 파싱한다.
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public GooglePlacesClient(@Value("${google.maps.api-key:}") String apiKey) {
         this.apiKey = apiKey;
@@ -77,14 +81,15 @@ public class GooglePlacesClient {
         }
 
         try {
-            JsonNode root = restClient.post()
+            String response = restClient.post()
                     .uri("/places:searchText")
                     .header(API_KEY_HEADER, apiKey)
                     .header(FIELD_MASK_HEADER, SEARCH_FIELD_MASK)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(JsonNode.class);
+                    .body(String.class);
+            JsonNode root = (response == null || response.isBlank()) ? null : objectMapper.readTree(response);
 
             List<GooglePlace> results = new ArrayList<>();
             if (root != null && root.has("places")) {
@@ -110,12 +115,13 @@ public class GooglePlacesClient {
     public GooglePlace getDetails(String googlePlaceId) {
         requireApiKey();
         try {
-            JsonNode root = restClient.get()
+            String response = restClient.get()
                     .uri("/places/{placeId}", googlePlaceId)
                     .header(API_KEY_HEADER, apiKey)
                     .header(FIELD_MASK_HEADER, DETAILS_FIELD_MASK)
                     .retrieve()
-                    .body(JsonNode.class);
+                    .body(String.class);
+            JsonNode root = (response == null || response.isBlank()) ? null : objectMapper.readTree(response);
 
             if (root == null || !root.has("id")) {
                 throw new BusinessException(ErrorCode.PLACE_NOT_FOUND);
