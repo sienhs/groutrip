@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
@@ -44,7 +45,8 @@ class GroupServiceTest {
                 groupMemberRepository,
                 inviteCodeGenerator,
                 currentUserResolver,
-                groupAccessValidator
+                groupAccessValidator,
+                mock(ApplicationEventPublisher.class)
         );
     }
 

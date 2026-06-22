@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,8 @@ import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
+import com.enjoytrip.backend.global.event.DomainEvent;
+import com.enjoytrip.backend.global.event.EventType;
 
 import lombok.RequiredArgsConstructor;
 
@@ -48,6 +51,7 @@ public class ExpenseService {
     private final GroupMemberRepository groupMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * FR-EXPENSE-01: 지출 등록.
@@ -84,8 +88,9 @@ public class ExpenseService {
         List<ExpenseSplit> splits = createSplits(savedExpense, resolvedSplits);
         expenseSplitRepository.saveAll(splits);
 
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 EXPENSE_ADDED 이벤트를 발행한다.
-        return ExpenseResponse.from(savedExpense, splits);
+        ExpenseResponse response = ExpenseResponse.from(savedExpense, splits);
+        publish(EventType.EXPENSE_ADDED, groupId, creator.getId(), response);
+        return response;
     }
 
     /**
@@ -194,8 +199,9 @@ public class ExpenseService {
         List<ExpenseSplit> splits = createSplits(expense, resolvedSplits);
         expenseSplitRepository.saveAll(splits);
 
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 EXPENSE_UPDATED 이벤트를 발행한다.
-        return ExpenseResponse.from(expense, splits);
+        ExpenseResponse response = ExpenseResponse.from(expense, splits);
+        publish(EventType.EXPENSE_UPDATED, groupId, user.getId(), response);
+        return response;
     }
 
     /**
@@ -209,7 +215,7 @@ public class ExpenseService {
         validateWriterOrOwner(expense, actorMember, user.getId());
 
         expense.softDelete();
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 EXPENSE_DELETED 이벤트를 발행한다.
+        publish(EventType.EXPENSE_DELETED, groupId, user.getId(), Map.of("expenseId", expenseId));
     }
 
     // FR-EXPENSE-01: 중복 참여자를 제거한 뒤 모두 현재 그룹 멤버인지 확인한다.
@@ -385,5 +391,9 @@ public class ExpenseService {
     }
 
     private record ResolvedSplit(GroupMember member, long owedAmount) {
+    }
+
+    private void publish(EventType type, Long groupId, Long actorId, Object payload) {
+        eventPublisher.publishEvent(DomainEvent.of(type, groupId, actorId, payload));
     }
 }

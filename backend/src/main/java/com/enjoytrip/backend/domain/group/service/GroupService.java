@@ -3,7 +3,9 @@ package com.enjoytrip.backend.domain.group.service;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,8 @@ import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.support.InviteCodeGenerator;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
+import com.enjoytrip.backend.global.event.DomainEvent;
+import com.enjoytrip.backend.global.event.EventType;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,6 +42,7 @@ public class GroupService {
     private final InviteCodeGenerator inviteCodeGenerator;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
+    private final ApplicationEventPublisher eventPublisher;
 
     // FR-GROUP-01: 그룹을 생성하고 생성자를 자동으로 Owner 멤버로 등록한다.
     public GroupResponse create(GroupCreateRequest request) {
@@ -84,7 +89,7 @@ public class GroupService {
                 .role(GroupRole.MEMBER)
                 .build());
 
-        // TODO(FR-SSE-02): SSE 서비스 계약이 생기면 MEMBER_JOINED 이벤트를 발행한다.
+        publish(EventType.MEMBER_JOINED, group.getId(), user.getId(), Map.of("userId", user.getId()));
         return GroupResponse.from(group);
     }
 
@@ -137,8 +142,9 @@ public class GroupService {
         );
         group.updateStatus(LocalDate.now());
 
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
-        return GroupResponse.from(group);
+        GroupResponse response = GroupResponse.from(group);
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), response);
+        return response;
     }
 
     /**
@@ -167,8 +173,9 @@ public class GroupService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
         group.regenerateInviteCode(generateUniqueInviteCode());
 
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
-        return GroupResponse.from(group);
+        GroupResponse response = GroupResponse.from(group);
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), response);
+        return response;
     }
 
     /**
@@ -186,7 +193,7 @@ public class GroupService {
         }
 
         member.leave();
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 MEMBER_LEFT 이벤트를 발행한다.
+        publish(EventType.MEMBER_LEFT, groupId, user.getId(), Map.of("userId", user.getId()));
     }
 
     /**
@@ -210,7 +217,7 @@ public class GroupService {
         }
 
         targetMember.leave();
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 MEMBER_LEFT 이벤트를 발행한다.
+        publish(EventType.MEMBER_LEFT, groupId, user.getId(), Map.of("userId", targetUserId));
     }
 
     /**
@@ -240,7 +247,7 @@ public class GroupService {
 
         currentOwner.becomeMember();
         targetMember.transferOwner();
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), Map.of("ownerUserId", targetUserId));
     }
 
     /**
@@ -257,7 +264,7 @@ public class GroupService {
         groupMemberRepository.findByTravelGroupIdAndLeftAtIsNull(group.getId())
                 .forEach(GroupMember::leave);
 
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), Map.of("deleted", true));
     }
 
     // FR-GROUP-01/04: 여행 시작일과 종료일의 순서 및 최대 30일 제한을 검증한다.
@@ -332,5 +339,10 @@ public class GroupService {
             case COMPLETED -> 2;
             case DELETED -> 3;
         };
+    }
+
+    // Part B 도메인은 공통 이벤트 계약만 발행하고 SSE 구현에는 직접 의존하지 않는다.
+    private void publish(EventType type, Long groupId, Long actorId, Object payload) {
+        eventPublisher.publishEvent(DomainEvent.of(type, groupId, actorId, payload));
     }
 }

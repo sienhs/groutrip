@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
@@ -38,6 +39,7 @@ import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
+import com.enjoytrip.backend.global.event.DomainEvent;
 
 class ExpenseServiceTest {
 
@@ -47,6 +49,7 @@ class ExpenseServiceTest {
     private GroupMemberRepository groupMemberRepository;
     private CurrentUserResolver currentUserResolver;
     private GroupAccessValidator groupAccessValidator;
+    private ApplicationEventPublisher eventPublisher;
     private ExpenseService expenseService;
 
     @BeforeEach
@@ -57,13 +60,15 @@ class ExpenseServiceTest {
         groupMemberRepository = mock(GroupMemberRepository.class);
         currentUserResolver = mock(CurrentUserResolver.class);
         groupAccessValidator = mock(GroupAccessValidator.class);
+        eventPublisher = mock(ApplicationEventPublisher.class);
         expenseService = new ExpenseService(
                 expenseRepository,
                 expenseSplitRepository,
                 travelGroupRepository,
                 groupMemberRepository,
                 currentUserResolver,
-                groupAccessValidator
+                groupAccessValidator,
+                eventPublisher
         );
     }
 
@@ -105,6 +110,7 @@ class ExpenseServiceTest {
         assertEquals(List.of(3334L, 3333L, 3333L), response.splits().stream()
                 .map(split -> split.owedAmount())
                 .toList());
+        verify(eventPublisher).publishEvent(any(DomainEvent.class));
     }
 
     @Test
