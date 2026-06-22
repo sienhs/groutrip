@@ -3,7 +3,9 @@ package com.enjoytrip.backend.domain.group.service;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,8 @@ import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.support.InviteCodeGenerator;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
+import com.enjoytrip.backend.global.event.DomainEvent;
+import com.enjoytrip.backend.global.event.EventType;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,6 +42,7 @@ public class GroupService {
     private final InviteCodeGenerator inviteCodeGenerator;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
+    private final ApplicationEventPublisher eventPublisher;
 
     // FR-GROUP-01: 그룹을 생성하고 생성자를 자동으로 Owner 멤버로 등록한다.
     public GroupResponse create(GroupCreateRequest request) {
@@ -84,7 +89,7 @@ public class GroupService {
                 .role(GroupRole.MEMBER)
                 .build());
 
-        // TODO(FR-SSE-02): SSE 서비스 계약이 생기면 MEMBER_JOINED 이벤트를 발행한다.
+        publish(EventType.MEMBER_JOINED, group.getId(), user.getId(), Map.of("userId", user.getId()));
         return GroupResponse.from(group);
     }
 
@@ -137,8 +142,9 @@ public class GroupService {
         );
         group.updateStatus(LocalDate.now());
 
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
-        return GroupResponse.from(group);
+        GroupResponse response = GroupResponse.from(group);
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), response);
+        return response;
     }
 
     /**
@@ -167,12 +173,13 @@ public class GroupService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
         group.regenerateInviteCode(generateUniqueInviteCode());
 
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
-        return GroupResponse.from(group);
+        GroupResponse response = GroupResponse.from(group);
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), response);
+        return response;
     }
 
     /**
-     * FR-GROUP-05: 그룹 나가기 TODO.
+     * FR-GROUP-05: 그룹 나가기.
      * Owner는 바로 나갈 수 없고 Owner 이전 또는 그룹 해체가 선행되어야 한다.
      */
     public void leaveGroup(Long groupId) {
@@ -186,11 +193,11 @@ public class GroupService {
         }
 
         member.leave();
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 MEMBER_LEFT 이벤트를 발행한다.
+        publish(EventType.MEMBER_LEFT, groupId, user.getId(), Map.of("userId", user.getId()));
     }
 
     /**
-     * FR-GROUP-05: 멤버 강퇴 TODO.
+     * FR-GROUP-05: 멤버 강퇴.
      * Owner만 실행할 수 있고, 작성 데이터는 보존하며 멤버십만 비활성화한다.
      */
     public void kickMember(Long groupId, Long targetUserId) {
@@ -210,11 +217,11 @@ public class GroupService {
         }
 
         targetMember.leave();
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 MEMBER_LEFT 이벤트를 발행한다.
+        publish(EventType.MEMBER_LEFT, groupId, user.getId(), Map.of("userId", targetUserId));
     }
 
     /**
-     * FR-GROUP-05: Owner 이전 TODO.
+     * FR-GROUP-05: Owner 이전.
      * 기존 Owner 강등과 대상 멤버 승격은 하나의 트랜잭션에서 함께 처리한다.
      */
     public void transferOwner(Long groupId, Long targetUserId) {
@@ -240,11 +247,11 @@ public class GroupService {
 
         currentOwner.becomeMember();
         targetMember.transferOwner();
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), Map.of("ownerUserId", targetUserId));
     }
 
     /**
-     * FR-GROUP-06: 그룹 해체 TODO.
+     * FR-GROUP-06: 그룹 해체.
      * Owner만 실행할 수 있고, 그룹은 soft delete 후 30일 hard delete 배치 대상으로 남긴다.
      */
     public void dissolveGroup(Long groupId) {
@@ -257,7 +264,7 @@ public class GroupService {
         groupMemberRepository.findByTravelGroupIdAndLeftAtIsNull(group.getId())
                 .forEach(GroupMember::leave);
 
-        // TODO(FR-SSE-02): SSE 기반 동기화가 준비되면 GROUP_UPDATED 이벤트를 발행한다.
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), Map.of("deleted", true));
     }
 
     // FR-GROUP-01/04: 여행 시작일과 종료일의 순서 및 최대 30일 제한을 검증한다.
@@ -332,5 +339,10 @@ public class GroupService {
             case COMPLETED -> 2;
             case DELETED -> 3;
         };
+    }
+
+    // Part B 도메인은 공통 이벤트 계약만 발행하고 SSE 구현에는 직접 의존하지 않는다.
+    private void publish(EventType type, Long groupId, Long actorId, Object payload) {
+        eventPublisher.publishEvent(DomainEvent.of(type, groupId, actorId, payload));
     }
 }

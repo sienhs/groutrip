@@ -20,6 +20,7 @@ public enum ErrorCode {
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
+    TOO_MANY_LOGIN_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도가 너무 많습니다. 5분 후 다시 시도해주세요."),
     
     // Group
     GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Group not found."),
@@ -29,6 +30,21 @@ public enum ErrorCode {
     GROUP_FULL(HttpStatus.BAD_REQUEST, "Group member limit exceeded. Maximum is 8."),
     INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "Invalid invite code."),
     DUPLICATE_GROUP_MEMBER(HttpStatus.CONFLICT, "User already joined this group."),
+
+    // Expense
+    EXPENSE_RATIO_SUM_INVALID(HttpStatus.BAD_REQUEST, "분담 비율의 합이 100%가 아닙니다."),
+    EXPENSE_AMOUNT_SUM_INVALID(HttpStatus.BAD_REQUEST, "분담 금액의 합이 총 금액과 일치하지 않습니다."),
+
+    // Settlement
+    SETTLEMENT_ALREADY_STARTED(HttpStatus.CONFLICT, "이미 정산 확인이 시작되었습니다."),
+    SETTLEMENT_NOT_REQUIRED(HttpStatus.BAD_REQUEST, "완료할 송금 내역이 없습니다."),
+    SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "정산 송금 내역을 찾을 수 없습니다."),
+    SETTLEMENT_CONFIRMATION_FORBIDDEN(HttpStatus.FORBIDDEN, "본인의 정산 송금만 확인할 수 있습니다."),
+    SETTLEMENT_INVALID_STATUS(HttpStatus.CONFLICT, "현재 상태에서는 정산 확인을 진행할 수 없습니다."),
+
+    // Notification
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
+    SSE_CONNECTION_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "동시 실시간 연결 수를 초과했습니다."),
 
     // Common
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),

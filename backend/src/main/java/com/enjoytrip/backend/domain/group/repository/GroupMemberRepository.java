@@ -27,4 +27,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     // FR-GROUP-05: 그룹 멤버 관리 화면에서 현재 활성 멤버 목록을 조회한다.
     @EntityGraph(attributePaths = {"travelGroup", "user"})
     List<GroupMember> findByTravelGroupIdAndLeftAtIsNull(Long groupId);
+
+    // 그룹 해체 알림은 해체 과정에서 비활성화된 기존 멤버에게도 전달해야 한다.
+    @EntityGraph(attributePaths = {"travelGroup", "user"})
+    List<GroupMember> findByTravelGroupId(Long groupId);
+
+    void deleteByTravelGroupId(Long groupId);
 }

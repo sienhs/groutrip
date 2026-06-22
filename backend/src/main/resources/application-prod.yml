@@ -1,0 +1,15 @@
+spring:
+  jpa:
+    show-sql: false
+
+server:
+  forward-headers-strategy: framework
+
+auth:
+  refresh-cookie-secure: true
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

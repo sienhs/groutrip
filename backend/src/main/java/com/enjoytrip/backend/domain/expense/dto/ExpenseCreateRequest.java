@@ -9,9 +9,9 @@ import com.enjoytrip.backend.domain.expense.entity.SplitType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.Valid;
 
 // FR-EXPENSE-01/07: 지출 등록 요청이며, sourceScheduleId는 이동 비용 자동 등록 계약을 위한 선택값이다.
 @Schema(description = "지출 등록 요청")
@@ -28,7 +28,7 @@ public record ExpenseCreateRequest(
         @NotNull
         ExpenseCategory category,
 
-        @Schema(description = "분담 방식. 현재 구현은 EQUAL 균등 분담을 우선 지원한다.", example = "EQUAL")
+        @Schema(description = "분담 방식. EQUAL, RATIO, AMOUNT 중 하나.", example = "EQUAL")
         @NotNull
         SplitType splitType,
 
@@ -40,11 +40,26 @@ public record ExpenseCreateRequest(
         @NotNull
         LocalDate paidAt,
 
-        @Schema(description = "분담에 참여할 그룹 멤버 사용자 ID 목록.", example = "[1, 2, 3]")
-        @NotEmpty
+        @Schema(description = "EQUAL 방식의 참여자 ID 목록. RATIO/AMOUNT 방식에서는 비워둔다.", example = "[1, 2, 3]")
         List<Long> participantIds,
+
+        @Schema(description = "RATIO/AMOUNT 방식의 참여자별 분담 상세. EQUAL 방식에서는 비워둔다.")
+        List<@Valid ExpenseSplitRequest> splitDetails,
 
         @Schema(description = "일정/이동 비용에서 생성된 지출이면 원본 일정 ID. 직접 입력 지출이면 null 가능.", example = "42")
         Long sourceScheduleId
 ) {
+    // 기존 EQUAL 호출부와의 소스 호환을 유지한다.
+    public ExpenseCreateRequest(
+            Long amount,
+            Long payerId,
+            ExpenseCategory category,
+            SplitType splitType,
+            String description,
+            LocalDate paidAt,
+            List<Long> participantIds,
+            Long sourceScheduleId
+    ) {
+        this(amount, payerId, category, splitType, description, paidAt, participantIds, null, sourceScheduleId);
+    }
 }

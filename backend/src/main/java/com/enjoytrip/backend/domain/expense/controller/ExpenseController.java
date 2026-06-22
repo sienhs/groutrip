@@ -1,7 +1,9 @@
 package com.enjoytrip.backend.domain.expense.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,11 +12,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.enjoytrip.backend.domain.expense.dto.ExpenseCreateRequest;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseResponse;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseSummaryResponse;
 import com.enjoytrip.backend.domain.expense.dto.ExpenseUpdateRequest;
+import com.enjoytrip.backend.domain.expense.entity.ExpenseCategory;
 import com.enjoytrip.backend.domain.expense.service.ExpenseService;
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
 import com.enjoytrip.backend.global.response.ApiResponse;
@@ -41,6 +46,7 @@ public class ExpenseController {
             description = """
                     FR-EXPENSE-01/07: 그룹 멤버가 지출 내역을 등록하고 참여자별 부담 금액을 생성한다.
                     금액은 1원 이상 100,000,000원 이하이며, 결제자와 참여자는 현재 그룹의 활성 멤버여야 한다.
+                    EQUAL은 participantIds, RATIO/AMOUNT는 splitDetails로 참여자별 입력을 전달한다.
                     sourceScheduleId는 선택값이며, Part A 일정/이동 비용에서 확정된 금액을 정산에 연결할 때 사용한다.
                     """
     )
@@ -65,10 +71,47 @@ public class ExpenseController {
     )
     public ResponseEntity<ApiResponse<List<ExpenseResponse>>> findGroupExpenses(
             @Parameter(description = "지출 목록을 조회할 그룹 ID", example = "1")
-            @PathVariable Long groupId
+            @PathVariable Long groupId,
+            @RequestParam(required = false) ExpenseCategory category,
+            @RequestParam(required = false) Long payerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        List<ExpenseResponse> response = expenseService.findGroupExpenses(groupId);
+        List<ExpenseResponse> response = expenseService.findGroupExpenses(
+                groupId,
+                category,
+                payerId,
+                startDate,
+                endDate
+        );
         return ResponseEntity.ok(ApiResponse.success("Expenses found.", response));
+    }
+
+    // FR-EXPENSE-02: 목록과 동일한 필터로 합계 및 차트 데이터를 조회한다.
+    @RequiredGroupMember
+    @GetMapping("/summary")
+    @Operation(
+            summary = "그룹 지출 요약 조회",
+            description = """
+                    FR-EXPENSE-02: 선택한 카테고리, 결제자, 날짜 범위에 해당하는 총 지출액과
+                    활성 멤버 기준 1인당 평균, 카테고리별 합계, 결제일별 합계를 반환한다.
+                    """
+    )
+    public ResponseEntity<ApiResponse<ExpenseSummaryResponse>> summarize(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) ExpenseCategory category,
+            @RequestParam(required = false) Long payerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        ExpenseSummaryResponse response = expenseService.summarize(
+                groupId,
+                category,
+                payerId,
+                startDate,
+                endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success("Expense summary found.", response));
     }
 
     // FR-EXPENSE-03: 작성자 또는 Owner가 지출 정보와 분담 결과를 수정한다.
@@ -78,7 +121,7 @@ public class ExpenseController {
             summary = "지출 수정",
             description = """
                     FR-EXPENSE-03: 지출 작성자 또는 그룹 Owner가 지출 정보와 분담 참여자를 수정한다.
-                    수정 시 기존 분담 내역은 삭제 후 새 요청 기준으로 다시 생성되며, 정산 결과는 다음 조회부터 즉시 반영된다.
+                    수정 시 기존 분담 내역은 삭제 후 EQUAL/RATIO/AMOUNT 요청 기준으로 다시 생성되며, 정산 결과는 다음 조회부터 즉시 반영된다.
                     """
     )
     public ResponseEntity<ApiResponse<ExpenseResponse>> update(
