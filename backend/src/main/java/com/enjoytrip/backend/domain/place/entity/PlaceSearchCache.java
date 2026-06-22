@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -34,8 +33,7 @@ public class PlaceSearchCache {
     private String cacheKey;
 
     // 직렬화한 검색 결과(List<PlaceSearchResult> JSON).
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String resultJson;
 
     @Column(nullable = false)
