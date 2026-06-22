@@ -41,6 +41,9 @@ public enum ErrorCode {
     SETTLEMENT_CONFIRMATION_FORBIDDEN(HttpStatus.FORBIDDEN, "본인의 정산 송금만 확인할 수 있습니다."),
     SETTLEMENT_INVALID_STATUS(HttpStatus.CONFLICT, "현재 상태에서는 정산 확인을 진행할 수 없습니다."),
 
+    // Notification
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
+
     // Common
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
