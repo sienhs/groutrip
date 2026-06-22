@@ -21,11 +21,13 @@ import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.domain.settlement.dto.SettlementBalanceResponse;
+import com.enjoytrip.backend.domain.settlement.dto.SettlementPaymentLinksResponse;
 import com.enjoytrip.backend.domain.settlement.dto.SettlementProgressResponse;
 import com.enjoytrip.backend.domain.settlement.dto.SettlementRecordResponse;
 import com.enjoytrip.backend.domain.settlement.dto.SettlementSummaryResponse;
 import com.enjoytrip.backend.domain.settlement.dto.SettlementTransferResponse;
 import com.enjoytrip.backend.domain.settlement.entity.Settlement;
+import com.enjoytrip.backend.domain.settlement.entity.SettlementStatus;
 import com.enjoytrip.backend.domain.settlement.repository.SettlementRepository;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
@@ -46,6 +48,7 @@ public class SettlementService {
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
     private final SettlementCalculator settlementCalculator;
+    private final SettlementPaymentLinkGenerator settlementPaymentLinkGenerator;
 
     /**
      * FR-EXPENSE-04: 정산 매트릭스 조회.
@@ -169,6 +172,25 @@ public class SettlementService {
         Settlement settlement = findSettlement(groupId, settlementId);
         settlement.confirmReceived(actor.getId());
         return toProgress(groupId, settlementRepository.findByTravelGroupIdOrderByIdAsc(groupId));
+    }
+
+    /**
+     * FR-EXPENSE-05: 송금자 본인의 대기 중 송금에 대해 Toss/KakaoPay 딥링크를 생성한다.
+     * 반환 URL은 앱 실행 또는 프론트 QR 생성에만 쓰며 실제 송금 성공을 의미하지 않는다.
+     */
+    public SettlementPaymentLinksResponse createPaymentLinks(Long groupId, Long settlementId) {
+        User actor = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, actor.getId());
+
+        Settlement settlement = findSettlement(groupId, settlementId);
+        if (!settlement.getFromUser().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.SETTLEMENT_CONFIRMATION_FORBIDDEN);
+        }
+        if (settlement.getStatus() != SettlementStatus.PENDING) {
+            throw new BusinessException(ErrorCode.SETTLEMENT_INVALID_STATUS);
+        }
+
+        return settlementPaymentLinkGenerator.generate(settlement);
     }
 
     private Settlement findSettlement(Long groupId, Long settlementId) {
