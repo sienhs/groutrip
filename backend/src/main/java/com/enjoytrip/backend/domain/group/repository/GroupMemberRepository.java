@@ -31,4 +31,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     // 그룹 해체 알림은 해체 과정에서 비활성화된 기존 멤버에게도 전달해야 한다.
     @EntityGraph(attributePaths = {"travelGroup", "user"})
     List<GroupMember> findByTravelGroupId(Long groupId);
+
+    void deleteByTravelGroupId(Long groupId);
 }

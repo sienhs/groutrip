@@ -17,4 +17,6 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
 
     @EntityGraph(attributePaths = {"travelGroup", "fromUser", "toUser"})
     Optional<Settlement> findByIdAndTravelGroupId(Long id, Long groupId);
+
+    void deleteByTravelGroupId(Long groupId);
 }

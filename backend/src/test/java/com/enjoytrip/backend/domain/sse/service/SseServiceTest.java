@@ -50,7 +50,7 @@ class SseServiceTest {
     @Test
     void subscribeValidatesMemberAndSendsConnectedOnlyToNewEmitter() {
         SseEmitter emitter = new SseEmitter();
-        when(emitterRegistry.add(15L)).thenReturn(emitter);
+        when(emitterRegistry.add(15L, 7L)).thenReturn(emitter);
 
         SseEmitter result = sseService.subscribe(15L);
 
@@ -79,7 +79,7 @@ class SseServiceTest {
     void subscribeReplaysEventsAfterLastEventIdBeforeConnectedEvent() {
         SseEmitter emitter = new SseEmitter();
         SseEventStore.StoredSseEvent missedEvent = new SseEventStore.StoredSseEvent(12L, "GROUP_UPDATED", "payload");
-        when(emitterRegistry.add(15L)).thenReturn(emitter);
+        when(emitterRegistry.add(15L, 7L)).thenReturn(emitter);
         when(eventStore.findAfter(15L, 10L)).thenReturn(List.of(missedEvent));
 
         SseEmitter result = sseService.subscribe(15L, 10L);

@@ -14,6 +14,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import com.enjoytrip.backend.global.security.JwtFilter;
+import com.enjoytrip.backend.global.security.RestAccessDeniedHandler;
+import com.enjoytrip.backend.global.security.RestAuthenticationEntryPoint;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,15 +37,21 @@ public class SecurityConfig {
 	// JwtFilter를 주입 자동 생성자 생성
 	private final JwtFilter jwtFilter;
 	private final CorsConfigurationSource corsConfigurationSource;
+	private final RestAuthenticationEntryPoint authenticationEntryPoint;
+	private final RestAccessDeniedHandler accessDeniedHandler;
 	
 
 	public SecurityConfig(
 			JwtFilter jwtFilter,
 			// Bean 명시적 지정
-			@Qualifier("corsConfigurationSource") CorsConfigurationSource corsConfigurationSource
+			@Qualifier("corsConfigurationSource") CorsConfigurationSource corsConfigurationSource,
+			RestAuthenticationEntryPoint authenticationEntryPoint,
+			RestAccessDeniedHandler accessDeniedHandler
 			) {
 		this.jwtFilter = jwtFilter;
 		this.corsConfigurationSource = corsConfigurationSource;
+		this.authenticationEntryPoint = authenticationEntryPoint;
+		this.accessDeniedHandler = accessDeniedHandler;
 	}
 	
 	
@@ -53,8 +61,7 @@ public class SecurityConfig {
 		// CorsCofing 적용
 		.cors(cors -> cors.configurationSource(corsConfigurationSource))
 		// CSRF 비활성화
-		// csrf는 브라우저 세션 기반 공격인데, JWT는 세션을 안써서 공격자체가 불가능.
-		// 비활성화해도 안전함
+		// Access Token은 Authorization 헤더로만 받고 Refresh Cookie는 SameSite=Lax로 제한한다.
 		.csrf(AbstractHttpConfigurer::disable)
 		// 기본 폼 로그인 방식 비활성화
 		// rest api + jwt 쓸때는 폼 로그인 안쓴대
@@ -70,11 +77,14 @@ public class SecurityConfig {
 		// 요청별 접근 권한 설정
 		.authorizeHttpRequests(auth -> auth
 				// 로그인 회원가입은 토큰 없이 누구나 가능하게 끔
-				.requestMatchers("/api/auth/**").permitAll()
+				.requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/reissue").permitAll()
 				// Swagger UI와 OpenAPI 명세는 개발 중 API 확인을 위해 인증 없이 접근을 허용한다.
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
 				// 나머지 요청은 인증이 필요하게
 				.anyRequest().authenticated())
+		.exceptionHandling(exceptions -> exceptions
+				.authenticationEntryPoint(authenticationEntryPoint)
+				.accessDeniedHandler(accessDeniedHandler))
 		.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 		
 		return http.build();

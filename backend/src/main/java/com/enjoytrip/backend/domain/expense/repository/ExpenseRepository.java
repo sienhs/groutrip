@@ -42,4 +42,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     // FR-EXPENSE-03: 수정/삭제 대상 지출이 해당 그룹에 속하고 삭제되지 않았는지 확인한다.
     @EntityGraph(attributePaths = {"travelGroup", "payer", "createdBy"})
     Optional<Expense> findByIdAndTravelGroupIdAndDeletedAtIsNull(Long id, Long groupId);
+
+    void deleteByTravelGroupId(Long groupId);
 }

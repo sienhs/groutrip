@@ -14,7 +14,7 @@ spring:
 
   jpa:
     open-in-view: false
-    show-sql: ${JPA_SHOW_SQL:true}
+    show-sql: ${JPA_SHOW_SQL:false}
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
@@ -40,6 +40,9 @@ jwt:
   access-token-expiration: ${JWT_ACCESS_EXP:1800000} # 30분
   refresh-token-expiration: ${JWT_REFRESH_EXP:604800000} # 7일
 
+auth:
+  refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:false}
+
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:}
@@ -59,3 +62,9 @@ tourapi:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}

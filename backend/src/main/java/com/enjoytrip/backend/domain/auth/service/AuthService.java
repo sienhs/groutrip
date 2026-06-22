@@ -1,6 +1,10 @@
 package com.enjoytrip.backend.domain.auth.service;
 
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -68,15 +72,16 @@ public class AuthService {
 		// 토큰 생성
 		String accessToken = jwtUtil.generateAccessToken(user.getEmail());
 		String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+		String refreshTokenHash = hashToken(refreshToken);
 		
 		// RefreshToken DB 저장 (있으면 갱신, 없으면 생성)
 		refreshTokenRepository.findByEmail(user.getEmail())
 				.ifPresentOrElse(
-						token -> token.updateToken(refreshToken, LocalDateTime.now().plusDays(7)),
+						token -> token.updateToken(refreshTokenHash, LocalDateTime.now().plusDays(7)),
 						() -> refreshTokenRepository.save(
 								RefreshToken.builder()
 								.email(user.getEmail())
-								.token(refreshToken)
+								.token(refreshTokenHash)
 								.expiresAt(LocalDateTime.now().plusDays(7))
 								.build()));
 		
@@ -99,7 +104,7 @@ public class AuthService {
 		}
 		
 		// DB에서 토큰 조회 - 탈취됐는지
-		RefreshToken saved = refreshTokenRepository.findByToken(refreshToken)
+		RefreshToken saved = refreshTokenRepository.findByToken(hashToken(refreshToken))
 				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
 		
 		// 만료 시간 확인
@@ -108,6 +113,15 @@ public class AuthService {
 		}
 		
 		return jwtUtil.generateAccessToken(saved.getEmail());
+	}
+
+	private String hashToken(String token) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
+		} catch (NoSuchAlgorithmException exception) {
+			throw new IllegalStateException("SHA-256 is not available.", exception);
+		}
 	}
 	
 	@Transactional

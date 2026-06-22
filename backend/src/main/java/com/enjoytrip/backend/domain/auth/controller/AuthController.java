@@ -1,8 +1,12 @@
 package com.enjoytrip.backend.domain.auth.controller;
 
+import java.time.Duration;
 import java.util.Arrays;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +17,9 @@ import com.enjoytrip.backend.domain.auth.dto.LoginRequest;
 import com.enjoytrip.backend.domain.auth.dto.LoginResponse;
 import com.enjoytrip.backend.domain.auth.dto.SignupRequest;
 import com.enjoytrip.backend.domain.auth.service.AuthService;
+import com.enjoytrip.backend.domain.auth.service.LoginAttemptService;
+import com.enjoytrip.backend.global.exception.BusinessException;
+import com.enjoytrip.backend.global.exception.ErrorCode;
 import com.enjoytrip.backend.global.response.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +36,10 @@ import lombok.RequiredArgsConstructor;
 @Tag(name = "Auth", description = "회원가입, 로그인, 토큰 재발급, 로그아웃 API")
 public class AuthController {
 	private final AuthService authService;
+	private final LoginAttemptService loginAttemptService;
+
+	@Value("${auth.refresh-cookie-secure:false}")
+	private boolean refreshCookieSecure;
 	
 	// 쿠키 이름 상수
 	private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
@@ -47,8 +58,20 @@ public class AuthController {
 			// 그다음 @Valid가 loginRequest의 @Email, @NotBlank 검증을 실행함
 			// 실패하면 GlobalExceptionHandler가 잡아서 400 반환
 			@RequestBody @Valid LoginRequest request,
+			HttpServletRequest httpRequest,
 			HttpServletResponse response){
-		LoginResponse loginResponse = authService.login(request); // 쿠키를 위해 response를 인자로 받아서 loginResponse로 이름 변경
+		String clientKey = httpRequest.getRemoteAddr();
+		loginAttemptService.checkAllowed(clientKey);
+		LoginResponse loginResponse;
+		try {
+			loginResponse = authService.login(request);
+		} catch (BusinessException exception) {
+			if (exception.getErrorCode() == ErrorCode.INVALID_CREDENTIALS) {
+				loginAttemptService.recordFailure(clientKey);
+			}
+			throw exception;
+		}
+		loginAttemptService.recordSuccess(clientKey);
 		
 		// refreshtoken을 httpOnly cookie에 저장
 		// js 접근불가 -> XSS 공격으로 탈취 불가
@@ -65,23 +88,25 @@ public class AuthController {
 	
 	// HttpOnly 쿠키 세팅 헬퍼
 	private void setRefreshTokenCooke(HttpServletResponse response, String token) {
-		Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE, token);
-		cookie.setHttpOnly(true); // js 접근 차단
-		cookie.setSecure(false); // TODO: 운영환경에서는 true로 변경해야함 - https 필수
-		cookie.setPath("/"); // 모든 경로 전송
-		cookie.setMaxAge(60 * 60 * 24 * 7); // 7일 단위
-		response.addCookie(cookie); 
+		ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, token)
+				.httpOnly(true)
+				.secure(refreshCookieSecure)
+				.sameSite("Lax")
+				.path("/api/auth")
+				.maxAge(Duration.ofDays(7))
+				.build();
+		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 	}
 	// Cookie에서 Refresh token 추출 헬퍼
 	private String extractRefreshTokenFromCookie(HttpServletRequest request) {
 		if(request.getCookies() == null) {
-			throw new IllegalArgumentException("쿠키가 없습니다.");
+			throw new BusinessException(ErrorCode.INVALID_TOKEN);
 		}
 		return Arrays.stream(request.getCookies())
 				.filter(c -> REFRESH_TOKEN_COOKIE.equals(c.getName()))
 				.map(Cookie::getValue)
 				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("Refresh Token 쿠키가 없습니다."));
+				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
 	}
 	@PostMapping("/reissue")
 	@Operation(
@@ -114,10 +139,14 @@ public class AuthController {
 			authService.logout(email);
 		}
 
-		Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE, null);
-		cookie.setMaxAge(0);
-		cookie.setPath("/");
-		response.addCookie(cookie);
+		ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
+				.httpOnly(true)
+				.secure(refreshCookieSecure)
+				.sameSite("Lax")
+				.path("/api/auth")
+				.maxAge(Duration.ZERO)
+				.build();
+		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
 		return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));
 	}

@@ -1,5 +1,6 @@
 package com.enjoytrip.backend.domain.group.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,4 +21,7 @@ public interface TravelGroupRepository extends JpaRepository<TravelGroup, Long> 
 
     // 그룹 상태 배치에서 삭제되지 않은 그룹만 대상으로 삼는다.
     List<TravelGroup> findByDeletedAtIsNull();
+
+    // FR-GROUP-06: soft delete 후 보존 기간이 지난 그룹을 hard delete 배치 대상으로 조회한다.
+    List<TravelGroup> findByDeletedAtLessThanEqual(LocalDateTime threshold);
 }

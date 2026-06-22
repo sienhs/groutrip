@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.enjoytrip.backend.domain.expense.entity.ExpenseSplit;
 
@@ -19,4 +22,8 @@ public interface ExpenseSplitRepository extends JpaRepository<ExpenseSplit, Long
 
     // FR-EXPENSE-03: 지출 수정 시 기존 분담 결과를 지우고 다시 계산한다.
     void deleteByExpenseId(Long expenseId);
+
+    @Modifying
+    @Query("DELETE FROM ExpenseSplit split WHERE split.expense.travelGroup.id = :groupId")
+    void deleteByTravelGroupId(@Param("groupId") Long groupId);
 }

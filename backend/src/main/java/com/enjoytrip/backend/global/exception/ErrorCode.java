@@ -20,6 +20,7 @@ public enum ErrorCode {
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
+    TOO_MANY_LOGIN_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도가 너무 많습니다. 5분 후 다시 시도해주세요."),
     
     // Group
     GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Group not found."),
@@ -43,6 +44,7 @@ public enum ErrorCode {
 
     // Notification
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
+    SSE_CONNECTION_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "동시 실시간 연결 수를 초과했습니다."),
 
     // Common
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),

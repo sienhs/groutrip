@@ -34,7 +34,7 @@ public class SseService {
         groupAccessValidator.validateMember(groupId, user.getId());
 
         synchronized (eventStore.lockFor(groupId)) {
-            SseEmitter emitter = emitterRegistry.add(groupId);
+            SseEmitter emitter = emitterRegistry.add(groupId, user.getId());
             if (lastEventId != null) {
                 for (SseEventStore.StoredSseEvent event : eventStore.findAfter(groupId, lastEventId)) {
                     emitterRegistry.sendTo(groupId, emitter, event.id(), event.eventName(), event.data());
