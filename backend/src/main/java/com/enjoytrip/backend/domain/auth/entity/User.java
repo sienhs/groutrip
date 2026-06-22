@@ -1,5 +1,7 @@
 package com.enjoytrip.backend.domain.auth.entity;
 
+import java.time.LocalDateTime;
+
 import com.enjoytrip.backend.global.entity.BaseEntity;
 
 import jakarta.persistence.Column;
@@ -37,6 +39,25 @@ public class User extends BaseEntity {
 
 	@Column(nullable = false)
 	private String name;
+
+	// FR-AUTH-06: 탈퇴 시각. null이면 활성 사용자, 값이 있으면 익명화된 탈퇴 사용자(30일 후 hard delete 대상).
+	private LocalDateTime deletedAt;
+
+	// FR-AUTH-05: 새 비밀번호(BCrypt 해시)로 교체한다.
+	public void changePassword(String encodedPassword) {
+		this.password = encodedPassword;
+	}
+
+	// FR-AUTH-06: 개인정보를 즉시 익명화하고 탈퇴 시각을 기록한다. 작성 기록은 보존된다.
+	public void withdraw() {
+		this.name = "탈퇴한 사용자";
+		this.deletedAt = LocalDateTime.now();
+	}
+
+	// 탈퇴 처리된 사용자인지 여부(로그인/인증 차단에 사용).
+	public boolean isWithdrawn() {
+		return this.deletedAt != null;
+	}
 }
 
 

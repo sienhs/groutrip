@@ -20,7 +20,9 @@ public class CustomUserDetailService implements UserDetailsService {
 	// JwtFilter가 DB유저 조회할 때 여기로 옴
 	@Override
 	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+		// FR-AUTH-06: 탈퇴한 사용자는 남아있는 Access Token으로도 인증되지 않도록 제외한다.
 		return userRepository.findByEmail(email)
+				.filter(user -> !user.isWithdrawn())
 				.map(user -> org.springframework.security.core.userdetails.User
 						.withUsername(user.getEmail())
 						.password(user.getPassword())

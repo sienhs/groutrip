@@ -56,7 +56,12 @@ public class AuthService {
 		// 이메일로 유저 조회
 		User user = userRepository.findByEmail(request.getEmail())
 				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
-		
+
+		// FR-AUTH-06: 탈퇴한 사용자는 로그인할 수 없다(계정 상태는 노출하지 않도록 동일 메시지 사용).
+		if (user.isWithdrawn()) {
+			throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+		}
+
 		// 비밀번호 검증
 		// passwordEncoder.matches(평문, 암호화값)
 		// DB에는 BCrypt 해시 값이 있어서 직접 비교가 불가능하다.
