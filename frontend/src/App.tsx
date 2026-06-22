@@ -13,6 +13,7 @@ import GroupListPage from './pages/group/GroupListPage';
 import GroupCreatePage from './pages/group/GroupCreatePage';
 import GroupDetailPage from './pages/group/GroupDetailPage';
 import RecommendPage from './pages/recommend/RecommendPage';
+import RecommendLandingPage from './pages/recommend/RecommendLandingPage';
 import VoteDetailPage from './pages/vote/VoteDetailPage';
 import MyPage from './pages/mypage/MyPage';
 
@@ -62,7 +63,8 @@ function App() {
         <Route path="/groups/new" element={<ProtectedRoute><GroupCreatePage /></ProtectedRoute>} />
         <Route path="/groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
 
-        {/* 추천 · 투표 상세 (그룹 스코프) */}
+        {/* 추천: 전역 탭은 그룹 선택 랜딩, 실제 추천은 그룹 스코프 */}
+        <Route path="/recommend" element={<ProtectedRoute><RecommendLandingPage /></ProtectedRoute>} />
         <Route path="/groups/:id/recommend" element={<ProtectedRoute><RecommendPage /></ProtectedRoute>} />
         <Route path="/groups/:id/votes/:voteId" element={<ProtectedRoute><VoteDetailPage /></ProtectedRoute>} />
 

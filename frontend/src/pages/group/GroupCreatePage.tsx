@@ -14,21 +14,29 @@ export default function GroupCreatePage() {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [name, setName] = useState('');
+  const [title, setTitle] = useState('');
+  const [destination, setDestination] = useState('');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [cover, setCover] = useState<CoverPreset>('SUNSET');
   const [submitting, setSubmitting] = useState(false);
 
-  const valid = name.trim().length > 0 && !!start && !!end && start <= end;
+  const valid =
+    title.trim().length > 0 && destination.trim().length > 0 && !!start && !!end && start <= end;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!valid) return;
     setSubmitting(true);
     try {
-      const group = await createGroup({ name: name.trim(), startDate: start, endDate: end, coverImageKey: cover });
-      toast.success('그룹을 만들었어요', group.name);
+      const group = await createGroup({
+        title: title.trim(),
+        destination: destination.trim(),
+        startDate: start,
+        endDate: end,
+        coverImageKey: cover,
+      });
+      toast.success('그룹을 만들었어요', group.title);
       navigate(`/groups/${group.id}`, { replace: true });
     } catch {
       toast.error('그룹 생성에 실패했어요', '잠시 후 다시 시도해 주세요.');
@@ -43,16 +51,24 @@ export default function GroupCreatePage() {
           {/* 미리보기 */}
           <div className={cn('flex h-28 items-end rounded-card p-3.5 shadow-sm', COVER_GRADIENT[cover])}>
             <span className="text-[17px] font-extrabold text-white drop-shadow">
-              {name.trim() || COVER_LABEL[cover]}
+              {title.trim() || COVER_LABEL[cover]}
             </span>
           </div>
 
           <Input
             label="그룹 이름"
-            value={name}
+            value={title}
             maxLength={30}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder="예: 제주도 한 바퀴"
+          />
+
+          <Input
+            label="목적지"
+            value={destination}
+            maxLength={100}
+            onChange={(e) => setDestination(e.target.value)}
+            placeholder="예: 제주특별자치도 제주시"
           />
 
           <div>

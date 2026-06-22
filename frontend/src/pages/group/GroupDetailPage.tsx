@@ -10,12 +10,12 @@ import NotificationBell from '../../components/NotificationBell';
 import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
-import { getGroup } from '../../api/group';
+import { getGroup, getGroupMembers } from '../../api/group';
 import { useGroupStream } from '../../hooks/useGroupStream';
 import useAuthStore from '../../store/authStore';
 import { gradientForKey, ddayLabel, dateRange } from './groupUi';
 import { cn } from '../../lib/cn';
-import { isActiveMember, type GroupMember, type TravelGroup } from '../../types/group';
+import { type GroupMember, type TravelGroup } from '../../types/group';
 
 type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'member';
 
@@ -39,6 +39,7 @@ export default function GroupDetailPage() {
   const toast = useToast();
 
   const [group, setGroup] = useState<TravelGroup | null>(null);
+  const [members, setMembers] = useState<GroupMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [tab, setTab] = useState<TabKey>('place');
@@ -51,7 +52,9 @@ export default function GroupDetailPage() {
   useEffect(() => {
     (async () => {
       try {
-        setGroup(await getGroup(groupId));
+        const [g, ms] = await Promise.all([getGroup(groupId), getGroupMembers(groupId)]);
+        setGroup(g);
+        setMembers(ms);
       } catch {
         setError(true);
       } finally {
@@ -66,7 +69,7 @@ export default function GroupDetailPage() {
     groupId,
     currentUserId,
     enabled: false,
-    resolveActorName: (actorId) => group?.members?.find((m) => m.userId === actorId)?.name ?? '멤버',
+    resolveActorName: (actorId) => members.find((m) => m.userId === actorId)?.name ?? '멤버',
   });
 
   if (error) {
@@ -116,9 +119,9 @@ export default function GroupDetailPage() {
             <span className="rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-extrabold">
               {ddayLabel(group.startDate, group.endDate)}
             </span>
-            <h1 className="mt-2 text-[22px] font-extrabold tracking-tight">{group.name}</h1>
+            <h1 className="mt-2 text-[22px] font-extrabold tracking-tight">{group.title}</h1>
             <p className="text-[13px] opacity-90">
-              {dateRange(group.startDate, group.endDate)} · 멤버 {group.memberCount}명
+              {group.destination} · {dateRange(group.startDate, group.endDate)} · 멤버 {members.length}명
             </p>
           </div>
         )}
@@ -138,9 +141,9 @@ export default function GroupDetailPage() {
         ) : tab === 'place' ? (
           <BookmarkListPage groupId={groupId} />
         ) : tab === 'settle' ? (
-          <ExpensePage groupId={groupId} members={group?.members ?? []} />
+          <ExpensePage groupId={groupId} members={members} />
         ) : tab === 'member' ? (
-          <MemberTab members={group?.members ?? []} onInvite={() => toast.info('초대', '초대 링크·코드를 공유하세요.')} />
+          <MemberTab members={members} onInvite={() => toast.info('초대', '초대 링크·코드를 공유하세요.')} />
         ) : (
           <ComingSoon />
         )}
@@ -150,7 +153,7 @@ export default function GroupDetailPage() {
 }
 
 function MemberTab({ members, onInvite }: { members: GroupMember[]; onInvite: () => void }) {
-  const active = members.filter(isActiveMember);
+  const active = members; // /members 는 활성 멤버만 반환
   return (
     <div>
       <button

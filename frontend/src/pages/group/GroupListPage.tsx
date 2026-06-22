@@ -4,7 +4,6 @@ import AppLayout from '../../components/AppLayout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
-import { AvatarGroup } from '../../components/Avatar';
 import { SkeletonCard } from '../../components/Skeleton';
 import { getMyGroups } from '../../api/group';
 import { gradientForKey, ddayLabel, dateRange, groupStatus } from './groupUi';
@@ -13,8 +12,8 @@ import type { GroupStatus, TravelGroup } from '../../types/group';
 
 const FILTERS: ReadonlyArray<{ value: GroupStatus | 'ALL'; label: string }> = [
   { value: 'ALL', label: '전체' },
-  { value: 'ONGOING', label: '진행 중' },
-  { value: 'UPCOMING', label: '예정' },
+  { value: 'IN_PROGRESS', label: '진행 중' },
+  { value: 'PLANNING', label: '예정' },
   { value: 'COMPLETED', label: '완료' },
 ];
 
@@ -109,19 +108,9 @@ export default function GroupListPage() {
                 </span>
               </div>
               <div className="p-3.5">
-                <div className="text-[16px] font-extrabold">{g.name}</div>
+                <div className="text-[16px] font-extrabold">{g.title}</div>
                 <div className="mt-0.5 text-[12px] text-muted">
-                  {dateRange(g.startDate, g.endDate)} · {g.memberCount}명
-                </div>
-                <div className="mt-2.5">
-                  <AvatarGroup
-                    names={
-                      g.members?.filter((m) => m.leftAt == null).map((m) => m.name) ??
-                      Array.from({ length: g.memberCount }, (_, i) => `멤버${i + 1}`)
-                    }
-                    max={4}
-                    size="sm"
-                  />
+                  {g.destination} · {dateRange(g.startDate, g.endDate)}
                 </div>
               </div>
             </Card>

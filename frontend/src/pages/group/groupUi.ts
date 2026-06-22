@@ -59,10 +59,10 @@ export function ddayLabel(startDate: string, endDate: string): string {
   return '종료';
 }
 
-/** 여행 기간으로 상태 계산. */
+/** 여행 기간으로 상태 계산(백엔드 GroupStatus와 동일 기준). */
 export function groupStatus(startDate: string, endDate: string): GroupStatus {
-  if (dayDiff(startDate) > 0) return 'UPCOMING';
-  if (dayDiff(endDate) >= 0) return 'ONGOING';
+  if (dayDiff(startDate) > 0) return 'PLANNING';
+  if (dayDiff(endDate) >= 0) return 'IN_PROGRESS';
   return 'COMPLETED';
 }
 

@@ -1,11 +1,6 @@
 import instance from './instance';
 import type { ApiResponse } from '../types/auth';
-import type { TravelGroup, GroupCreateRequest } from '../types/group';
-
-/**
- * ⚠️ PLACEHOLDER API — 그룹(B 도메인) 백엔드 미확정.
- * 경로/응답 형태는 팀원 B 의 컨트롤러 확정 시 교체. 패턴(instance + ApiResponse 언래핑)은 유지.
- */
+import type { TravelGroup, GroupCreateRequest, GroupMember } from '../types/group';
 
 /** 내 그룹 목록. */
 export const getMyGroups = async (): Promise<TravelGroup[]> => {
@@ -13,9 +8,15 @@ export const getMyGroups = async (): Promise<TravelGroup[]> => {
   return res.data.data;
 };
 
-/** 그룹 상세(멤버 포함). */
+/** 그룹 상세. */
 export const getGroup = async (groupId: number): Promise<TravelGroup> => {
   const res = await instance.get<ApiResponse<TravelGroup>>(`/api/groups/${groupId}`);
+  return res.data.data;
+};
+
+/** 그룹 활성 멤버 목록. */
+export const getGroupMembers = async (groupId: number): Promise<GroupMember[]> => {
+  const res = await instance.get<ApiResponse<GroupMember[]>>(`/api/groups/${groupId}/members`);
   return res.data.data;
 };
 
