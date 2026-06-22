@@ -23,7 +23,8 @@ public class TourApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(TourApiClient.class);
 
-    private static final String BASE_URL = "http://apis.data.go.kr/B551011/KorService2";
+    // https 사용: http(cleartext) 게이트웨이는 JDK HttpClient 요청에 502를 반환하는 경우가 있어 https로 호출한다.
+    private static final String BASE_URL = "https://apis.data.go.kr/B551011/KorService2";
     private static final String MOBILE_APP = "enjoytrip";
 
     private final RestClient restClient;
