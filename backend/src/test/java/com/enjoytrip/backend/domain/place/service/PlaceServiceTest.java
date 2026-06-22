@@ -79,8 +79,7 @@ class PlaceServiceTest {
                 travelGroupRepository,
                 currentUserResolver,
                 groupAccessValidator,
-                eventPublisher,
-                objectMapper
+                eventPublisher
         );
     }
 

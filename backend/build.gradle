@@ -42,6 +42,8 @@ dependencies {
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
 	implementation 'org.flywaydb:flyway-core'
 	runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+	// Spring Boot 4.0은 오토컨피그가 기술별 모듈로 분리됨. Flyway 자동 실행을 위해 필요.
+	implementation 'org.springframework.boot:spring-boot-flyway'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'

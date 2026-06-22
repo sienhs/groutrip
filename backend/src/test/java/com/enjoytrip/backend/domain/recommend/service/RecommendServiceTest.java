@@ -59,7 +59,7 @@ class RecommendServiceTest {
         groupAccessValidator = mock(GroupAccessValidator.class);
         recommendService = new RecommendService(
                 tourApiClient, recommendationCacheRepository, travelGroupRepository,
-                groupPersonaService, currentUserResolver, groupAccessValidator, objectMapper);
+                groupPersonaService, currentUserResolver, groupAccessValidator);
     }
 
     @Test

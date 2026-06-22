@@ -90,7 +90,8 @@ public class RecommendService {
     private final GroupPersonaService groupPersonaService;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
-    private final ObjectMapper objectMapper;
+    // 내부 캐시 JSON 직렬화 전용. Spring Boot 4는 Jackson 3 ObjectMapper 빈만 제공하므로 직접 생성한다.
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public List<RecommendationResponse> recommend(Long groupId, Integer contentTypeId) {
         User user = currentUserResolver.getCurrentUser();
