@@ -1,1 +1,50 @@
 @import "tailwindcss";
+
+/* ──────────────────────────────────────────────
+   enjoy-trip 디자인 토큰 (Tailwind v4 @theme)
+   v4는 tailwind.config.js 대신 CSS @theme 블록으로 토큰을 정의한다.
+   토큰 → 유틸: bg-primary / text-primary / rounded-card / rounded-button ...
+   ────────────────────────────────────────────── */
+@theme {
+  /* color */
+  --color-primary: #FF9F66;            /* 메인 오렌지 */
+  --color-primary-hover: #FF8A47;
+  --color-primary-foreground: #FFFFFF;
+  --color-background: #FFF8F0;         /* 페이지 배경(크림) */
+  --color-surface: #FFFFFF;            /* 카드 배경 */
+  --color-border: #F2E6D8;             /* 카드/구분선 */
+  --color-muted: #8A7B6B;              /* 보조 텍스트 */
+  --color-danger: #EF4444;
+  --color-success: #22C55E;
+  --color-info: #3B82F6;
+  --color-warning: #F59E0B;
+
+  /* radius */
+  --radius-card: 12px;                 /* 카드 */
+  --radius-button: 8px;                /* 버튼/인풋 */
+
+  /* font */
+  --font-sans: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+}
+
+/* 전역 기본값: 배경/폰트/안티앨리어싱 */
+html,
+body {
+  background-color: var(--color-background);
+  color: #3A322B;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 토스트/모달 진입 애니메이션 (유틸로 표현 어려운 키프레임만 여기 정의) */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast-in { animation: toast-in .28s ease; }
+.animate-modal-in { animation: modal-in .26s ease; }

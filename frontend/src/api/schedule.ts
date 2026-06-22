@@ -1,0 +1,75 @@
+import instance from './instance';
+import type { ApiResponse } from '../types/auth';
+import type {
+  Schedule,
+  ScheduleCreateRequest,
+  ScheduleUpdateRequest,
+  ReorderItem,
+  TransportLeg,
+  TransportMode,
+  TransportExpenseRequest,
+} from '../types/schedule';
+
+/** 일정 API (백엔드 Part A). */
+
+/** 일정 목록. date 없으면 전체. */
+export const getSchedules = async (groupId: number, date?: string): Promise<Schedule[]> => {
+  const res = await instance.get<ApiResponse<Schedule[]>>(`/api/groups/${groupId}/schedules`, {
+    params: { date },
+  });
+  return res.data.data;
+};
+
+/** 일정 추가(보관함 placeId 기반). */
+export const addSchedule = async (groupId: number, body: ScheduleCreateRequest): Promise<Schedule> => {
+  const res = await instance.post<ApiResponse<Schedule>>(`/api/groups/${groupId}/schedules`, body);
+  return res.data.data;
+};
+
+/** 일정 수정(시간/메모/비용/상태). 위치 변경은 reorder 로. */
+export const updateSchedule = async (
+  groupId: number,
+  scheduleId: number,
+  body: ScheduleUpdateRequest,
+): Promise<Schedule> => {
+  const res = await instance.patch<ApiResponse<Schedule>>(
+    `/api/groups/${groupId}/schedules/${scheduleId}`,
+    body,
+  );
+  return res.data.data;
+};
+
+/** 일정 삭제. */
+export const deleteSchedule = async (groupId: number, scheduleId: number): Promise<void> => {
+  await instance.delete<ApiResponse<unknown>>(`/api/groups/${groupId}/schedules/${scheduleId}`);
+};
+
+/** 순서 일괄 변경(드래그 종료 시). 날짜 이동 포함. */
+export const reorderSchedules = async (groupId: number, items: ReorderItem[]): Promise<void> => {
+  await instance.patch<ApiResponse<unknown>>(`/api/groups/${groupId}/schedules/reorder`, { items });
+};
+
+/** 두 일정 사이 이동 카드. 대중교통은 available=false. */
+export const getTransportLeg = async (
+  groupId: number,
+  fromScheduleId: number,
+  toScheduleId: number,
+  mode: TransportMode = 'CAR',
+): Promise<TransportLeg> => {
+  const res = await instance.get<ApiResponse<TransportLeg>>(
+    `/api/groups/${groupId}/schedules/transport`,
+    { params: { fromScheduleId, toScheduleId, mode } },
+  );
+  return res.data.data;
+};
+
+/** 이동 비용 정산 추가. costType: DRIVING(톨+연료)/TAXI/TRANSIT. */
+export const addTransportExpense = async (
+  groupId: number,
+  body: TransportExpenseRequest,
+): Promise<void> => {
+  await instance.post<ApiResponse<unknown>>(
+    `/api/groups/${groupId}/schedules/transport-expense`,
+    body,
+  );
+};

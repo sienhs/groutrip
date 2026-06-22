@@ -9,6 +9,12 @@ import SignupPage from './pages/auth/SignupPage';
 import HomePage from './pages/home/HomePage';
 import SurveyPage from './pages/survey/SurveyPage';
 import SurveyResultPage from './pages/survey/SurveyResultPage';
+import GroupListPage from './pages/group/GroupListPage';
+import GroupCreatePage from './pages/group/GroupCreatePage';
+import GroupDetailPage from './pages/group/GroupDetailPage';
+import RecommendPage from './pages/recommend/RecommendPage';
+import VoteDetailPage from './pages/vote/VoteDetailPage';
+import MyPage from './pages/mypage/MyPage';
 
 function App() {
   const [isRestoring, setIsRestoring] = useState(true);
@@ -36,8 +42,8 @@ function App() {
 
   if (isRestoring) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">불러오는 중...</p>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted">불러오는 중...</p>
       </div>
     );
   }
@@ -47,30 +53,21 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/survey"
-          element={
-            <ProtectedRoute>
-              <SurveyPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/survey/result"
-          element={
-            <ProtectedRoute>
-              <SurveyResultPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+        <Route path="/survey" element={<ProtectedRoute><SurveyPage /></ProtectedRoute>} />
+        <Route path="/survey/result" element={<ProtectedRoute><SurveyResultPage /></ProtectedRoute>} />
+
+        {/* 그룹 (B 도메인 placeholder) */}
+        <Route path="/groups" element={<ProtectedRoute><GroupListPage /></ProtectedRoute>} />
+        <Route path="/groups/new" element={<ProtectedRoute><GroupCreatePage /></ProtectedRoute>} />
+        <Route path="/groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
+
+        {/* 추천 · 투표 상세 (그룹 스코프) */}
+        <Route path="/groups/:id/recommend" element={<ProtectedRoute><RecommendPage /></ProtectedRoute>} />
+        <Route path="/groups/:id/votes/:voteId" element={<ProtectedRoute><VoteDetailPage /></ProtectedRoute>} />
+
+        {/* 마이페이지 */}
+        <Route path="/mypage" element={<ProtectedRoute><MyPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

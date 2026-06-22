@@ -1,128 +1,86 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-} from 'recharts';
-import { getMyPreference } from '../../api/survey';
-import type { UserPreference } from '../../types/survey';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Button from '../../components/Button';
+import EmptyState from '../../components/EmptyState';
+import RadarChart from './RadarChart';
+import { getPersona } from './persona';
+import { DIMENSIONS, DIMENSION_META, prefValue, type UserPreference } from '../../types/survey';
 
-const DIMENSION_LABELS: { key: keyof UserPreference; label: string }[] = [
-  { key: 'activity', label: '액티비티' },
-  { key: 'food', label: '맛집' },
-  { key: 'pace', label: '계획성' },
-  { key: 'urbanNature', label: '도시/자연' },
-  { key: 'timePref', label: '시간대' },
-];
+interface ResultLocationState {
+  preference?: UserPreference;
+}
 
-const DESCRIPTIONS: Record<keyof UserPreference, (percent: number) => string> = {
-  activity: (p) => `당신은 액티비티 ${p}%형 여행자입니다.`,
-  food: (p) => `당신의 맛집 탐방 욕구는 ${p}%입니다.`,
-  pace: (p) => `당신의 계획적인 여행 선호도는 ${p}%입니다.`,
-  urbanNature: (p) => `당신의 도시 선호도는 ${p}%입니다. (낮을수록 자연 선호)`,
-  timePref: (p) => `당신의 아침형 여행 선호도는 ${p}%입니다. (낮을수록 야행성)`,
-};
-
+/**
+ * 설문 결과 — 5축(확장 시 N축) 레이더 + 페르소나 + 차원별 막대.
+ * preference 는 SurveyPage 제출 후 라우터 state 로 전달받는다.
+ */
 export default function SurveyResultPage() {
   const navigate = useNavigate();
-  const [preference, setPreference] = useState<UserPreference | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const location = useLocation();
+  const preference = (location.state as ResultLocationState | null)?.preference;
 
-  useEffect(() => {
-    const fetchPreference = async () => {
-      try {
-        const data = await getMyPreference();
-        setPreference(data);
-      } catch {
-        setError('성향 결과를 불러오지 못했습니다.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPreference();
-  }, []);
-
-  if (isLoading) {
+  if (!preference) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">불러오는 중...</p>
+      <div className="mx-auto flex min-h-dvh w-full max-w-md items-center justify-center bg-background px-6">
+        <EmptyState
+          title="아직 분석 결과가 없어요"
+          description="취향 설문을 먼저 진행해 주세요."
+          action={<Button onClick={() => navigate('/survey')}>설문 시작하기</Button>}
+        />
       </div>
     );
   }
 
-  if (error || !preference) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-red-400">{error || '결과가 없습니다.'}</p>
-        <button
-          onClick={() => navigate('/survey')}
-          className="px-6 py-3 bg-[#FF9F66] hover:bg-[#f08c52] text-white font-semibold rounded-xl transition-colors"
-        >
-          설문하러 가기
-        </button>
-      </div>
-    );
-  }
-
-  const chartData = DIMENSION_LABELS.map(({ key, label }) => ({
-    dimension: label,
-    value: Math.round(preference[key] * 100),
+  const persona = getPersona(preference);
+  const radarData = DIMENSIONS.map((dim) => ({
+    label: DIMENSION_META[dim].label,
+    value: prefValue(preference, dim),
   }));
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] p-4">
-      <div className="max-w-2xl mx-auto py-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-1">나의 여행 성향</h1>
-        <p className="text-sm text-gray-400 mb-6">설문 결과를 바탕으로 한 여행 성향이에요</p>
-
-        <div className="bg-white rounded-3xl shadow-lg shadow-orange-50 p-6 mb-4">
-          <ResponsiveContainer width="100%" height={300}>
-            <RadarChart data={chartData}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 12, fill: '#6b7280' }} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
-              <Radar
-                name="성향"
-                dataKey="value"
-                stroke="#FF9F66"
-                fill="#FF9F66"
-                fillOpacity={0.4}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+    <div className="mx-auto min-h-dvh w-full max-w-md bg-background">
+      <div className="px-6 py-8">
+        <div className="text-center">
+          <p className="text-[12px] font-extrabold tracking-wider text-[#BCA48C]">나의 여행 페르소나</p>
+          <h1 className="mt-2 text-[26px] font-extrabold tracking-tight">
+            {persona.emoji} {persona.name}
+          </h1>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted">{persona.desc}</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-lg shadow-orange-50 p-6 space-y-3 mb-6">
-          {DIMENSION_LABELS.map(({ key }) => {
-            const percent = Math.round(preference[key] * 100);
+        <div className="mt-3 flex justify-center">
+          <RadarChart data={radarData} />
+        </div>
+
+        <div className="mt-2 flex flex-col gap-3">
+          {DIMENSIONS.map((dim) => {
+            const meta = DIMENSION_META[dim];
+            const pct = Math.round(prefValue(preference, dim) * 100);
             return (
-              <p key={key} className="text-sm text-gray-700">
-                {DESCRIPTIONS[key](percent)}
-              </p>
+              <div key={dim}>
+                <div className="mb-1.5 flex justify-between text-[13px] font-bold">
+                  <span>{meta.label}</span>
+                  <span className="text-[#E8742E]">{pct}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[#F0E4D6]">
+                  {/* 동적 값 — 인라인 style 사용 */}
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#FFB585] to-[#FF8A47]" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
             );
           })}
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate('/survey')}
-            className="flex-1 py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold rounded-xl transition-colors"
-          >
-            재설문하기
-          </button>
-          <button
-            onClick={() => navigate('/')}
-            className="flex-1 py-3.5 bg-[#FF9F66] hover:bg-[#f08c52] text-white font-semibold rounded-xl transition-colors"
-          >
-            홈으로
-          </button>
-        </div>
+        <Button size="lg" fullWidth className="mt-6" onClick={() => navigate('/recommend')}>
+          추천 장소 보러가기
+        </Button>
+        <Button
+          variant="ghost"
+          fullWidth
+          className="mt-2 border border-border"
+          onClick={() => navigate('/survey')}
+        >
+          설문 다시하기
+        </Button>
       </div>
     </div>
   );
