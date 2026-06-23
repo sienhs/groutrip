@@ -6,6 +6,7 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
+import ScheduleAddModal from './ScheduleAddModal';
 import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg } from '../../api/schedule';
 import {
   TRANSPORT_META,
@@ -26,7 +27,7 @@ type LegState = TransportLeg | 'loading' | 'error' | undefined;
  * 순서변경은 reorder 일괄(items[]). 이동 카드는 인접 일정쌍을 /transport 로 조회(기본 CAR).
  * groupId 는 prop(허브) 또는 라우트(:id).
  */
-export default function ScheduleBuilderPage({ groupId: groupIdProp, onAddStop }: { groupId?: number; onAddStop?: () => void }) {
+export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?: number }) {
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
   const toast = useToast();
@@ -38,6 +39,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, onAddStop }:
   const [legs, setLegs] = useState<Record<string, LegState>>({});
   const [deleting, setDeleting] = useState<Schedule | null>(null);
   const [delLoading, setDelLoading] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   const dragFrom = useRef<number | null>(null);
   const dirty = useRef(false);
@@ -138,9 +140,16 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, onAddStop }:
     return (
       <div>
         <EmptyState title="아직 일정이 없어요" description="보관함에서 장소를 골라 일정에 추가해 보세요." />
-        <Button variant="secondary" fullWidth className="mt-3" onClick={() => (onAddStop ? onAddStop() : toast.info('장소 추가', '보관함에서 장소를 골라 추가하세요.'))}>
+        <Button variant="secondary" fullWidth className="mt-3" onClick={() => setAddOpen(true)}>
           + 장소 추가
         </Button>
+        {addOpen && (
+          <ScheduleAddModal
+            groupId={groupId}
+            onClose={() => setAddOpen(false)}
+            onAdded={() => { setLegs({}); load(); }}
+          />
+        )}
       </div>
     );
   }
@@ -190,14 +199,22 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, onAddStop }:
         ))}
       </div>
 
-      <Button variant="secondary" fullWidth className="mt-3"
-        onClick={() => (onAddStop ? onAddStop() : toast.info('장소 추가', '보관함에서 장소를 골라 일정에 추가하세요.'))}>
+      <Button variant="secondary" fullWidth className="mt-3" onClick={() => setAddOpen(true)}>
         + 장소 추가
       </Button>
       <p className="mt-3 text-center text-[12px] text-[#BCA48C]">⌁ 카드를 드래그해 순서를 바꿀 수 있어요 · 이동시간은 카카오 모빌리티(자차 기준)</p>
 
       <ConfirmModal open={!!deleting} onClose={() => setDeleting(null)} onConfirm={confirmDelete} loading={delLoading} danger
         title="일정에서 삭제할까요?" description={deleting ? `'${deleting.placeName}'을(를) 일정에서 제거합니다.` : undefined} confirmText="삭제" />
+
+      {addOpen && (
+        <ScheduleAddModal
+          groupId={groupId}
+          defaultDate={activeDate}
+          onClose={() => setAddOpen(false)}
+          onAdded={() => { setLegs({}); load(); }}
+        />
+      )}
     </div>
   );
 }

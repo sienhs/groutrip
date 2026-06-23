@@ -144,7 +144,7 @@ export default function TripPlanPage() {
       setStep('sigungu');
     } else {
       setSigungu('');
-      goAccommodation(`${destination} 숙소`);
+      goAccommodation(destination);
     }
   };
 
@@ -159,7 +159,7 @@ export default function TripPlanPage() {
 
   const pickSigungu = (s: string) => {
     setSigungu(s);
-    goAccommodation(`${s} 숙소`);
+    goAccommodation(s);
   };
 
   const handleSelectPlace = async (place: PlaceSearchResult) => {
@@ -414,14 +414,24 @@ export default function TripPlanPage() {
             </div>
           </div>
 
-          {/* 1) 최저가 핸드오프 */}
+          {/* 1) 가격 비교 핸드오프 — 구글 지도(정확한 그 숙소의 OTA 최저가 비교)를 우선, 네이버 검색은 보조 */}
           <div className="rounded-card border border-border bg-surface p-3.5">
-            <p className="text-[14px] font-bold text-[#3A322B]">① 최저가로 예약하기</p>
+            <p className="text-[14px] font-bold text-[#3A322B]">① 가격 비교하고 예약하기</p>
             <p className="mt-1 text-[13px] text-muted">
-              네이버 호텔 가격비교에서 <b>{current.place.name}</b>의 최저가를 확인하고 예약을 진행하세요.
+              <b>{current.place.name}</b>의 예약 사이트별 가격을 비교하고 예약을 진행하세요.
             </p>
-            <Button variant="secondary" fullWidth className="mt-3" onClick={openBookingSite}>
-              네이버 호텔 가격비교 열기 ↗
+            {current.place.googleMapsUri && (
+              <Button
+                variant="secondary"
+                fullWidth
+                className="mt-3"
+                onClick={() => window.open(current.place.googleMapsUri!, '_blank', 'noopener,noreferrer')}
+              >
+                구글 지도에서 가격 비교 ↗
+              </Button>
+            )}
+            <Button variant="ghost" fullWidth className="mt-2 border border-border" onClick={openBookingSite}>
+              네이버에서 검색 ↗
             </Button>
           </div>
 

@@ -115,8 +115,10 @@ public class GooglePlacesClient {
     public GooglePlace getDetails(String googlePlaceId) {
         requireApiKey();
         try {
+            // languageCode/regionCode를 줘야 한글 이름(displayName)으로 보강된다(미지정 시 영문 기본값).
             String response = restClient.get()
-                    .uri("/places/{placeId}", googlePlaceId)
+                    .uri("/places/{placeId}?languageCode={lang}&regionCode={region}",
+                            googlePlaceId, LANGUAGE_CODE, REGION_CODE)
                     .header(API_KEY_HEADER, apiKey)
                     .header(FIELD_MASK_HEADER, DETAILS_FIELD_MASK)
                     .retrieve()

@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
+import { SkeletonCard } from '../../components/Skeleton';
 import RadarChart from './RadarChart';
 import { getPersona } from './persona';
+import { getMyPreference } from '../../api/survey';
 import { DIMENSIONS, DIMENSION_META, prefValue, type UserPreference } from '../../types/survey';
 
 interface ResultLocationState {
@@ -11,12 +14,42 @@ interface ResultLocationState {
 
 /**
  * 설문 결과 — 5축(확장 시 N축) 레이더 + 페르소나 + 차원별 막대.
- * preference 는 SurveyPage 제출 후 라우터 state 로 전달받는다.
+ * 제출 직후엔 라우터 state로 받지만, 직접 진입/새로고침이면 저장된 성향(getMyPreference)을 불러온다.
  */
 export default function SurveyResultPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const preference = (location.state as ResultLocationState | null)?.preference;
+  const statePreference = (location.state as ResultLocationState | null)?.preference;
+
+  const [preference, setPreference] = useState<UserPreference | null>(statePreference ?? null);
+  // 라우터 state가 없을 때만 서버 조회 → 미응답 판정.
+  const [loading, setLoading] = useState(!statePreference);
+
+  useEffect(() => {
+    if (statePreference) return;
+    let cancelled = false;
+    getMyPreference()
+      .then((p) => {
+        if (!cancelled) setPreference(p);
+      })
+      .catch(() => {
+        if (!cancelled) setPreference(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statePreference]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto min-h-dvh w-full max-w-md bg-background px-6 py-8">
+        <SkeletonCard />
+      </div>
+    );
+  }
 
   if (!preference) {
     return (

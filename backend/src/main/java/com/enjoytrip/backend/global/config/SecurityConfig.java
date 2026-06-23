@@ -3,6 +3,7 @@ package com.enjoytrip.backend.global.config;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
@@ -102,6 +103,9 @@ public class SecurityConfig {
 				.permitAll()
 				// Swagger UI와 OpenAPI 명세는 개발 중 API 확인을 위해 인증 없이 접근을 허용한다.
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+				// 장소 썸네일 프록시는 <img src>로 직접 로드돼 인증 헤더를 실을 수 없으므로 공개한다.
+				// (Google 키는 BE에만 있고 민감 정보가 없는 이미지 스트림이다.)
+				.requestMatchers(HttpMethod.GET, "/api/places/photo").permitAll()
 				// 나머지 요청은 인증이 필요하게
 				.anyRequest().authenticated())
 		.exceptionHandling(exceptions -> exceptions
