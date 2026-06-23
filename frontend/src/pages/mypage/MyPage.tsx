@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../../components/AppLayout';
 import Avatar from '../../components/Avatar';
@@ -7,7 +7,7 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import ChangePasswordModal from './ChangePasswordModal';
-import { deleteAccount } from '../../api/user';
+import { deleteAccount, uploadMyAvatar } from '../../api/user';
 import { logout } from '../../api/auth';
 import useAuthStore from '../../store/authStore';
 import { cn } from '../../lib/cn';
@@ -26,6 +26,26 @@ export default function MyPage() {
   const [delOpen, setDelOpen] = useState(false);
   const [delPw, setDelPw] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const avatarRef = useRef<HTMLInputElement>(null);
+  const [avatarVersion, setAvatarVersion] = useState(0);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      await uploadMyAvatar(file);
+      setAvatarVersion((v) => v + 1); // 캐시 버스트
+      toast.success('프로필 사진을 등록했어요');
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error('업로드에 실패했어요', message ?? '5MB 이하 이미지인지 확인해 주세요.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const handleLogout = async () => {
     // 서버 Refresh Token/쿠키 정리. 실패해도 클라이언트 세션은 비운다(FR-AUTH-04).
@@ -63,7 +83,22 @@ export default function MyPage() {
     <AppLayout title="마이페이지">
       {/* 프로필 */}
       <div className="flex items-center gap-3.5">
-        <Avatar name={user?.name ?? '여행자'} size="lg" className="size-[60px] text-2xl" />
+        <div className="relative">
+          <Avatar name={user?.name ?? '여행자'} userId={user?.id} version={avatarVersion} size="lg" className="size-[60px] text-2xl" />
+          <button
+            type="button"
+            aria-label="프로필 사진 변경"
+            disabled={avatarUploading}
+            onClick={() => avatarRef.current?.click()}
+            className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full border-2 border-background bg-primary text-white shadow disabled:opacity-60"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              <circle cx="12" cy="13" r="3" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </button>
+          <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={onPickAvatar} />
+        </div>
         <div className="min-w-0 flex-1">
           <div className="text-[19px] font-extrabold">{user?.name ?? '여행자'}</div>
           <p className="mt-0.5 text-[13px] text-muted">{user?.email ?? '-'}</p>

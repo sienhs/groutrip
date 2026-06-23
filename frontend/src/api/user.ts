@@ -24,3 +24,18 @@ export const changePassword = async (body: ChangePasswordRequest): Promise<void>
 export const deleteAccount = async (password: string): Promise<void> => {
   await instance.delete<ApiResponse<unknown>>('/api/users/me', { data: { password } });
 };
+
+/** 내 프로필 사진 업로드/교체. */
+export const uploadMyAvatar = async (file: File): Promise<void> => {
+  const form = new FormData();
+  form.append('avatar', file);
+  await instance.post<ApiResponse<unknown>>('/api/users/me/avatar', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+/** 프로필 사진 절대 URL(공개 조회). 없으면 404 → Avatar가 이니셜로 폴백. version으로 캐시 버스트. */
+export const userAvatarUrl = (userId: number, version?: number): string => {
+  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  return `${base}/api/users/${userId}/avatar${version ? `?v=${version}` : ''}`;
+};

@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { cn } from '../lib/cn';
+import { userAvatarUrl } from '../api/user';
 
 type Size = 'sm' | 'md' | 'lg';
 
@@ -30,11 +32,33 @@ interface AvatarProps {
   name: string;
   size?: Size;
   className?: string;
+  /** 있으면 프로필 사진(공개 조회)을 표시. 없거나 404면 이니셜로 폴백. */
+  userId?: number;
+  /** 사진 캐시 버스트(업로드 직후 갱신용). */
+  version?: number;
 }
 
-/** 이름 이니셜 기반 아바타(이미지 미사용). */
-export default function Avatar({ name, size = 'md', className }: AvatarProps) {
+/** 이름 이니셜 기반 아바타. userId가 있으면 프로필 사진을 우선 표시(실패 시 이니셜). */
+export default function Avatar({ name, size = 'md', className, userId, version }: AvatarProps) {
   const initial = name.trim().charAt(0) || '?';
+  const [failed, setFailed] = useState(false);
+
+  // userId/version이 바뀌면 다시 시도
+  useEffect(() => {
+    setFailed(false);
+  }, [userId, version]);
+
+  if (userId && !failed) {
+    return (
+      <img
+        src={userAvatarUrl(userId, version)}
+        alt={name}
+        title={name}
+        onError={() => setFailed(true)}
+        className={cn('inline-block rounded-full object-cover', SIZE[size], className)}
+      />
+    );
+  }
   return (
     <span
       aria-label={name}

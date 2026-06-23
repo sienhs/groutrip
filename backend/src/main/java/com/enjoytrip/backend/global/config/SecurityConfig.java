@@ -106,6 +106,8 @@ public class SecurityConfig {
 				// 장소 썸네일 프록시는 <img src>로 직접 로드돼 인증 헤더를 실을 수 없으므로 공개한다.
 				// (Google 키는 BE에만 있고 민감 정보가 없는 이미지 스트림이다.)
 				.requestMatchers(HttpMethod.GET, "/api/places/photo").permitAll()
+				// 프로필 사진도 <img src>로 여러 화면에서 직접 로드되므로 조회는 공개한다(업로드는 인증 필요).
+				.requestMatchers(HttpMethod.GET, "/api/users/*/avatar").permitAll()
 				// 나머지 요청은 인증이 필요하게
 				.anyRequest().authenticated())
 		.exceptionHandling(exceptions -> exceptions

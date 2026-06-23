@@ -12,6 +12,7 @@ import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
 import VoteTab from '../vote/VoteTab';
+import GroupGalleryPage from '../gallery/GroupGalleryPage';
 import GroupEditModal from './GroupEditModal';
 import {
   getGroup,
@@ -29,13 +30,14 @@ import { gradientForKey, ddayLabel, dateRange } from './groupUi';
 import { cn } from '../../lib/cn';
 import { type GroupMember, type TravelGroup } from '../../types/group';
 
-type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'member';
+type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'gallery' | 'member';
 
 const TABS: TabItem[] = [
   { key: 'schedule', label: '일정' },
   { key: 'place', label: '장소' },
   { key: 'vote', label: '투표' },
   { key: 'settle', label: '정산' },
+  { key: 'gallery', label: '사진' },
   { key: 'member', label: '멤버' },
 ];
 
@@ -233,6 +235,8 @@ export default function GroupDetailPage() {
           <VoteTab key={streamTick} groupId={groupId} isOwner={isOwner} />
         ) : tab === 'settle' ? (
           <ExpensePage key={streamTick} groupId={groupId} members={members} />
+        ) : tab === 'gallery' ? (
+          <GroupGalleryPage key={streamTick} groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
         ) : tab === 'member' ? (
           <MemberTab
             groupId={groupId}
@@ -353,7 +357,7 @@ function MemberTab({
             const isMe = m.userId === currentUserId;
             return (
               <div key={m.userId} className="flex items-center gap-3 rounded-card border border-border bg-surface px-3.5 py-3">
-                <Avatar name={m.name} size="lg" />
+                <Avatar name={m.name} userId={m.userId} size="lg" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 text-[15px] font-extrabold">
                     <span className="truncate">{m.name}</span>
