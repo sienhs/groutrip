@@ -108,6 +108,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
                     <button type="button" onClick={() => { setEditing(e); setFormOpen(true); }} className="min-w-0 flex-1 text-left">
                       <div className="truncate text-[15px] font-bold">{e.description}</div>
                       <div className="text-[12px] text-muted">{e.payerName} 결제 · {e.splits.length}명 분담</div>
+                      {e.memo && <div className="truncate text-[11px] text-[#A6907B]">{e.memo}</div>}
                     </button>
                     <span className="text-[15px] font-extrabold">{formatWon(e.amount)}</span>
                     <button

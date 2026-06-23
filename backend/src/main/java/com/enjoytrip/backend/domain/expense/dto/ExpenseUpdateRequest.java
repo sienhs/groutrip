@@ -36,6 +36,10 @@ public record ExpenseUpdateRequest(
         @Size(max = 255)
         String description,
 
+        @Schema(description = "수정할 메모(항목과 별개의 자유 메모).", example = "1인 2만원씩")
+        @Size(max = 255)
+        String memo,
+
         @Schema(description = "수정할 결제일.", example = "2026-07-01")
         @NotNull
         LocalDate paidAt,
@@ -60,6 +64,6 @@ public record ExpenseUpdateRequest(
             List<Long> participantIds,
             Long sourceScheduleId
     ) {
-        this(amount, payerId, category, splitType, description, paidAt, participantIds, null, sourceScheduleId);
+        this(amount, payerId, category, splitType, description, null, paidAt, participantIds, null, sourceScheduleId);
     }
 }

@@ -24,6 +24,7 @@ export interface Expense {
   category: ExpenseCategory;
   splitType: SplitType;
   description: string;
+  memo: string | null;
   paidAt: string; // YYYY-MM-DD
   sourceScheduleId: number | null;
   splits: ExpenseSplit[];
@@ -36,6 +37,7 @@ export interface ExpenseCreateRequest {
   category: ExpenseCategory;
   splitType: SplitType;
   description: string;
+  memo?: string;
   paidAt: string;
   participantIds: number[];
 }

@@ -24,6 +24,7 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
   const editing = !!expense;
 
   const [title, setTitle] = useState('');
+  const [memo, setMemo] = useState('');
   const [amount, setAmount] = useState('');
   const [payerId, setPayerId] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
@@ -33,6 +34,7 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
   useEffect(() => {
     if (!open) return;
     setTitle(expense?.description ?? '');
+    setMemo(expense?.memo ?? '');
     setAmount(expense ? String(expense.amount) : '');
     setPayerId(expense ? String(expense.payerId) : String(members[0]?.userId ?? ''));
     setParticipants((expense?.splits.map((s) => s.userId) ?? members.map((m) => m.userId)).map(String));
@@ -52,6 +54,7 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
       category,
       splitType: 'EQUAL' as const,
       description: title.trim(),
+      memo: memo.trim() || undefined,
       paidAt: expense?.paidAt ?? new Date().toISOString().slice(0, 10),
       participantIds: participants.map(Number),
     };
@@ -88,6 +91,13 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
     >
       <div className="space-y-4">
         <Input label="항목" value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} placeholder="예: 흑돼지 저녁" />
+        <Input
+          label="메모 (선택)"
+          value={memo}
+          maxLength={255}
+          onChange={(e) => setMemo(e.target.value)}
+          placeholder="예: 1인 2만원씩, 카드 결제"
+        />
         <Input
           label="금액"
           type="number"

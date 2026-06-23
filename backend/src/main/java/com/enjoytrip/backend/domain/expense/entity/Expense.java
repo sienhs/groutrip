@@ -64,6 +64,10 @@ public class Expense {
     @Column(length = 255)
     private String description;
 
+    // 항목(description)과 별개의 자유 메모.
+    @Column(length = 255)
+    private String memo;
+
     @Column(nullable = false)
     private LocalDate paidAt;
 
@@ -89,6 +93,7 @@ public class Expense {
             ExpenseCategory category,
             SplitType splitType,
             String description,
+            String memo,
             LocalDate paidAt,
             Long sourceScheduleId
     ) {
@@ -99,6 +104,7 @@ public class Expense {
         this.category = category;
         this.splitType = splitType;
         this.description = description;
+        this.memo = memo;
         this.paidAt = paidAt;
         this.sourceScheduleId = sourceScheduleId;
     }
@@ -110,6 +116,7 @@ public class Expense {
             ExpenseCategory category,
             SplitType splitType,
             String description,
+            String memo,
             LocalDate paidAt,
             Long sourceScheduleId
     ) {
@@ -118,6 +125,7 @@ public class Expense {
         this.category = category;
         this.splitType = splitType;
         this.description = description;
+        this.memo = memo;
         this.paidAt = paidAt;
         this.sourceScheduleId = sourceScheduleId;
     }

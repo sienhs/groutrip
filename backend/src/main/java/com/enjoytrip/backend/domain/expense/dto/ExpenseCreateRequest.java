@@ -32,9 +32,13 @@ public record ExpenseCreateRequest(
         @NotNull
         SplitType splitType,
 
-        @Schema(description = "지출 메모. 이동 비용 자동 등록이면 '[자동]' 문구를 포함할 수 있다.", example = "[자동] 강남역 → 홍대입구 자동차 이동")
+        @Schema(description = "지출 항목명. 이동 비용 자동 등록이면 '[자동]' 문구를 포함할 수 있다.", example = "[자동] 강남역 → 홍대입구 자동차 이동")
         @Size(max = 255)
         String description,
+
+        @Schema(description = "지출 메모(항목과 별개의 자유 메모).", example = "1인 2만원씩")
+        @Size(max = 255)
+        String memo,
 
         @Schema(description = "결제일.", example = "2026-07-01")
         @NotNull
@@ -49,7 +53,7 @@ public record ExpenseCreateRequest(
         @Schema(description = "일정/이동 비용에서 생성된 지출이면 원본 일정 ID. 직접 입력 지출이면 null 가능.", example = "42")
         Long sourceScheduleId
 ) {
-    // 기존 EQUAL 호출부와의 소스 호환을 유지한다.
+    // 기존 EQUAL 호출부와의 소스 호환을 유지한다(memo 없이 호출).
     public ExpenseCreateRequest(
             Long amount,
             Long payerId,
@@ -60,6 +64,6 @@ public record ExpenseCreateRequest(
             List<Long> participantIds,
             Long sourceScheduleId
     ) {
-        this(amount, payerId, category, splitType, description, paidAt, participantIds, null, sourceScheduleId);
+        this(amount, payerId, category, splitType, description, null, paidAt, participantIds, null, sourceScheduleId);
     }
 }

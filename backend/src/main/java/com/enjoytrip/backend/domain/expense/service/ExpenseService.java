@@ -80,6 +80,7 @@ public class ExpenseService {
                 .category(request.category())
                 .splitType(request.splitType())
                 .description(request.description())
+                .memo(request.memo())
                 .paidAt(request.paidAt())
                 .sourceScheduleId(request.sourceScheduleId())
                 .build();
@@ -191,6 +192,7 @@ public class ExpenseService {
                 request.category(),
                 request.splitType(),
                 request.description(),
+                request.memo(),
                 request.paidAt(),
                 request.sourceScheduleId()
         );

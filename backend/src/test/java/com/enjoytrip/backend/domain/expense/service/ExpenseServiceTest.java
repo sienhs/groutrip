@@ -138,6 +138,7 @@ class ExpenseServiceTest {
                 ExpenseCategory.MEAL,
                 SplitType.RATIO,
                 "meal",
+                null,
                 LocalDate.of(2026, 7, 1),
                 null,
                 List.of(
@@ -174,6 +175,7 @@ class ExpenseServiceTest {
                 ExpenseCategory.LODGING,
                 SplitType.AMOUNT,
                 "hotel",
+                null,
                 LocalDate.of(2026, 7, 1),
                 null,
                 List.of(
@@ -205,6 +207,7 @@ class ExpenseServiceTest {
                 ExpenseCategory.MEAL,
                 SplitType.RATIO,
                 "meal",
+                null,
                 LocalDate.of(2026, 7, 1),
                 null,
                 List.of(new ExpenseSplitRequest(1L, 90, null)),
@@ -231,6 +234,7 @@ class ExpenseServiceTest {
                 ExpenseCategory.MEAL,
                 SplitType.AMOUNT,
                 "meal",
+                null,
                 LocalDate.of(2026, 7, 1),
                 null,
                 List.of(new ExpenseSplitRequest(1L, null, 9_000L)),
@@ -272,6 +276,7 @@ class ExpenseServiceTest {
                 ExpenseCategory.LODGING,
                 SplitType.AMOUNT,
                 "after",
+                null,
                 LocalDate.of(2026, 7, 2),
                 null,
                 List.of(

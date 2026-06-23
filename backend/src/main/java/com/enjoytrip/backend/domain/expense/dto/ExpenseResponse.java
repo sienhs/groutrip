@@ -19,6 +19,7 @@ public record ExpenseResponse(
         ExpenseCategory category,
         SplitType splitType,
         String description,
+        String memo,
         LocalDate paidAt,
         Long sourceScheduleId,
         List<ExpenseSplitResponse> splits
@@ -34,6 +35,7 @@ public record ExpenseResponse(
                 expense.getCategory(),
                 expense.getSplitType(),
                 expense.getDescription(),
+                expense.getMemo(),
                 expense.getPaidAt(),
                 expense.getSourceScheduleId(),
                 splits.stream()
