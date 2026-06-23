@@ -1,5 +1,5 @@
 -- 그룹 여행 계획 - 숙소 선정/예약 (Part A, 홀수 버전).
--- V7까지 사용 중이라 다음 홀수 V9를 사용한다(V8은 Part B 예약).
+-- 원래 V9였으나 develop 병합 시 V9__create_oauth_identities 와 충돌 → 다음 빈 홀수 V11로 이동.
 -- 숙소는 Google Places(lodging) 단일 소스에서 선정하며, 예약완료 사진은 MinIO 미가동 환경이라
 -- 우선 DB(bytea)에 저장한다(추후 객체 스토리지 키로 교체 가능).
 
