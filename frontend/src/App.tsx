@@ -6,6 +6,7 @@ import type { User } from './types/auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 import HomePage from './pages/home/HomePage';
 import SurveyPage from './pages/survey/SurveyPage';
 import SurveyResultPage from './pages/survey/SurveyResultPage';
@@ -55,6 +56,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/survey" element={<ProtectedRoute><SurveyPage /></ProtectedRoute>} />
         <Route path="/survey/result" element={<ProtectedRoute><SurveyResultPage /></ProtectedRoute>} />

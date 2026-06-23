@@ -4,6 +4,10 @@ spring:
 
 server:
   forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
 
 auth:
   refresh-cookie-secure: true

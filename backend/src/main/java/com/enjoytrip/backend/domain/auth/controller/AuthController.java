@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.enjoytrip.backend.domain.auth.dto.LoginRequest;
 import com.enjoytrip.backend.domain.auth.dto.LoginResponse;
+import com.enjoytrip.backend.domain.auth.dto.OAuthCodeExchangeRequest;
 import com.enjoytrip.backend.domain.auth.dto.SignupRequest;
 import com.enjoytrip.backend.domain.auth.service.AuthService;
 import com.enjoytrip.backend.domain.auth.service.LoginAttemptService;
+import com.enjoytrip.backend.domain.auth.service.OAuthAuthorizationCodeStore;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
 import com.enjoytrip.backend.global.response.ApiResponse;
@@ -37,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 	private final AuthService authService;
 	private final LoginAttemptService loginAttemptService;
+	private final OAuthAuthorizationCodeStore oAuthAuthorizationCodeStore;
 
 	@Value("${auth.refresh-cookie-secure:false}")
 	private boolean refreshCookieSecure;
@@ -85,6 +88,25 @@ public class AuthController {
 				.build();
 		
 		return ResponseEntity.ok(ApiResponse.success("로그인 성공", safeResponse));
+	}
+
+	@PostMapping("/oauth/exchange")
+	@Operation(summary = "소셜 로그인 코드 교환")
+	public ResponseEntity<ApiResponse<LoginResponse>> exchangeOAuthCode(
+			@RequestBody @Valid OAuthCodeExchangeRequest request,
+			HttpServletResponse response
+	) {
+		Long userId = oAuthAuthorizationCodeStore.consume(request.code());
+		LoginResponse loginResponse = authService.loginWithOAuth(userId);
+		setRefreshTokenCooke(response, loginResponse.getRefreshToken());
+
+		LoginResponse safeResponse = LoginResponse.builder()
+				.userId(loginResponse.getUserId())
+				.accessToken(loginResponse.getAccessToken())
+				.name(loginResponse.getName())
+				.email(loginResponse.getEmail())
+				.build();
+		return ResponseEntity.ok(ApiResponse.success("소셜 로그인 성공", safeResponse));
 	}
 	
 	// HttpOnly 쿠키 세팅 헬퍼
