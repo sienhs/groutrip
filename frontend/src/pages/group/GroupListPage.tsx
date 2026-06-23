@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { AxiosError } from 'axios';
 import AppLayout from '../../components/AppLayout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import Input from '../../components/Input';
+import Modal from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
-import { getMyGroups } from '../../api/group';
+import { useToast } from '../../components/Toast';
+import { getMyGroups, joinGroup } from '../../api/group';
 import { gradientForKey, ddayLabel, dateRange, groupStatus } from './groupUi';
 import { cn } from '../../lib/cn';
+import type { ApiResponse } from '../../types/auth';
 import type { GroupStatus, TravelGroup } from '../../types/group';
 
 const FILTERS: ReadonlyArray<{ value: GroupStatus | 'ALL'; label: string }> = [
@@ -20,10 +25,34 @@ const FILTERS: ReadonlyArray<{ value: GroupStatus | 'ALL'; label: string }> = [
 /** 내 그룹 목록. 상태 필터 + 그룹 카드. */
 export default function GroupListPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [groups, setGroups] = useState<TravelGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<GroupStatus | 'ALL'>('ALL');
+
+  // 초대 코드로 참여
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joining, setJoining] = useState(false);
+
+  const handleJoin = async () => {
+    const code = joinCode.trim().toUpperCase();
+    if (!code) return;
+    setJoining(true);
+    try {
+      const group = await joinGroup(code);
+      toast.success('그룹에 참여했어요', group.title);
+      setJoinOpen(false);
+      setJoinCode('');
+      navigate(`/groups/${group.id}`);
+    } catch (err) {
+      const message = (err as AxiosError<ApiResponse<null>>).response?.data?.message;
+      toast.error('참여하지 못했어요', message ?? '초대 코드를 다시 확인해 주세요.');
+    } finally {
+      setJoining(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -80,6 +109,18 @@ export default function GroupListPage() {
         })}
       </div>
 
+      {/* 초대 코드로 참여 진입 */}
+      <button
+        type="button"
+        onClick={() => setJoinOpen(true)}
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCBA6] bg-[#FFF7F0] py-3 text-[14px] font-bold text-[#E8742E] active:bg-[#FFEEDF]"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M9 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.5 19c0-3 2.5-5 5.5-5M16 11h6M19 8v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        초대 코드로 참여하기
+      </button>
+
       <div className="mt-4 space-y-3">
         {loading && [0, 1].map((i) => <SkeletonCard key={i} />)}
 
@@ -116,6 +157,33 @@ export default function GroupListPage() {
             </Card>
           ))}
       </div>
+
+      <Modal
+        open={joinOpen}
+        onClose={() => !joining && setJoinOpen(false)}
+        title="초대 코드로 참여"
+        description="그룹장에게 받은 초대 코드를 입력하세요."
+        footer={
+          <>
+            <Button variant="ghost" fullWidth onClick={() => setJoinOpen(false)} className="border border-border" disabled={joining}>
+              취소
+            </Button>
+            <Button fullWidth onClick={handleJoin} loading={joining} disabled={!joinCode.trim()}>
+              참여하기
+            </Button>
+          </>
+        }
+      >
+        <Input
+          value={joinCode}
+          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+          placeholder="예: ZSH6AY"
+          maxLength={12}
+          autoFocus
+          className="text-center text-[18px] font-extrabold tracking-[0.2em]"
+        />
+      </Modal>
     </AppLayout>
   );
 }
