@@ -20,7 +20,7 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
           </svg>
         )}
       </div>
-      <p className="text-[15px] font-extrabold text-[#3A322B]">{title}</p>
+      <p className="text-[15px] font-extrabold text-foreground">{title}</p>
       {description && (
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{description}</p>
       )}

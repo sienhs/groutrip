@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
 import { cn } from '../lib/cn';
 import type { ToastType } from './Toast';
+import type { GroupEventType } from '../types/sse';
 
 const DOT: Record<ToastType, string> = {
   success: 'bg-success',
@@ -9,6 +11,16 @@ const DOT: Record<ToastType, string> = {
   info: 'bg-info',
   warning: 'bg-warning',
 };
+
+/** 알림 종류 → 그룹 상세의 어느 탭으로 보낼지(GroupDetailPage가 ?tab= 으로 읽음). */
+function tabForType(type: GroupEventType): string | null {
+  if (type.startsWith('SCHEDULE')) return 'schedule';
+  if (type.startsWith('VOTE')) return 'vote';
+  if (type.startsWith('PLACE')) return 'place';
+  if (type.startsWith('EXPENSE')) return 'settle';
+  if (type.startsWith('MEMBER')) return 'member';
+  return null; // GROUP_UPDATED 등은 그룹 홈으로
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -22,7 +34,8 @@ function timeAgo(iso: string): string {
 
 /** 알림 벨 + 드롭다운. 헤더 actions 에 넣어 사용. 실시간 알림은 notificationStore 가 채운다. */
 export default function NotificationBell() {
-  const { items, unread, markAllRead } = useNotificationStore();
+  const navigate = useNavigate();
+  const { items, unread, markRead } = useNotificationStore();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -35,11 +48,12 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
 
-  const toggle = () => {
-    setOpen((v) => {
-      if (!v && unread > 0) markAllRead();
-      return !v;
-    });
+  // 알림 클릭: 읽음 처리 후 해당 그룹의 관련 탭으로 이동(딥링크).
+  const openNotification = (id: string, groupId: number, type: GroupEventType) => {
+    markRead(id);
+    setOpen(false);
+    const tab = tabForType(type);
+    navigate(`/groups/${groupId}${tab ? `?tab=${tab}` : ''}`);
   };
 
   return (
@@ -47,8 +61,8 @@ export default function NotificationBell() {
       <button
         type="button"
         aria-label={`알림${unread > 0 ? ` ${unread}개` : ''}`}
-        onClick={toggle}
-        className="relative flex size-9 items-center justify-center text-[#5C5044]"
+        onClick={() => setOpen((v) => !v)}
+        className="relative flex size-9 items-center justify-center text-foreground"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
@@ -64,7 +78,7 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-11 z-50 w-[300px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-border bg-surface shadow-lg">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <span className="text-[14px] font-extrabold">알림</span>
+            <span className="text-[14px] font-extrabold text-foreground">알림</span>
             <span className="text-[12px] text-muted">{items.length}건</span>
           </div>
           <div className="max-h-[360px] overflow-y-auto">
@@ -72,13 +86,21 @@ export default function NotificationBell() {
               <p className="px-4 py-10 text-center text-[13px] text-muted">새 알림이 없어요</p>
             ) : (
               items.map((n) => (
-                <div key={n.id} className={cn('flex gap-3 border-b border-[#F4ECE0] px-4 py-3', !n.read && 'bg-[#FFF7F0]')}>
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => openNotification(n.id, n.groupId, n.type)}
+                  className={cn(
+                    'flex w-full gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-primary/5',
+                    !n.read && 'bg-primary/10',
+                  )}
+                >
                   <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', DOT[n.toast])} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold leading-snug text-[#3A322B]">{n.message}</p>
+                    <p className="text-[13px] font-semibold leading-snug text-foreground">{n.message}</p>
                     <p className="mt-0.5 text-[11px] text-muted">{timeAgo(n.ts)}</p>
                   </div>
-                </div>
+                </button>
               ))
             )}
           </div>

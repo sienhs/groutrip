@@ -31,7 +31,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={selectId} className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">
+        <label htmlFor={selectId} className="mb-1.5 block text-[13px] font-bold text-foreground">
           {label}
         </label>
       )}
@@ -45,7 +45,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            'h-11 w-full appearance-none rounded-button border bg-surface pl-3.5 pr-10 text-[15px] text-[#3A322B]',
+            'h-11 w-full appearance-none rounded-button border bg-surface pl-3.5 pr-10 text-[15px] text-foreground',
             'outline-none transition-colors',
             'focus:border-primary focus:ring-2 focus:ring-primary/20',
             'disabled:cursor-not-allowed disabled:bg-[#F7EFE5] disabled:text-[#A6907B]',

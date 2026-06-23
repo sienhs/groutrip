@@ -107,7 +107,7 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
                   {s.mark}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-extrabold text-[#3A322B]">{t.title}</p>
+                  <p className="text-[13px] font-extrabold text-foreground">{t.title}</p>
                   {t.message && <p className="mt-0.5 text-[12px] text-muted">{t.message}</p>}
                 </div>
                 <button
