@@ -12,18 +12,50 @@ import type {
 
 /** 일정 API (백엔드 Part A). */
 
+// 백엔드 ScheduleResponse: 장소가 중첩(place.name/placeId)이고 시각은 "HH:mm:ss".
+// FE Schedule(평탄화 placeName/placeId, "HH:mm")로 매핑한다.
+interface ScheduleApiResponse {
+  id: number;
+  place: { placeId: number; name: string; types?: string[] };
+  scheduleDate: string;
+  orderIndex: number;
+  startTime: string;
+  endTime: string;
+  memo: string | null;
+  estimatedCost: number | null;
+  transportMode: TransportMode | null;
+  status: string | null;
+}
+
+const hhmm = (t: string | null | undefined): string => (t ?? '').slice(0, 5);
+
+const toSchedule = (r: ScheduleApiResponse): Schedule => ({
+  id: r.id,
+  placeId: r.place.placeId,
+  placeName: r.place.name,
+  category: null,
+  scheduleDate: r.scheduleDate,
+  startTime: hhmm(r.startTime),
+  endTime: hhmm(r.endTime),
+  memo: r.memo,
+  estimatedCost: r.estimatedCost,
+  transportMode: r.transportMode,
+  orderIndex: r.orderIndex,
+  status: r.status,
+});
+
 /** 일정 목록. date 없으면 전체. */
 export const getSchedules = async (groupId: number, date?: string): Promise<Schedule[]> => {
-  const res = await instance.get<ApiResponse<Schedule[]>>(`/api/groups/${groupId}/schedules`, {
+  const res = await instance.get<ApiResponse<ScheduleApiResponse[]>>(`/api/groups/${groupId}/schedules`, {
     params: { date },
   });
-  return res.data.data;
+  return res.data.data.map(toSchedule);
 };
 
 /** 일정 추가(보관함 placeId 기반). */
 export const addSchedule = async (groupId: number, body: ScheduleCreateRequest): Promise<Schedule> => {
-  const res = await instance.post<ApiResponse<Schedule>>(`/api/groups/${groupId}/schedules`, body);
-  return res.data.data;
+  const res = await instance.post<ApiResponse<ScheduleApiResponse>>(`/api/groups/${groupId}/schedules`, body);
+  return toSchedule(res.data.data);
 };
 
 /** 일정 수정(시간/메모/비용/상태). 위치 변경은 reorder 로. */
@@ -32,11 +64,11 @@ export const updateSchedule = async (
   scheduleId: number,
   body: ScheduleUpdateRequest,
 ): Promise<Schedule> => {
-  const res = await instance.patch<ApiResponse<Schedule>>(
+  const res = await instance.patch<ApiResponse<ScheduleApiResponse>>(
     `/api/groups/${groupId}/schedules/${scheduleId}`,
     body,
   );
-  return res.data.data;
+  return toSchedule(res.data.data);
 };
 
 /** 일정 삭제. */

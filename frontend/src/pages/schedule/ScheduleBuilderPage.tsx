@@ -36,7 +36,8 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
   const [activeIdx, setActiveIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [legs, setLegs] = useState<Record<string, LegState>>({});
+  const [legs, setLegs] = useState<Record<string, LegState>>({}); // key: `${pair}:${mode}`
+  const [legMode, setLegMode] = useState<Record<string, TransportMode>>({}); // pair → 선택 수단(기본 CAR)
   const [deleting, setDeleting] = useState<Schedule | null>(null);
   const [delLoading, setDelLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -67,20 +68,26 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
     .filter((s) => s.scheduleDate === activeDate)
     .sort((a, b) => a.orderIndex - b.orderIndex);
 
-  // 인접 일정쌍 이동 카드 조회(기본 CAR)
+  // 인접 일정쌍 이동 카드 조회 — 각 쌍의 선택된 수단(기본 CAR)을 조회한다.
+  // legMode가 바뀌면(탭 클릭) 재실행돼 해당 수단을 가져온다.
   useEffect(() => {
     let cancelled = false;
     for (let i = 0; i < stops.length - 1; i += 1) {
-      const key = `${stops[i].id}-${stops[i + 1].id}`;
+      const pairKey = `${stops[i].id}-${stops[i + 1].id}`;
+      const mode = legMode[pairKey] ?? 'CAR';
+      const key = `${pairKey}:${mode}`;
       if (legs[key] !== undefined) continue;
       setLegs((prev) => ({ ...prev, [key]: 'loading' }));
-      getTransportLeg(groupId, stops[i].id, stops[i + 1].id, 'CAR')
+      getTransportLeg(groupId, stops[i].id, stops[i + 1].id, mode)
         .then((leg) => { if (!cancelled) setLegs((prev) => ({ ...prev, [key]: leg })); })
         .catch(() => { if (!cancelled) setLegs((prev) => ({ ...prev, [key]: 'error' })); });
     }
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDate, stops.map((s) => s.id).join(',')]);
+  }, [activeDate, stops.map((s) => s.id).join(','), legMode]);
+
+  const selectMode = (pairKey: string, mode: TransportMode) =>
+    setLegMode((prev) => ({ ...prev, [pairKey]: mode }));
 
   const setStops = (next: Schedule[]) => {
     const others = schedules.filter((s) => s.scheduleDate !== activeDate);
@@ -106,7 +113,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
     const items: ReorderItem[] = stops.map((s, i) => ({ scheduleId: s.id, scheduleDate: activeDate, orderIndex: i }));
     try {
       await reorderSchedules(groupId, items);
-      setLegs({}); // 인접 변동 → 이동 카드 갱신
+      setLegs({}); setLegMode({}); // 인접 변동 → 이동 카드 갱신
     } catch {
       toast.error('순서 변경에 실패했어요', '다시 시도해 주세요.');
       load();
@@ -120,7 +127,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
       await deleteSchedule(groupId, deleting.id);
       toast.success('일정을 삭제했어요', deleting.placeName);
       setDeleting(null);
-      setLegs({});
+      setLegs({}); setLegMode({});
       load();
     } catch {
       toast.error('삭제에 실패했어요', '잠시 후 다시 시도해 주세요.');
@@ -167,7 +174,11 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
       </div>
 
       <div className="mt-4">
-        {stops.map((stop, i) => (
+        {stops.map((stop, i) => {
+          const hasNext = i < stops.length - 1;
+          const pairKey = hasNext ? `${stop.id}-${stops[i + 1].id}` : '';
+          const mode = legMode[pairKey] ?? 'CAR';
+          return (
           <div key={stop.id}>
             <article draggable onDragStart={() => onDragStart(i)} onDragOver={(e) => onDragOver(i, e)} onDragEnd={onDragEnd} className="flex gap-3">
               <div className="flex flex-none flex-col items-center pt-1">
@@ -194,9 +205,16 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
                 </div>
               </div>
             </article>
-            {i < stops.length - 1 && <TransportRow leg={legs[`${stop.id}-${stops[i + 1].id}`]} />}
+            {hasNext && (
+              <TransportRow
+                mode={mode}
+                leg={legs[`${pairKey}:${mode}`]}
+                onSelect={(m) => selectMode(pairKey, m)}
+              />
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <Button variant="secondary" fullWidth className="mt-3" onClick={() => setAddOpen(true)}>
@@ -225,25 +243,53 @@ const MODE_PATH: Record<TransportMode, string> = {
   WALK: 'M13 5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM11 8l3 2 2-1M11 8l-1 5 3 2 1 5M10 13l-2 6',
 };
 
-function TransportRow({ leg }: { leg: LegState }) {
+const MODES: TransportMode[] = ['CAR', 'TRANSIT', 'WALK'];
+
+/** 이동 카드 — 자동차/대중교통/도보 3개 탭(FR-SCHEDULE-04). 선택 수단의 시간·거리·비용 표시. */
+function TransportRow({ mode, leg, onSelect }: { mode: TransportMode; leg: LegState; onSelect: (m: TransportMode) => void }) {
+  return (
+    <div className="my-1 ml-[44px]">
+      <div className="flex gap-1">
+        {MODES.map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={mode === m}
+            onClick={() => onSelect(m)}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors',
+              mode === m ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-[#7A6A58]',
+            )}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d={MODE_PATH[m]} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {TRANSPORT_META[m].label}
+          </button>
+        ))}
+      </div>
+      <TransportInfo leg={leg} />
+    </div>
+  );
+}
+
+function TransportInfo({ leg }: { leg: LegState }) {
   if (leg === undefined || leg === 'loading') {
-    return <div className="my-1 ml-[44px] py-1 text-[12px] text-[#C0AE9B]">이동 정보 계산 중…</div>;
+    return <div className="mt-1 py-0.5 text-[12px] text-[#C0AE9B]">이동 정보 계산 중…</div>;
   }
   if (leg === 'error') {
-    return <div className="my-1 ml-[44px] py-1 text-[12px] text-[#C0AE9B]">이동 정보를 불러오지 못했어요</div>;
+    return <div className="mt-1 py-0.5 text-[12px] text-[#C0AE9B]">이동 정보를 불러오지 못했어요</div>;
   }
   if (!leg.available) {
-    // 대중교통 등 미지원
-    return <div className="my-1 ml-[44px] py-1 text-[12px] text-[#C0AE9B]">{TRANSPORT_META[leg.mode].label} 이동 정보 제공 불가</div>;
+    // 대중교통(카카오 공개 API 미지원) 등
+    return <div className="mt-1 py-0.5 text-[12px] text-[#C0AE9B]">{TRANSPORT_META[leg.mode].label} 이동 정보 제공 불가</div>;
   }
   const cost = leg.mode === 'CAR' ? leg.carCost : leg.mode === 'TRANSIT' ? leg.transitFare : 0;
   return (
-    <div className="my-1 ml-[44px] flex items-center gap-2 py-1 text-[12px] font-semibold text-[#A6907B]">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d={MODE_PATH[leg.mode]} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      {TRANSPORT_META[leg.mode].label} {formatDuration(leg.durationMinutes)} · {formatKm(leg.distanceMeters)}
+    <div className="mt-1 py-0.5 text-[12px] font-semibold text-[#A6907B]">
+      {formatDuration(leg.durationMinutes)} · {formatKm(leg.distanceMeters)}
       {cost > 0 && <> · {formatCost(cost)}</>}
+      {leg.routeSummary && <span className="text-[#C0AE9B]"> · {leg.routeSummary}</span>}
     </div>
   );
 }
