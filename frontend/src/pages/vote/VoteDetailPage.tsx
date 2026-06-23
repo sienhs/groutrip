@@ -3,12 +3,15 @@ import { useParams } from 'react-router-dom';
 import AppLayout from '../../components/AppLayout';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
+import Modal from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
-import { getVoteSession, castVote, closeVoteSession } from '../../api/vote';
+import { getVoteSession, castVote, closeVoteSession, addCandidate } from '../../api/vote';
+import { getBookmarks } from '../../api/place';
 import { cn } from '../../lib/cn';
 import type { VoteSession, VoteCandidate } from '../../types/vote';
+import type { BookmarkResponse } from '../../types/place';
 
 /**
  * 투표 상세 — 후보(장소)별 점수 투표(1~5). 막대 그래프 + 실명 명단 + 마감.
@@ -24,6 +27,12 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // 후보 추가(FR-VOTE-01): 그룹 보관함에서 장소를 골라 후보로 등록
+  const [addOpen, setAddOpen] = useState(false);
+  const [bookmarks, setBookmarks] = useState<BookmarkResponse[]>([]);
+  const [bmLoading, setBmLoading] = useState(false);
+  const [addingId, setAddingId] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -65,6 +74,35 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
     }
   };
 
+  const openAddCandidate = async () => {
+    setAddOpen(true);
+    setBmLoading(true);
+    try {
+      setBookmarks(await getBookmarks(groupId));
+    } catch {
+      toast.error('보관함을 불러오지 못했어요', '잠시 후 다시 시도해 주세요.');
+    } finally {
+      setBmLoading(false);
+    }
+  };
+
+  const onAddCandidate = async (placeId: number) => {
+    setAddingId(placeId);
+    try {
+      await addCandidate(groupId, sessionId, { placeId });
+      setSession(await getVoteSession(groupId, sessionId));
+      toast.success('후보를 추가했어요');
+      setAddOpen(false);
+    } catch (e) {
+      const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
+      toast.error('후보를 추가하지 못했어요', message ?? '이미 등록됐거나 1인 5개 한도를 넘었을 수 있어요.');
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  const candidatePlaceIds = new Set(session?.candidates.map((c) => c.place.placeId) ?? []);
+
   return (
     <AppLayout title="투표" showBack>
       {loading && <SkeletonCard />}
@@ -72,12 +110,50 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
         <EmptyState title="투표를 불러오지 못했어요" description="삭제되었거나 일시적 오류일 수 있어요."
           action={<Button variant="secondary" onClick={load}>다시 시도</Button>} />
       )}
-      {!loading && session && <SessionBody session={session} busy={busy} onScore={onScore} onClose={onClose} />}
+      {!loading && session && (
+        <SessionBody session={session} busy={busy} onScore={onScore} onClose={onClose} onAddCandidate={openAddCandidate} />
+      )}
+
+      <Modal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        title="후보 추가"
+        description="보관함에 담긴 장소를 투표 후보로 등록해요."
+      >
+        {bmLoading ? (
+          <p className="py-8 text-center text-[13px] text-muted">불러오는 중…</p>
+        ) : bookmarks.length === 0 ? (
+          <p className="py-8 text-center text-[13px] text-muted">보관함이 비어 있어요. ‘장소’ 탭에서 먼저 담아주세요.</p>
+        ) : (
+          <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+            {bookmarks.map((b) => {
+              const already = candidatePlaceIds.has(b.place.placeId);
+              return (
+                <div key={b.id} className="flex items-center gap-3 rounded-card border border-border bg-surface p-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[14px] font-bold text-[#3A322B]">{b.place.name}</div>
+                    {b.place.address && <div className="truncate text-[12px] text-muted">{b.place.address}</div>}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={already ? 'secondary' : 'primary'}
+                    disabled={already || addingId != null}
+                    loading={addingId === b.place.placeId}
+                    onClick={() => onAddCandidate(b.place.placeId)}
+                  >
+                    {already ? '등록됨' : '후보로'}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Modal>
     </AppLayout>
   );
 }
 
-function SessionBody({ session, busy, onScore, onClose }: { session: VoteSession; busy: boolean; onScore: (c: number, s: number) => void; onClose: () => void }) {
+function SessionBody({ session, busy, onScore, onClose, onAddCandidate }: { session: VoteSession; busy: boolean; onScore: (c: number, s: number) => void; onClose: () => void; onAddCandidate: () => void }) {
   const closed = session.status === 'CLOSED';
   const maxScore = Math.max(1, ...session.candidates.map((c) => c.totalScore));
 
@@ -95,15 +171,25 @@ function SessionBody({ session, busy, onScore, onClose }: { session: VoteSession
       )}
 
       <div className="mt-5 space-y-3">
+        {session.candidates.length === 0 && (
+          <p className="rounded-card border border-dashed border-border py-8 text-center text-[13px] text-muted">
+            아직 후보가 없어요. 보관함 장소를 후보로 추가해 보세요.
+          </p>
+        )}
         {session.candidates.map((c) => (
           <CandidateCard key={c.id} candidate={c} maxScore={maxScore} winner={session.winnerCandidateId === c.id} closed={closed} busy={busy} onScore={onScore} />
         ))}
       </div>
 
       {!closed && (
-        <Button variant="secondary" fullWidth className="mt-5" loading={busy} onClick={onClose}>
-          투표 마감
-        </Button>
+        <>
+          <Button variant="secondary" fullWidth className="mt-3" onClick={onAddCandidate}>
+            + 후보 추가
+          </Button>
+          <Button fullWidth className="mt-2" loading={busy} disabled={session.candidates.length === 0} onClick={onClose}>
+            투표 마감
+          </Button>
+        </>
       )}
     </div>
   );

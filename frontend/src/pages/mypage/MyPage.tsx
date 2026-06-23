@@ -8,6 +8,7 @@ import Modal from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import ChangePasswordModal from './ChangePasswordModal';
 import { deleteAccount } from '../../api/user';
+import { logout } from '../../api/auth';
 import useAuthStore from '../../store/authStore';
 import { cn } from '../../lib/cn';
 
@@ -25,6 +26,17 @@ export default function MyPage() {
   const [delOpen, setDelOpen] = useState(false);
   const [delPw, setDelPw] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  const handleLogout = async () => {
+    // 서버 Refresh Token/쿠키 정리. 실패해도 클라이언트 세션은 비운다(FR-AUTH-04).
+    try {
+      await logout();
+    } catch {
+      /* 이미 만료/무효일 수 있음 — 무시 */
+    }
+    clearAuth();
+    navigate('/login', { replace: true });
+  };
 
   const confirmDelete = async () => {
     if (delPw.length < 1) return;
@@ -72,7 +84,8 @@ export default function MyPage() {
       {/* 메뉴 */}
       <div className="mt-3.5 overflow-hidden rounded-card border border-border bg-surface">
         <MenuRow label="비밀번호 변경" onClick={() => setPwOpen(true)} border />
-        <MenuRow label="설문 다시하기" onClick={() => navigate('/survey')} />
+        <MenuRow label="설문 다시하기" onClick={() => navigate('/survey')} border />
+        <MenuRow label="로그아웃" onClick={handleLogout} />
       </div>
 
       {/* 위험 구역 */}

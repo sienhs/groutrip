@@ -1,6 +1,6 @@
 import instance from './instance';
 import type { ApiResponse } from '../types/auth';
-import type { TravelGroup, GroupCreateRequest, GroupMember } from '../types/group';
+import type { TravelGroup, GroupCreateRequest, GroupUpdateRequest, GroupMember } from '../types/group';
 
 /** 내 그룹 목록. */
 export const getMyGroups = async (): Promise<TravelGroup[]> => {
@@ -23,6 +23,15 @@ export const getGroupMembers = async (groupId: number): Promise<GroupMember[]> =
 /** 그룹 생성. */
 export const createGroup = async (body: GroupCreateRequest): Promise<TravelGroup> => {
   const res = await instance.post<ApiResponse<TravelGroup>>('/api/groups', body);
+  return res.data.data;
+};
+
+/** FR-GROUP-04: 그룹 정보 수정(Owner). */
+export const updateGroup = async (
+  groupId: number,
+  body: GroupUpdateRequest,
+): Promise<TravelGroup> => {
+  const res = await instance.patch<ApiResponse<TravelGroup>>(`/api/groups/${groupId}`, body);
   return res.data.data;
 };
 

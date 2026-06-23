@@ -51,6 +51,15 @@ export interface GroupCreateRequest {
   coverImageKey: string;
 }
 
+/** GroupUpdateRequest (FR-GROUP-04). */
+export interface GroupUpdateRequest {
+  title: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  coverImageKey: string;
+}
+
 /** OWNER 찾기(그룹에 owner 필드가 없으므로 멤버 role 로). */
 export const findOwner = (members: GroupMember[] = []): GroupMember | undefined =>
   members.find((m) => m.role === 'OWNER');

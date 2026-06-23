@@ -11,6 +11,8 @@ import NotificationBell from '../../components/NotificationBell';
 import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
+import VoteTab from '../vote/VoteTab';
+import GroupEditModal from './GroupEditModal';
 import {
   getGroup,
   getGroupMembers,
@@ -57,6 +59,7 @@ export default function GroupDetailPage() {
   const [planExists, setPlanExists] = useState(false);
   // 다른 멤버의 SSE 이벤트 수신 시 증가 → 활성 탭을 remount해 실제 refetch한다.
   const [streamTick, setStreamTick] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
 
   // 본인 이벤트 무시용 userId. 로그인 시 user.id = userId 로 저장됨(authStore).
   const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
@@ -147,6 +150,20 @@ export default function GroupDetailPage() {
             <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+        {/* FR-GROUP-04: Owner만 그룹 정보 수정 */}
+        {isOwner && group && (
+          <button
+            type="button"
+            aria-label="그룹 정보 수정"
+            onClick={() => setEditOpen(true)}
+            className="absolute left-14 top-3 flex size-9 items-center justify-center rounded-[10px] bg-white/25 text-white"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L4 18v2Z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" />
+              <path d="m13.5 7 3 3" stroke="currentColor" strokeWidth="1.9" />
+            </svg>
+          </button>
+        )}
         <button
           type="button"
           aria-label="공유"
@@ -212,6 +229,8 @@ export default function GroupDetailPage() {
           <ScheduleBuilderPage key={streamTick} groupId={groupId} />
         ) : tab === 'place' ? (
           <BookmarkListPage key={streamTick} groupId={groupId} planExists={planExists} />
+        ) : tab === 'vote' ? (
+          <VoteTab key={streamTick} groupId={groupId} isOwner={isOwner} />
         ) : tab === 'settle' ? (
           <ExpensePage key={streamTick} groupId={groupId} members={members} />
         ) : tab === 'member' ? (
@@ -225,10 +244,16 @@ export default function GroupDetailPage() {
             onRefresh={refreshGroupAndMembers}
             onExit={() => navigate('/groups')}
           />
-        ) : (
-          <ComingSoon />
-        )}
+        ) : null}
       </div>
+
+      {editOpen && group && (
+        <GroupEditModal
+          group={group}
+          onClose={() => setEditOpen(false)}
+          onSaved={(updated) => setGroup(updated)}
+        />
+      )}
     </div>
   );
 }
@@ -424,17 +449,3 @@ function MemberTab({
   );
 }
 
-function ComingSoon() {
-  return (
-    <EmptyState
-      title="투표 준비 중"
-      description="장소·일정안 투표 기능이 곧 추가됩니다."
-      icon={
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="12" cy="12" r="9" stroke="#FFB585" strokeWidth="2" />
-          <path d="M12 7v5l3 2" stroke="#FFB585" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      }
-    />
-  );
-}

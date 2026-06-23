@@ -14,15 +14,23 @@ export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
 
+  // FR-AUTH-01: 비밀번호 확인 불일치는 제출 전에 인라인으로 막는다.
+  const mismatch = passwordConfirm.length > 0 && password !== passwordConfirm;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (password !== passwordConfirm) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
     setIsLoading(true);
     try {
       await signup({ email, password, name });
@@ -72,6 +80,16 @@ export default function SignupPage() {
             required
             trailing={<PasswordToggle shown={showPw} onToggle={() => setShowPw((v) => !v)} />}
           />
+          <Input
+            label="비밀번호 확인"
+            type={showPw ? 'text' : 'password'}
+            autoComplete="new-password"
+            placeholder="비밀번호를 다시 입력해주세요"
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
+            required
+            error={mismatch ? '비밀번호가 일치하지 않습니다.' : undefined}
+          />
 
           {error && (
             <p role="alert" className="rounded-button bg-[#FFF5F5] px-3 py-2 text-[13px] text-danger">
@@ -79,7 +97,7 @@ export default function SignupPage() {
             </p>
           )}
 
-          <Button type="submit" variant="primary" size="lg" fullWidth loading={isLoading} className="mt-1">
+          <Button type="submit" variant="primary" size="lg" fullWidth loading={isLoading} disabled={mismatch} className="mt-1">
             회원가입
           </Button>
         </form>
