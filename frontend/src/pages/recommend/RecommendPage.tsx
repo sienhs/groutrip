@@ -114,10 +114,16 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
               <div className="p-3.5">
                 <div className="flex items-center gap-1.5">
                   <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold">{item.title}</span>
-                  <Badge tone="neutral">{contentTypeLabel(item.contentTypeId)}</Badge>
+                  <Badge tone="neutral">{item.categoryLabel ?? contentTypeLabel(item.contentTypeId)}</Badge>
                   {item.matchScore != null && <Badge tone="primary">{item.matchScore}%</Badge>}
                 </div>
                 <p className="mt-1 line-clamp-1 text-[12px] text-muted">{item.address}</p>
+                {item.reason && (
+                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-[#FFF3E9] px-2.5 py-1.5 text-[12px] font-semibold leading-snug text-[#B5763E]">
+                    <span aria-hidden>💡</span>
+                    <span className="min-w-0 flex-1">{item.reason}</span>
+                  </p>
+                )}
                 <Button size="sm" variant={isSaved ? 'ghost' : 'secondary'} loading={savingId === item.contentId}
                   className={cn('mt-3', isSaved && 'border border-border text-[#A6907B]')} onClick={() => onSave(item)}>
                   {isSaved ? '보관함에 담음' : '+ 보관함에 담기'}

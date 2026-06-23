@@ -147,7 +147,7 @@ public class RecommendService {
         if (persona == null) {
             return spots.stream()
                     .limit(TOP_N)
-                    .map(spot -> RecommendationResponse.of(spot, null))
+                    .map(spot -> RecommendationResponse.of(spot, null, reason(spot, null, null)))
                     .toList();
         }
 
@@ -155,11 +155,35 @@ public class RecommendService {
         return spots.stream()
                 .map(spot -> {
                     int score = (int) Math.round(cosineSimilarity(personaVector, attractionVector(spot.contentTypeId())) * 100);
-                    return RecommendationResponse.of(spot, score);
+                    return RecommendationResponse.of(spot, score, reason(spot, persona, score));
                 })
                 .sorted((a, b) -> Integer.compare(b.matchScore(), a.matchScore()))
                 .limit(TOP_N)
                 .toList();
+    }
+
+    // 추천 이유: 카테고리명을 명시하고(숙박/음식점 등), 성향이 있으면 그룹의 가장 두드러진 취향을 곁들인다.
+    // 그룹마다 평균 성향이 달라 수식어가 달라지므로 "모든 그룹이 똑같다"는 인상도 줄어든다.
+    private String reason(TourSpot spot, PersonaVector persona, Integer score) {
+        String label = RecommendationResponse.categoryLabelOf(spot.contentTypeId());
+        if (persona == null) {
+            return "이 지역에서 인기 있는 " + label + "예요.";
+        }
+        return personaTrait(persona) + " 그룹에 어울리는 " + label + "예요 (성향 일치 " + score + "%).";
+    }
+
+    // 평균 성향에서 중앙(0.5)으로부터 가장 멀리 벗어난 축 = 그룹의 가장 뚜렷한 취향을 한 줄 수식어로.
+    private String personaTrait(PersonaVector p) {
+        double dActivity = Math.abs(p.activity() - 0.5);
+        double dFood = Math.abs(p.food() - 0.5);
+        double dUrban = Math.abs(p.urbanNature() - 0.5);
+        if (dFood >= dActivity && dFood >= dUrban) {
+            return p.food() >= 0.5 ? "먹거리를 즐기는" : "관광에 집중하는";
+        }
+        if (dActivity >= dUrban) {
+            return p.activity() >= 0.5 ? "활동적인" : "여유롭게 쉬는";
+        }
+        return p.urbanNature() >= 0.5 ? "도심 나들이를 즐기는" : "자연을 즐기는";
     }
 
     // EI-03: (지역+카테고리) 24시간 캐시. 미스/만료 시에만 TourAPI를 호출한다.

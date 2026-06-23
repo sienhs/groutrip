@@ -12,10 +12,14 @@ export interface RecommendItem {
   longitude: number;
   /** 12관광지/14문화/15행사/25코스/28레포츠/32숙박/38쇼핑/39음식 */
   contentTypeId: number;
+  /** 서버가 내려주는 카테고리명(숙박/음식점 등). 구버전 캐시 대비 optional. */
+  categoryLabel?: string;
   /** 절대 URL. 없을 수 있음 */
   thumbnailUrl: string | null;
   /** 0~100 성향 일치 점수. 미응답 시 null */
   matchScore: number | null;
+  /** 추천 이유(그룹 성향 + 카테고리 기반). 구버전 캐시 대비 optional. */
+  reason?: string;
 }
 
 export const CONTENT_TYPE_LABEL: Record<number, string> = {
