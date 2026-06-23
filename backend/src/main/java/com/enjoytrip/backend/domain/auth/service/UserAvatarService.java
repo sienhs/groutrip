@@ -11,11 +11,12 @@ import com.enjoytrip.backend.domain.auth.repository.UserRepository;
 import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
+import com.enjoytrip.backend.global.storage.ObjectStorageService;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * 사용자 프로필 사진 업로드/조회(DB bytea 저장).
+ * 사용자 프로필 사진 업로드/조회. 바이트는 MinIO에 저장하고 User에는 object key만 보관한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -23,19 +24,26 @@ import lombok.RequiredArgsConstructor;
 public class UserAvatarService {
 
     private static final long MAX_BYTES = 5L * 1024 * 1024; // 5MB
+    private static final String STORAGE_PREFIX = "avatars";
 
     private final UserRepository userRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final ObjectStorageService objectStorage;
 
-    /** 내 프로필 사진 업로드/교체. */
+    /** 내 프로필 사진 업로드/교체. 기존 사진이 있으면 교체 후 삭제한다. */
     public void uploadMyAvatar(MultipartFile file) {
         User user = currentUserResolver.getCurrentUser();
         validateImage(file);
+        byte[] bytes;
         try {
-            user.updateAvatar(file.getBytes(), file.getContentType());
+            bytes = file.getBytes();
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         }
+        String previousKey = user.getAvatarKey();
+        String key = objectStorage.upload(STORAGE_PREFIX, bytes, file.getContentType());
+        user.updateAvatar(key, file.getContentType());
+        objectStorage.delete(previousKey);
     }
 
     /** 프로필 사진 바이트 로드(공개 조회). 없으면 404. */
@@ -46,7 +54,7 @@ public class UserAvatarService {
         if (!user.hasAvatar()) {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
-        return new AvatarData(user.getAvatar(), user.getAvatarContentType());
+        return new AvatarData(objectStorage.download(user.getAvatarKey()), user.getAvatarContentType());
     }
 
     private void validateImage(MultipartFile file) {

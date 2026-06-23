@@ -46,7 +46,8 @@ class GroupServiceTest {
                 inviteCodeGenerator,
                 currentUserResolver,
                 groupAccessValidator,
-                mock(ApplicationEventPublisher.class)
+                mock(ApplicationEventPublisher.class),
+                mock(com.enjoytrip.backend.global.storage.ObjectStorageService.class)
         );
     }
 

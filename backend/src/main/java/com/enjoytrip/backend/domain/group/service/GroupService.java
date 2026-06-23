@@ -25,6 +25,7 @@ import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
 import com.enjoytrip.backend.global.event.DomainEvent;
 import com.enjoytrip.backend.global.event.EventType;
+import com.enjoytrip.backend.global.storage.ObjectStorageService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,8 +44,10 @@ public class GroupService {
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
     private final ApplicationEventPublisher eventPublisher;
+    private final ObjectStorageService objectStorage;
 
     private static final long MAX_COVER_BYTES = 5L * 1024 * 1024; // 5MB
+    private static final String COVER_STORAGE_PREFIX = "group-covers";
 
     /** FR-GROUP-04: Owner가 커스텀 커버 이미지를 업로드한다(coverImageKey='CUSTOM'). */
     public GroupResponse uploadCover(Long groupId, org.springframework.web.multipart.MultipartFile file) {
@@ -60,11 +63,16 @@ public class GroupService {
         if (contentType == null || !contentType.startsWith("image/") || file.getSize() > MAX_COVER_BYTES) {
             throw new BusinessException(ErrorCode.INVALID_FILE_TYPE);
         }
+        byte[] bytes;
         try {
-            group.setCustomCover(file.getBytes(), contentType);
+            bytes = file.getBytes();
         } catch (java.io.IOException e) {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         }
+        String previousKey = group.getCoverObjectKey();
+        String key = objectStorage.upload(COVER_STORAGE_PREFIX, bytes, contentType);
+        group.setCustomCover(key, contentType);
+        objectStorage.delete(previousKey);
         GroupResponse response = GroupResponse.from(group);
         publish(EventType.GROUP_UPDATED, groupId, user.getId(), response);
         return response;
@@ -78,7 +86,7 @@ public class GroupService {
         if (!group.hasCustomCover()) {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
-        return new CoverData(group.getCoverImage(), group.getCoverImageContentType());
+        return new CoverData(objectStorage.download(group.getCoverObjectKey()), group.getCoverImageContentType());
     }
 
     public record CoverData(byte[] data, String contentType) {

@@ -37,6 +37,7 @@ import com.enjoytrip.backend.domain.place.entity.Place;
 import com.enjoytrip.backend.domain.place.service.PlaceService;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
+import com.enjoytrip.backend.global.storage.ObjectStorageService;
 
 class AccommodationServiceTest {
 
@@ -47,6 +48,7 @@ class AccommodationServiceTest {
     private GroupMemberRepository groupMemberRepository;
     private CurrentUserResolver currentUserResolver;
     private GroupAccessValidator groupAccessValidator;
+    private ObjectStorageService objectStorage;
     private AccommodationService service;
 
     @BeforeEach
@@ -58,8 +60,10 @@ class AccommodationServiceTest {
         groupMemberRepository = mock(GroupMemberRepository.class);
         currentUserResolver = mock(CurrentUserResolver.class);
         groupAccessValidator = mock(GroupAccessValidator.class);
+        objectStorage = mock(ObjectStorageService.class);
         service = new AccommodationService(accommodationRepository, travelGroupRepository,
-                placeService, expenseService, groupMemberRepository, currentUserResolver, groupAccessValidator);
+                placeService, expenseService, groupMemberRepository, currentUserResolver, groupAccessValidator,
+                objectStorage);
     }
 
     @Test
@@ -114,6 +118,7 @@ class AccommodationServiceTest {
         when(currentUserResolver.getCurrentUser()).thenReturn(user());
         Accommodation acc = accommodation("롯데호텔");
         when(accommodationRepository.findByIdAndTravelGroupId(10L, 1L)).thenReturn(Optional.of(acc));
+        when(objectStorage.upload(any(), any(), any())).thenReturn("booking-photos/k1");
         MockMultipartFile photo = new MockMultipartFile(
                 "photo", "booking.png", "image/png", new byte[]{1, 2, 3, 4});
 
@@ -122,6 +127,8 @@ class AccommodationServiceTest {
         assertThat(res.status()).isEqualTo(BookingStatus.BOOKED);
         assertThat(res.bookingPhotoUrl()).isEqualTo("/api/groups/1/accommodations/10/photo");
         assertThat(acc.hasPhoto()).isTrue();
+        // 사진 바이트는 MinIO에 업로드되고 엔티티에는 key만 저장된다.
+        verify(objectStorage).upload(any(), any(), eq("image/png"));
         // 사진만 있고 금액이 없으면 정산 지출은 만들지 않는다.
         verify(expenseService, never()).create(any(), any());
     }
@@ -144,8 +151,9 @@ class AccommodationServiceTest {
     void loadPhotoReturnsStoredBytes() {
         when(currentUserResolver.getCurrentUser()).thenReturn(user());
         Accommodation acc = accommodation("롯데호텔");
-        acc.markBooked(null, new byte[]{9, 9, 9}, "image/jpeg");
+        acc.markBooked(null, "booking-photos/k9", "image/jpeg");
         when(accommodationRepository.findByIdAndTravelGroupId(10L, 1L)).thenReturn(Optional.of(acc));
+        when(objectStorage.download("booking-photos/k9")).thenReturn(new byte[]{9, 9, 9});
 
         BookingPhoto photo = service.loadPhoto(1L, 10L);
 

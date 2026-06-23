@@ -43,10 +43,9 @@ public class User extends BaseEntity {
 	// FR-AUTH-06: 탈퇴 시각. null이면 활성 사용자, 값이 있으면 익명화된 탈퇴 사용자(30일 후 hard delete 대상).
 	private LocalDateTime deletedAt;
 
-	// 프로필 사진(MinIO 미가동 환경이라 DB bytea 저장). 목록 조회 시 불필요한 blob 로딩을 피하려 LAZY.
-	@jakarta.persistence.Basic(fetch = jakarta.persistence.FetchType.LAZY)
-	@Column
-	private byte[] avatar;
+	// 프로필 사진의 MinIO object key. 실제 바이트는 ObjectStorageService로 key로 조회한다.
+	@Column(name = "avatar_key", length = 255)
+	private String avatarKey;
 
 	@Column(name = "avatar_content_type", length = 100)
 	private String avatarContentType;
@@ -56,14 +55,14 @@ public class User extends BaseEntity {
 		this.password = encodedPassword;
 	}
 
-	/** 프로필 사진 설정. */
-	public void updateAvatar(byte[] avatar, String contentType) {
-		this.avatar = avatar;
+	/** 프로필 사진 설정. avatarKey는 MinIO object key. */
+	public void updateAvatar(String avatarKey, String contentType) {
+		this.avatarKey = avatarKey;
 		this.avatarContentType = contentType;
 	}
 
 	public boolean hasAvatar() {
-		return avatar != null && avatar.length > 0;
+		return avatarKey != null && !avatarKey.isBlank();
 	}
 
 	// FR-AUTH-06: 개인정보를 즉시 익명화하고 탈퇴 시각을 기록한다. 작성 기록은 보존된다.

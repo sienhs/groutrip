@@ -32,6 +32,7 @@ import com.enjoytrip.backend.domain.place.entity.PlaceCategory;
 import com.enjoytrip.backend.domain.place.service.PlaceService;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
+import com.enjoytrip.backend.global.storage.ObjectStorageService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -47,6 +48,7 @@ import lombok.RequiredArgsConstructor;
 public class AccommodationService {
 
     private static final long MAX_PHOTO_BYTES = 10L * 1024 * 1024; // 10MB
+    private static final String PHOTO_STORAGE_PREFIX = "booking-photos";
 
     private final AccommodationRepository accommodationRepository;
     private final TravelGroupRepository travelGroupRepository;
@@ -55,6 +57,7 @@ public class AccommodationService {
     private final GroupMemberRepository groupMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
+    private final ObjectStorageService objectStorage;
 
     /** 숙소 선정. googlePlaceId로 Place 마스터를 확보(Details 보강)하고 SELECTED로 기록한다. */
     public AccommodationResponse select(Long groupId, AccommodationSelectRequest request) {
@@ -102,20 +105,24 @@ public class AccommodationService {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
-        byte[] bytes = null;
+        String photoKey = null;
         String contentType = null;
         if (hasPhoto) {
             validateImage(photo);
+            byte[] bytes;
             try {
                 bytes = photo.getBytes();
             } catch (IOException e) {
                 throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
             }
             contentType = photo.getContentType();
+            photoKey = objectStorage.upload(PHOTO_STORAGE_PREFIX, bytes, contentType);
         }
 
         boolean firstBooking = acc.getStatus() != BookingStatus.BOOKED;
-        acc.markBooked(reservationPrice, bytes, contentType);
+        String previousPhotoKey = photoKey != null ? acc.getBookingPhotoKey() : null;
+        acc.markBooked(reservationPrice, photoKey, contentType);
+        objectStorage.delete(previousPhotoKey);
 
         // 최초 예약 확정 + 금액이 있으면 숙박 지출을 정산에 자동 등록한다(FR-EXPENSE-01, 숙박/균등).
         // 재확정(이미 BOOKED) 시 중복 등록을 막는다 — 금액 정정은 정산 화면에서 직접 수정.
@@ -153,7 +160,7 @@ public class AccommodationService {
         if (!acc.hasPhoto()) {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
-        return new BookingPhoto(acc.getBookingPhoto(), acc.getBookingPhotoContentType());
+        return new BookingPhoto(objectStorage.download(acc.getBookingPhotoKey()), acc.getBookingPhotoContentType());
     }
 
     private void validateImage(MultipartFile file) {

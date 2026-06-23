@@ -47,10 +47,10 @@ public class TravelGroup {
     @Column(length = 255)
     private String coverImageKey;
 
-    // coverImageKey == "CUSTOM"이면 사용하는 커스텀 커버 이미지(DB bytea).
-    @jakarta.persistence.Basic(fetch = jakarta.persistence.FetchType.LAZY)
-    @Column(name = "cover_image")
-    private byte[] coverImage;
+    // coverImageKey == "CUSTOM"이면 사용하는 커스텀 커버 이미지의 MinIO object key.
+    // (coverImageKey는 프리셋 식별자/'CUSTOM', coverObjectKey는 실제 저장 객체 key로 역할이 다르다.)
+    @Column(name = "cover_object_key", length = 255)
+    private String coverObjectKey;
 
     @Column(name = "cover_image_content_type", length = 100)
     private String coverImageContentType;
@@ -101,14 +101,14 @@ public class TravelGroup {
     }
 
     // 커스텀 커버 이미지 설정. coverImageKey를 'CUSTOM'으로 바꿔 프리셋과 구분한다.
-    public void setCustomCover(byte[] image, String contentType) {
-        this.coverImage = image;
+    public void setCustomCover(String objectKey, String contentType) {
+        this.coverObjectKey = objectKey;
         this.coverImageContentType = contentType;
         this.coverImageKey = "CUSTOM";
     }
 
     public boolean hasCustomCover() {
-        return coverImage != null && coverImage.length > 0;
+        return coverObjectKey != null && !coverObjectKey.isBlank();
     }
 
     // 그룹 상태는 조회 시점마다 계산하지 않고 배치에서 날짜 기준으로 갱신한다.
