@@ -74,25 +74,32 @@ public class AuthService {
 			throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
 		}
 		
-		// 토큰 생성
+		return issueTokens(user);
+	}
+
+	@Transactional
+	public LoginResponse loginWithOAuth(Long userId) {
+		User user = userRepository.findById(userId)
+				.filter(candidate -> !candidate.isWithdrawn())
+				.orElseThrow(() -> new BusinessException(ErrorCode.OAUTH_LOGIN_FAILED));
+		return issueTokens(user);
+	}
+
+	private LoginResponse issueTokens(User user) {
 		String accessToken = jwtUtil.generateAccessToken(user.getEmail());
 		String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 		String refreshTokenHash = hashToken(refreshToken);
-		
-		// RefreshToken DB 저장 (있으면 갱신, 없으면 생성)
+
 		refreshTokenRepository.findByEmail(user.getEmail())
 				.ifPresentOrElse(
 						token -> token.updateToken(refreshTokenHash, LocalDateTime.now().plusDays(7)),
-						() -> refreshTokenRepository.save(
-								RefreshToken.builder()
+						() -> refreshTokenRepository.save(RefreshToken.builder()
 								.email(user.getEmail())
 								.token(refreshTokenHash)
 								.expiresAt(LocalDateTime.now().plusDays(7))
 								.build()));
-		
-		
-		log.info("로그인 성공: {}", user.getEmail());
-		
+
+		log.info("로그인 성공: userId={}", user.getId());
 		return LoginResponse.builder()
 				.userId(user.getId())
 				.accessToken(accessToken)

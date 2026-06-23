@@ -15,6 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long>{
 	// spring data jpa가 메서드 이름을 파싱해서 쿼리 자동 생성
 	// findBy + email -> WHERE email = ?
 	Optional<User> findByEmail(String email);
+	Optional<User> findByEmailIgnoreCase(String email);
 	
 	// 이메일 중복 체크
 	boolean existsByEmail(String email);

@@ -3,20 +3,29 @@ package com.enjoytrip.backend.global.config;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.enjoytrip.backend.global.security.JwtFilter;
+import com.enjoytrip.backend.global.security.OAuth2LoginFailureHandler;
+import com.enjoytrip.backend.global.security.OAuth2LoginSuccessHandler;
 import com.enjoytrip.backend.global.security.RestAccessDeniedHandler;
 import com.enjoytrip.backend.global.security.RestAuthenticationEntryPoint;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -39,6 +48,9 @@ public class SecurityConfig {
 	private final CorsConfigurationSource corsConfigurationSource;
 	private final RestAuthenticationEntryPoint authenticationEntryPoint;
 	private final RestAccessDeniedHandler accessDeniedHandler;
+	private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+	private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+	private final ClientRegistrationRepository clientRegistrationRepository;
 	
 
 	public SecurityConfig(
@@ -46,12 +58,18 @@ public class SecurityConfig {
 			// Bean 명시적 지정
 			@Qualifier("corsConfigurationSource") CorsConfigurationSource corsConfigurationSource,
 			RestAuthenticationEntryPoint authenticationEntryPoint,
-			RestAccessDeniedHandler accessDeniedHandler
+			RestAccessDeniedHandler accessDeniedHandler,
+			OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler,
+			OAuth2LoginFailureHandler oAuth2LoginFailureHandler,
+			ClientRegistrationRepository clientRegistrationRepository
 			) {
 		this.jwtFilter = jwtFilter;
 		this.corsConfigurationSource = corsConfigurationSource;
 		this.authenticationEntryPoint = authenticationEntryPoint;
 		this.accessDeniedHandler = accessDeniedHandler;
+		this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
+		this.oAuth2LoginFailureHandler = oAuth2LoginFailureHandler;
+		this.clientRegistrationRepository = clientRegistrationRepository;
 	}
 	
 	
@@ -72,12 +90,16 @@ public class SecurityConfig {
 		
 		// 세션 비활성화
 		// jwt는 stateless라서 세션을 만들지도, 사용하지도 않는다는 선언
-		.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+		// 일반 API는 JWT를 사용하며, OAuth state 검증 과정에서만 짧은 HTTP 세션을 생성한다.
+		.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 		
 		// 요청별 접근 권한 설정
 		.authorizeHttpRequests(auth -> auth
 				// 로그인 회원가입은 토큰 없이 누구나 가능하게 끔
-				.requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/reissue").permitAll()
+				.requestMatchers(
+						"/api/auth/login", "/api/auth/signup", "/api/auth/reissue", "/api/auth/oauth/exchange",
+						"/oauth2/**", "/login/oauth2/**")
+				.permitAll()
 				// Swagger UI와 OpenAPI 명세는 개발 중 API 확인을 위해 인증 없이 접근을 허용한다.
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
 				// 나머지 요청은 인증이 필요하게
@@ -85,13 +107,59 @@ public class SecurityConfig {
 		.exceptionHandling(exceptions -> exceptions
 				.authenticationEntryPoint(authenticationEntryPoint)
 				.accessDeniedHandler(accessDeniedHandler))
+		.oauth2Login(oauth -> oauth
+				.authorizationEndpoint(authorization -> authorization
+						.authorizationRequestResolver(oAuth2AuthorizationRequestResolver()))
+				.successHandler(oAuth2LoginSuccessHandler)
+				.failureHandler(oAuth2LoginFailureHandler))
 		.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 		
 		return http.build();
 	}
+
+	private OAuth2AuthorizationRequestResolver oAuth2AuthorizationRequestResolver() {
+		DefaultOAuth2AuthorizationRequestResolver resolver = new DefaultOAuth2AuthorizationRequestResolver(
+				clientRegistrationRepository,
+				"/oauth2/authorization"
+		);
+		resolver.setAuthorizationRequestCustomizer(builder -> {
+			// Kakao 인증 요청에서 PKCE 파라미터가 서비스 설정 오류(KOE205)를 유발할 수 있어 제거한다.
+			// 토큰 교환 단계에서는 백엔드가 client secret으로 confidential client 인증을 수행한다.
+			builder.attributes(attributes -> attributes.remove(PkceParameterNames.CODE_VERIFIER));
+			builder.additionalParameters(parameters -> {
+				parameters.remove(PkceParameterNames.CODE_CHALLENGE);
+				parameters.remove(PkceParameterNames.CODE_CHALLENGE_METHOD);
+			});
+		});
+		return new OAuth2AuthorizationRequestResolver() {
+			@Override
+			public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
+				return customizeKakaoRequest(resolver.resolve(request));
+			}
+
+			@Override
+			public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
+				return customizeKakaoRequest(resolver.resolve(request, clientRegistrationId));
+			}
+		};
+	}
+
+	private OAuth2AuthorizationRequest customizeKakaoRequest(OAuth2AuthorizationRequest request) {
+		if (request == null || !request.getAuthorizationRequestUri().contains("kauth.kakao.com")) {
+			return request;
+		}
+		String authorizationRequestUri = UriComponentsBuilder
+				.fromUriString(request.getAuthorizationRequestUri())
+				.replaceQueryParam("scope", "profile_nickname")
+				.build()
+				.toUriString();
+		return OAuth2AuthorizationRequest.from(request)
+				.authorizationRequestUri(authorizationRequestUri)
+				.build();
+	}
 	
 	@Bean
-	public PasswordEncoder passEncoder() {
+	public static PasswordEncoder passEncoder() {
 		return new BCryptPasswordEncoder();
 	}
 }

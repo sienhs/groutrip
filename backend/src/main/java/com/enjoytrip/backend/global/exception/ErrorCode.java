@@ -21,6 +21,8 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     TOO_MANY_LOGIN_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도가 너무 많습니다. 5분 후 다시 시도해주세요."),
+    OAUTH_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "소셜 로그인에 실패했습니다."),
+    OAUTH_CODE_INVALID(HttpStatus.UNAUTHORIZED, "소셜 로그인 인증 정보가 만료되었거나 유효하지 않습니다."),
     
     // Group
     GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Group not found."),

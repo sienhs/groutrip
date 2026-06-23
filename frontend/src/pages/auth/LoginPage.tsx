@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios';
-import { login } from '../../api/auth';
+import { getOAuthAuthorizationUrl, login } from '../../api/auth';
 import { getMyPreference } from '../../api/survey';
 import useAuthStore from '../../store/authStore';
 import type { ApiResponse } from '../../types/auth';
@@ -43,6 +43,10 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOAuthLogin = (provider: 'google' | 'kakao') => {
+    window.location.assign(getOAuthAuthorizationUrl(provider));
   };
 
   return (
@@ -88,6 +92,29 @@ export default function LoginPage() {
             로그인
           </Button>
         </form>
+
+        <div className="my-5 flex items-center gap-3" aria-hidden="true">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted">또는</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => handleOAuthLogin('kakao')}
+            className="flex h-12 w-full items-center justify-center rounded-button bg-[#FEE500] text-sm font-bold text-[#191919] transition hover:brightness-95"
+          >
+            카카오로 로그인
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOAuthLogin('google')}
+            className="flex h-12 w-full items-center justify-center rounded-button border border-border bg-white text-sm font-bold text-text transition hover:bg-[#F8F8F8]"
+          >
+            Google로 로그인
+          </button>
+        </div>
       </Card>
 
       <p className="mt-6 text-center text-sm text-muted">
