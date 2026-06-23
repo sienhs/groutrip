@@ -7,7 +7,7 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
-import { PlacePhoto, StarRating, PriceTag } from './PlaceBits';
+import { NaverThumb, StarRating, PriceTag } from './PlaceBits';
 import BookmarkFormModal from './BookmarkFormModal';
 import { getBookmarks, deleteBookmark } from '../../api/place';
 import { cn } from '../../lib/cn';
@@ -220,12 +220,12 @@ function BookmarkCard({
   return (
     <div className="rounded-card border border-border bg-surface p-3 shadow-sm">
       <div className="flex gap-3">
-        <PlacePhoto
+        <NaverThumb
           photoUrl={place.photoUrl}
           category={bookmark.categoryTag}
           name={place.name}
           naverHref={naverPlaceUrl(place.name, place.address)}
-          className="size-[84px] shrink-0 rounded-[10px]"
+          className="size-[84px] rounded-[10px]"
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-start gap-2">

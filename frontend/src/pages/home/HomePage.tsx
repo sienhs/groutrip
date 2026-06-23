@@ -89,7 +89,7 @@ export default function HomePage() {
           {home.upcoming.length > 0 && (
             <section>
               <SectionTitle>예정된 여행</SectionTitle>
-              <div className="scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+              <div className="space-y-3">
                 {home.upcoming.map((g) => <UpcomingCard key={g.id} g={g} onClick={() => navigate(`/groups/${g.id}`)} />)}
               </div>
             </section>
@@ -172,13 +172,21 @@ function OngoingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void 
 
 function UpcomingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="w-[150px] flex-none overflow-hidden rounded-2xl border border-border bg-surface text-left shadow-sm">
-      <div className={cn('h-16', gradientForKey(g.coverImageKey))} />
-      <div className="p-3">
-        <span className="inline-block rounded-full bg-[#FFF1E6] px-2 py-0.5 text-[11px] font-extrabold text-[#E8742E]">{g.day}</span>
-        <div className="mt-1.5 truncate text-[14px] font-extrabold">{g.title}</div>
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 text-left shadow-sm transition-transform active:scale-[.99]"
+    >
+      <div className={cn('flex size-12 flex-none items-end justify-start rounded-[12px] p-1.5', gradientForKey(g.coverImageKey))}>
+        <span className="rounded-full bg-white/30 px-1.5 py-0.5 text-[9px] font-extrabold text-white">{g.day}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[15px] font-extrabold">{g.title}</div>
         <div className="text-[12px] text-muted">{g.destination} · {g.memberCount}명</div>
       </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M9 6l6 6-6 6" stroke="#C0AE9B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </button>
   );
 }

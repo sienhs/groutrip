@@ -5,7 +5,7 @@ import Badge from '../../components/Badge';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
-import { PlacePhoto, StarRating, PriceTag } from './PlaceBits';
+import { NaverThumb, StarRating, PriceTag } from './PlaceBits';
 import BookmarkFormModal from './BookmarkFormModal';
 import { searchPlaces } from '../../api/place';
 import { cn } from '../../lib/cn';
@@ -214,12 +214,12 @@ function ResultCard({
 }) {
   return (
     <div className="flex gap-3 rounded-card border border-border bg-surface p-3 shadow-sm">
-      <PlacePhoto
+      <NaverThumb
         photoUrl={place.photoUrl}
         category={place.category}
         name={place.name}
         naverHref={naverPlaceUrl(place.name, place.address)}
-        className="size-[84px] shrink-0 rounded-[10px]"
+        className="size-[84px] rounded-[10px]"
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start gap-2">

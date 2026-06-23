@@ -30,69 +30,59 @@ interface PlacePhotoProps {
   category: PlaceCategory;
   name: string;
   className?: string;
-  /** 있으면 사진/플레이스홀더를 누를 때 네이버 지도(리뷰·사진)로 이동한다. */
-  naverHref?: string;
 }
 
-/** 좌하단 네이버 지도 배지(초록 N). */
-function NaverBadge() {
+/** 장소 썸네일. photoUrl 있으면 프록시 이미지, 없거나 로드 실패 시 카테고리 아이콘 플레이스홀더. */
+export function PlacePhoto({ photoUrl, category, name, className }: PlacePhotoProps) {
+  const [failed, setFailed] = useState(false);
+  const src = placePhotoSrc(photoUrl);
+
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className={cn('object-cover', className)}
+      />
+    );
+  }
   return (
-    <span className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-[5px] bg-[#03C75A] text-[10px] font-black leading-none text-white shadow">
-      N
-    </span>
+    <div className={cn('flex items-center justify-center bg-[#FFF1E6] text-[#FFB585]', className)}>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+        {CAT_ICON[category]}
+      </svg>
+    </div>
   );
 }
 
 /**
- * 장소 썸네일. photoUrl 있으면 프록시 이미지, 없거나 로드 실패 시 카테고리 아이콘 플레이스홀더.
- * naverHref가 있으면 클릭 시 네이버 지도로 이동(사진 없는 곳도 들어가서 상세 사진/리뷰 확인).
+ * 썸네일 + 그 아래 '네이버 지도' 버튼. 사진은 박스에 작게 보여주고,
+ * 네이버 지도(사진·리뷰)는 별도 버튼으로 분리한다(사진 없는 곳도 외부에서 확인).
  */
-export function PlacePhoto({ photoUrl, category, name, className, naverHref }: PlacePhotoProps) {
-  const [failed, setFailed] = useState(false);
-  const src = placePhotoSrc(photoUrl);
-  const hasPhoto = !!src && !failed;
-
-  const inner = hasPhoto ? (
-    <img
-      src={src}
-      alt={name}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className={cn('h-full w-full object-cover', !naverHref && 'object-cover', className && !naverHref ? className : undefined)}
-    />
-  ) : (
-    <div className={cn('flex h-full w-full flex-col items-center justify-center gap-0.5 bg-[#FFF1E6] text-[#FFB585]', className && !naverHref ? className : undefined)}>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
-        {CAT_ICON[category]}
-      </svg>
-      {naverHref && <span className="text-[9px] font-bold text-[#03C75A]">사진 보기</span>}
-    </div>
-  );
-
-  if (!naverHref) {
-    // 기존 동작(단순 표시)
-    return hasPhoto ? (
-      <img src={src} alt={name} loading="lazy" onError={() => setFailed(true)} className={cn('object-cover', className)} />
-    ) : (
-      <div className={cn('flex items-center justify-center bg-[#FFF1E6] text-[#FFB585]', className)}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>{CAT_ICON[category]}</svg>
-      </div>
-    );
-  }
-
+export function NaverThumb({
+  photoUrl,
+  category,
+  name,
+  naverHref,
+  className,
+}: PlacePhotoProps & { naverHref: string }) {
   return (
-    <a
-      href={naverHref}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      aria-label={`${name} 네이버 지도에서 보기`}
-      className={cn('relative block shrink-0 overflow-hidden', className)}
-      title="네이버 지도에서 사진·리뷰 보기"
-    >
-      {inner}
-      <NaverBadge />
-    </a>
+    <div className="flex shrink-0 flex-col items-center gap-1">
+      <PlacePhoto photoUrl={photoUrl} category={category} name={name} className={className} />
+      <a
+        href={naverHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        title="네이버 지도에서 사진·리뷰 보기"
+        className="flex items-center gap-1 rounded-button px-1.5 py-0.5 text-[10px] font-bold text-[#03C75A] transition-colors hover:bg-[#E9F8EE]"
+      >
+        <span className="flex size-3 items-center justify-center rounded-[3px] bg-[#03C75A] text-[8px] font-black leading-none text-white">N</span>
+        지도
+      </a>
+    </div>
   );
 }
 

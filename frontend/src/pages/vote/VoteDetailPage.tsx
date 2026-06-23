@@ -10,7 +10,7 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getVoteSession, castVote, closeVoteSession, addCandidate } from '../../api/vote';
 import { getBookmarks, addBookmark, searchPlaces } from '../../api/place';
-import { PlacePhoto } from '../place/PlaceBits';
+import { NaverThumb } from '../place/PlaceBits';
 import { naverPlaceUrl } from '../../lib/naver';
 import { cn } from '../../lib/cn';
 import type { VoteSession, VoteCandidate } from '../../types/vote';
@@ -210,12 +210,12 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
                   const already = candidatePlaceIds.has(b.place.placeId);
                   return (
                     <div key={b.id} className="flex items-center gap-3 rounded-card border border-border bg-surface p-2.5">
-                      <PlacePhoto
+                      <NaverThumb
                         photoUrl={b.place.photoUrl}
                         category={b.categoryTag}
                         name={b.place.name}
                         naverHref={naverPlaceUrl(b.place.name, b.place.address)}
-                        className="size-[52px] shrink-0 rounded-[9px]"
+                        className="size-[52px] rounded-[9px]"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-bold text-[#3A322B]">{b.place.name}</div>
@@ -254,12 +254,12 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
                 <div className="max-h-[40vh] space-y-2 overflow-y-auto">
                   {searchResults.map((p) => (
                     <div key={p.googlePlaceId} className="flex items-center gap-3 rounded-card border border-border bg-surface p-2.5">
-                      <PlacePhoto
+                      <NaverThumb
                         photoUrl={p.photoUrl}
                         category={p.category}
                         name={p.name}
                         naverHref={naverPlaceUrl(p.name, p.address)}
-                        className="size-[52px] shrink-0 rounded-[9px]"
+                        className="size-[52px] rounded-[9px]"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-bold text-[#3A322B]">{p.name}</div>

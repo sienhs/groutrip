@@ -4,7 +4,7 @@ import AppLayout from '../../components/AppLayout';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { useToast } from '../../components/Toast';
-import { PlacePhoto, StarRating } from '../place/PlaceBits';
+import { NaverThumb, StarRating } from '../place/PlaceBits';
 import { getGroup } from '../../api/group';
 import { searchPlaces, addBookmark } from '../../api/place';
 import { getRecommendations } from '../../api/recommend';
@@ -359,12 +359,12 @@ export default function TripPlanPage() {
                 key={p.googlePlaceId}
                 className="flex gap-3 rounded-card border border-border bg-surface p-2.5"
               >
-                <PlacePhoto
+                <NaverThumb
                   photoUrl={p.photoUrl}
                   category="LODGING"
                   name={p.name}
                   naverHref={naverPlaceUrl(p.name, p.address)}
-                  className="size-[68px] shrink-0 rounded-[10px]"
+                  className="size-[68px] rounded-[10px]"
                 />
                 <div className="flex min-w-0 flex-1 flex-col">
                   <div className="truncate text-[15px] font-extrabold text-[#3A322B]">{p.name}</div>
@@ -401,12 +401,12 @@ export default function TripPlanPage() {
 
           {/* 선정 숙소 카드 */}
           <div className="flex gap-3 rounded-card border border-border bg-surface p-3">
-            <PlacePhoto
+            <NaverThumb
               photoUrl={current.place.photoUrl}
               category="LODGING"
               name={current.place.name}
               naverHref={naverPlaceUrl(current.place.name, current.place.address)}
-              className="size-[72px] shrink-0 rounded-[10px]"
+              className="size-[72px] rounded-[10px]"
             />
             <div className="min-w-0 flex-1">
               <div className="truncate text-[16px] font-extrabold text-[#3A322B]">{current.place.name}</div>
@@ -634,12 +634,12 @@ export default function TripPlanPage() {
               const added = addedIds.has(p.googlePlaceId);
               return (
                 <div key={p.googlePlaceId} className="flex gap-3 rounded-card border border-border bg-surface p-2.5">
-                  <PlacePhoto
+                  <NaverThumb
                     photoUrl={p.photoUrl}
                     category={pickCategory}
                     name={p.name}
                     naverHref={naverPlaceUrl(p.name, p.address)}
-                    className="size-[68px] shrink-0 rounded-[10px]"
+                    className="size-[68px] rounded-[10px]"
                   />
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="truncate text-[15px] font-extrabold text-[#3A322B]">{p.name}</div>
