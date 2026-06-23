@@ -1,22 +1,46 @@
 services:
-
   postgres:
     image: postgres:16
     container_name: enjoy-trip-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-enjoy_trip}
       POSTGRES_USER: ${DB_USER:-enjoy_trip_user}
       POSTGRES_PASSWORD: ${DB_PASS}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - enjoy-trip-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # 이미지(아바타·그룹커버·갤러리·숙소사진) 객체 스토리지는 AWS S3를 사용한다.
-  # 자격증명/리전/버킷은 backend/.env의 AWS_* 키로 주입(로컬 MinIO 컨테이너 제거됨).
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: enjoy-trip-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: 8080
 
+      # Docker 컨테이너 안에서는 localhost가 아니라 postgres 서비스 이름으로 DB 접속
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-enjoy_trip}
+      DB_USER: ${DB_USER:-enjoy_trip_user}
+      DB_PASS: ${DB_PASS}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
+    networks:
+      - enjoy-trip-network
 
 volumes:
   postgres_data:
