@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
 import Select from '../../components/Select';
@@ -10,6 +11,7 @@ import { useToast } from '../../components/Toast';
 import { NaverThumb, StarRating, PriceTag } from './PlaceBits';
 import BookmarkFormModal from './BookmarkFormModal';
 import { getBookmarks, deleteBookmark } from '../../api/place';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
 import { naverPlaceUrl } from '../../lib/naver';
 import {
@@ -39,9 +41,8 @@ export default function BookmarkListPage({
   const groupId = groupIdProp ?? Number(params.id);
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
-  const [items, setItems] = useState<BookmarkResponse[]>([]);
-  const [status, setStatus] = useState<Status>('loading');
   const [category, setCategory] = useState<PlaceCategory | null>(null);
   const [sort, setSort] = useState<BookmarkSort>('RECENT');
 
@@ -49,20 +50,17 @@ export default function BookmarkListPage({
   const [deleting, setDeleting] = useState<BookmarkResponse | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setStatus('loading');
-    try {
-      const data = await getBookmarks(groupId, { category: category ?? undefined, sort });
-      setItems(data);
-      setStatus('done');
-    } catch {
-      setStatus('error');
-    }
-  }, [groupId, category, sort]);
+  // 보관함 목록 — 필터/정렬은 키 뒤에 덧붙여, SSE는 prefix(['bookmarks', groupId])로 무효화한다.
+  const bookmarksQuery = useQuery({
+    queryKey: [...groupQueryKeys.bookmarks(groupId), category ?? 'ALL', sort],
+    queryFn: () => getBookmarks(groupId, { category: category ?? undefined, sort }),
+    enabled: Number.isFinite(groupId),
+  });
+  const items = bookmarksQuery.data ?? [];
+  const status: Status = bookmarksQuery.isLoading ? 'loading' : bookmarksQuery.isError ? 'error' : 'done';
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const invalidateBookmarks = () =>
+    queryClient.invalidateQueries({ queryKey: groupQueryKeys.bookmarks(groupId) });
 
   const confirmDelete = async () => {
     if (!deleting) return;
@@ -70,8 +68,8 @@ export default function BookmarkListPage({
     try {
       await deleteBookmark(groupId, deleting.id);
       toast.success('삭제했어요', deleting.place.name);
-      setItems((prev) => prev.filter((b) => b.id !== deleting.id));
       setDeleting(null);
+      invalidateBookmarks();
     } catch {
       toast.error('삭제에 실패했어요', '권한이 없거나 일시적 오류일 수 있어요.');
     } finally {
@@ -125,7 +123,7 @@ export default function BookmarkListPage({
           <EmptyState
             title="보관함을 불러오지 못했어요"
             description="네트워크 상태를 확인하고 다시 시도해 주세요."
-            action={<Button variant="secondary" onClick={load}>다시 시도</Button>}
+            action={<Button variant="secondary" onClick={() => bookmarksQuery.refetch()}>다시 시도</Button>}
           />
         )}
 
@@ -154,9 +152,7 @@ export default function BookmarkListPage({
           bookmark={editing}
           groupId={groupId}
           onClose={() => setEditing(null)}
-          onSaved={(saved) =>
-            setItems((prev) => prev.map((b) => (b.id === saved.id ? saved : b)))
-          }
+          onSaved={() => invalidateBookmarks()}
         />
       )}
 

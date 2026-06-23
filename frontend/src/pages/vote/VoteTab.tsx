@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
 import Modal from '../../components/Modal';
@@ -10,6 +11,7 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getSchedules } from '../../api/schedule';
 import { getVoteSessions, createVoteSession } from '../../api/vote';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import type { Schedule } from '../../types/schedule';
 import type { VoteSession } from '../../types/vote';
 
@@ -25,16 +27,12 @@ export default function VoteTab({ groupId }: { groupId: number; isOwner?: boolea
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [rows, setRows] = useState<Row[]>([]);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [status, setStatus] = useState<Status>('loading');
-
   const [createOpen, setCreateOpen] = useState(false);
   const [scheduleId, setScheduleId] = useState('');
   const [title, setTitle] = useState('');
   const [creating, setCreating] = useState(false);
 
-  // 순수 fetch(상태 변경 없음) — effect/재시도에서 공용. 최근(세션 id 큰 순) 정렬.
+  // 일정별 투표 세션을 합산(그룹 전체 세션 엔드포인트 부재). 최근(세션 id 큰 순) 정렬.
   const fetchRows = async (): Promise<{ schedules: Schedule[]; rows: Row[] }> => {
     const sch = await getSchedules(groupId);
     const lists = await Promise.all(
@@ -45,31 +43,15 @@ export default function VoteTab({ groupId }: { groupId: number; isOwner?: boolea
     return { schedules: sch, rows: lists.flat().sort((a, b) => b.session.id - a.session.id) };
   };
 
-  // 재시도 버튼용(이벤트 핸들러에서의 동기 setState는 허용).
-  const load = () => {
-    setStatus('loading');
-    fetchRows()
-      .then(({ schedules: sch, rows: r }) => {
-        setSchedules(sch);
-        setRows(r);
-        setStatus('done');
-      })
-      .catch(() => setStatus('error'));
-  };
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { schedules: sch, rows: r } = await fetchRows();
-        setSchedules(sch);
-        setRows(r);
-        setStatus('done');
-      } catch {
-        setStatus('error');
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId]);
+  // VOTE_* SSE 이벤트가 이 키(votes)를 무효화하면 자동 refetch된다.
+  const voteQuery = useQuery({
+    queryKey: groupQueryKeys.votes(groupId),
+    queryFn: fetchRows,
+    enabled: Number.isFinite(groupId),
+  });
+  const schedules = voteQuery.data?.schedules ?? [];
+  const rows = voteQuery.data?.rows ?? [];
+  const status: Status = voteQuery.isLoading ? 'loading' : voteQuery.isError ? 'error' : 'done';
 
   const openCreate = () => {
     setTitle('');
@@ -113,7 +95,7 @@ export default function VoteTab({ groupId }: { groupId: number; isOwner?: boolea
         <EmptyState
           title="투표를 불러오지 못했어요"
           description="잠시 후 다시 시도해 주세요."
-          action={<Button variant="secondary" onClick={load}>다시 시도</Button>}
+          action={<Button variant="secondary" onClick={() => voteQuery.refetch()}>다시 시도</Button>}
         />
       )}
 

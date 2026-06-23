@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
@@ -11,6 +12,7 @@ import PlacePickerModal from '../place/PlacePickerModal';
 import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg, updateSchedule, setSchedulePlace } from '../../api/schedule';
 import { createVoteSession, getVoteSessions } from '../../api/vote';
 import { getGroup } from '../../api/group';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import {
   TRANSPORT_META,
   formatKm,
@@ -77,39 +79,40 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
   const groupId = groupIdProp ?? Number(params.id);
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [pickFor, setPickFor] = useState<Schedule | null>(null);
 
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [legs, setLegs] = useState<Record<string, LegState>>({}); // key: `${pair}:${mode}`
   const [legMode, setLegMode] = useState<Record<string, TransportMode>>({}); // pair → 선택 수단(기본 CAR)
   const [deleting, setDeleting] = useState<Schedule | null>(null);
   const [delLoading, setDelLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [tripDates, setTripDates] = useState<string[]>([]);
 
   const dragFrom = useRef<number | null>(null);
   const dirty = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-    try {
+  // 일정 + 여행 기간을 한 키로 관리. SCHEDULE_*/VOTE_CLOSED SSE 이벤트가 이 키를 무효화한다.
+  const scheduleQuery = useQuery({
+    queryKey: groupQueryKeys.schedules(groupId),
+    queryFn: async () => {
       const [sch, g] = await Promise.all([getSchedules(groupId), getGroup(groupId)]);
-      setSchedules(sch);
-      setTripDates(enumerateDates(g.startDate, g.endDate));
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [groupId]);
+      return { schedules: sch, tripDates: enumerateDates(g.startDate, g.endDate) };
+    },
+    enabled: Number.isFinite(groupId),
+  });
+  const schedules = scheduleQuery.data?.schedules ?? [];
+  const tripDates = scheduleQuery.data?.tripDates ?? [];
+  const loading = scheduleQuery.isLoading;
+  const error = scheduleQuery.isError;
+  const load = () => scheduleQuery.refetch();
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // 드래그 등 낙관적 변경은 캐시(schedules)를 직접 갱신한다. tripDates는 보존.
+  const setSchedulesData = (next: Schedule[]) =>
+    queryClient.setQueryData<{ schedules: Schedule[]; tripDates: string[] }>(
+      groupQueryKeys.schedules(groupId),
+      (old) => (old ? { ...old, schedules: next } : old),
+    );
 
   // 일자 탭: 여행 기간의 모든 날짜(일정 없는 날도 포함). 미로딩 시 일정 날짜로 폴백.
   const dates = tripDates.length
@@ -132,6 +135,8 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
       if (mode === 'TRANSIT') continue; // 대중교통은 네이버 지도로 핸드오프 → 레그 조회 불필요
       const key = `${pairKey}:${mode}`;
       if (legs[key] !== undefined) continue;
+      // 이동 정보 지연 로딩(외부 fetch 트리거) — 동기 setState 경고는 의도된 패턴이라 무시.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLegs((prev) => ({ ...prev, [key]: 'loading' }));
       getTransportLeg(groupId, stops[i].id, stops[i + 1].id, mode)
         .then((leg) => { if (!cancelled) setLegs((prev) => ({ ...prev, [key]: leg })); })
@@ -165,7 +170,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
 
   const setStops = (next: Schedule[]) => {
     const others = schedules.filter((s) => s.scheduleDate !== activeDate);
-    setSchedules([...others, ...next.map((s, i) => ({ ...s, orderIndex: i }))]);
+    setSchedulesData([...others, ...next.map((s, i) => ({ ...s, orderIndex: i }))]);
   };
 
   const onDragStart = (i: number) => { dragFrom.current = i; dirty.current = false; };

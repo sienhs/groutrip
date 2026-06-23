@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../components/Toast';
 import { useNotificationStore } from '../store/notificationStore';
 import { EVENT_META, type GroupEvent, type GroupEventType } from '../types/sse';
+import { allGroupQueryKeys, invalidationKeysForEvent } from '../queryKeys/groupQueryKeys';
 import { getAccessToken } from '../api/instance';
 
 const ALL_EVENT_TYPES = Object.keys(EVENT_META) as GroupEventType[];
@@ -20,25 +21,17 @@ interface Options {
   currentUserId: number;
   /** actorId → 표시 이름. 미지정 시 '멤버' */
   resolveActorName?: (actorId: number) => string;
-  /**
-   * 다른 멤버의 이벤트 수신 시 호출(domain 전달). 화면 데이터가 React Query가 아니라
-   * 수동 fetch라 invalidateQueries만으로는 갱신되지 않으므로, 호출부가 실제 refetch를
-   * 트리거하도록 한다. 안정적인 참조(useCallback)로 넘겨야 재연결을 막는다.
-   */
-  onEvent?: (domain: string) => void;
   enabled?: boolean;
 }
-
-const DOMAINS = ['schedules', 'votes', 'bookmarks', 'expenses', 'group'] as const;
 
 /**
  * 그룹 상세 SSE 구독 훅 (브리프 7).
  *  - GET /api/groups/{id}/stream, Authorization 헤더(EventSourcePolyfill)
  *  - 하트비트 30초, 3회 연속 실패 시 5초 폴링 폴백
- *  - 본인(actorId === currentUserId) 이벤트는 무시
- *  - 수신 시: 토스트 + 알림 스토어 push + React Query 캐시 무효화
+ *  - 본인(actorId === currentUserId) 이벤트는 토스트/알림 생략, 캐시만 갱신
+ *  - 수신 시: 이벤트 타입별로 영향받는 React Query 키만 정밀 무효화(전체 remount 아님)
  */
-export function useGroupStream({ groupId, currentUserId, resolveActorName, onEvent, enabled = true }: Options) {
+export function useGroupStream({ groupId, currentUserId, resolveActorName, enabled = true }: Options) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const addNotification = useNotificationStore((s) => s.add);
@@ -51,13 +44,18 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
   useEffect(() => {
     if (!enabled || !groupId) return;
 
-    const invalidate = (domain: string) =>
-      queryClient.invalidateQueries({ queryKey: [domain, groupId] });
+    // 이벤트 타입 → 영향받는 query key만 정밀 무효화.
+    const invalidateForEvent = (type: GroupEventType) =>
+      invalidationKeysForEvent(type, groupId).forEach((queryKey) =>
+        queryClient.invalidateQueries({ queryKey }),
+      );
 
     const startPolling = () => {
       if (pollRef.current != null) return;
       pollRef.current = window.setInterval(() => {
-        DOMAINS.forEach(invalidate);
+        allGroupQueryKeys(groupId).forEach((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        );
       }, POLL_INTERVAL);
     };
     const stopPolling = () => {
@@ -74,9 +72,9 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
       } catch {
         return;
       }
-      // 본인 이벤트 무시
+      // 본인 이벤트: 토스트/알림은 생략하되 영향받는 캐시는 갱신.
       if (evt.actorId === currentUserId) {
-        invalidate(EVENT_META[evt.type]?.domain ?? 'group'); // 캐시는 갱신
+        invalidateForEvent(evt.type);
         return;
       }
       const meta = EVENT_META[evt.type];
@@ -95,8 +93,7 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
         ts: evt.ts,
         read: false,
       });
-      invalidate(meta.domain);
-      onEvent?.(meta.domain); // 수동 fetch 화면 실제 refetch 트리거
+      invalidateForEvent(evt.type);
     };
 
     const connect = () => {
@@ -140,5 +137,5 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
       stopPolling();
       if (reconnectRef.current != null) clearTimeout(reconnectRef.current);
     };
-  }, [groupId, currentUserId, enabled, queryClient, toast, addNotification, resolveActorName, onEvent]);
+  }, [groupId, currentUserId, enabled, queryClient, toast, addNotification, resolveActorName]);
 }

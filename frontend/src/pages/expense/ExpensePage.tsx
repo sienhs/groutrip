@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
 import { ConfirmModal } from '../../components/Modal';
@@ -8,7 +9,8 @@ import { useToast } from '../../components/Toast';
 import ExpenseFormModal from './ExpenseFormModal';
 import SettlementPanel from './SettlementPanel';
 import { getExpenses, getSettlement, deleteExpense } from '../../api/expense';
-import { expenseIcon, formatWon, type Expense, type SettlementSummary } from '../../types/expense';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
+import { expenseIcon, formatWon, type Expense } from '../../types/expense';
 import type { GroupMember } from '../../types/group';
 import useAuthStore from '../../store/authStore';
 
@@ -20,35 +22,30 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
   const toast = useToast();
+  const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
-
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [summary, setSummary] = useState<SettlementSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState<Expense | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-    try {
+  // 지출 내역 + 정산 요약을 한 키로 묶어 관리. EXPENSE_* SSE 이벤트가 이 키를 무효화한다.
+  const expenseQuery = useQuery({
+    queryKey: groupQueryKeys.expenses(groupId),
+    queryFn: async () => {
       const [e, s] = await Promise.all([getExpenses(groupId), getSettlement(groupId)]);
-      setExpenses(e);
-      setSummary(s);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [groupId]);
+      return { expenses: e, summary: s };
+    },
+    enabled: Number.isFinite(groupId),
+  });
+  const expenses = expenseQuery.data?.expenses ?? [];
+  const summary = expenseQuery.data?.summary ?? null;
+  const loading = expenseQuery.isLoading;
+  const error = expenseQuery.isError;
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const invalidateExpenses = () =>
+    queryClient.invalidateQueries({ queryKey: groupQueryKeys.expenses(groupId) });
 
   const confirmDelete = async () => {
     if (!deleting) return;
@@ -57,7 +54,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
       await deleteExpense(groupId, deleting.id);
       toast.success('삭제했어요', deleting.description);
       setDeleting(null);
-      load();
+      invalidateExpenses();
     } catch {
       toast.error('삭제에 실패했어요', '권한이 없거나 일시적 오류일 수 있어요.');
     } finally {
@@ -78,7 +75,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
         <EmptyState
           title="정산을 불러오지 못했어요"
           description="잠시 후 다시 시도해 주세요."
-          action={<Button variant="secondary" onClick={load}>다시 시도</Button>}
+          action={<Button variant="secondary" onClick={() => expenseQuery.refetch()}>다시 시도</Button>}
         />
       )}
 
@@ -154,7 +151,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
         members={members}
         expense={editing}
         onClose={() => setFormOpen(false)}
-        onSaved={() => load()}
+        onSaved={() => invalidateExpenses()}
       />
 
       <ConfirmModal

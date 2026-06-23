@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Tabs, { type TabItem } from '../../components/Tabs';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
@@ -26,10 +27,11 @@ import {
 } from '../../api/group';
 import { getAccommodations } from '../../api/accommodation';
 import { useGroupStream } from '../../hooks/useGroupStream';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import useAuthStore from '../../store/authStore';
 import { gradientForKey, ddayLabel, dateRange } from './groupUi';
 import { cn } from '../../lib/cn';
-import { type GroupMember, type TravelGroup } from '../../types/group';
+import { type GroupMember } from '../../types/group';
 
 type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'gallery' | 'member';
 
@@ -52,55 +54,52 @@ export default function GroupDetailPage() {
   const groupId = Number(params.id);
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
-  const [group, setGroup] = useState<TravelGroup | null>(null);
-  const [members, setMembers] = useState<GroupMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [tab, setTab] = useState<TabKey>('place');
-  // 그룹에 숙소 선정/예약(=여행 계획)이 하나라도 있으면 true. 진입 CTA 노출을 가른다.
-  const [planExists, setPlanExists] = useState(false);
-  // 다른 멤버의 SSE 이벤트 수신 시 증가 → 활성 탭을 remount해 실제 refetch한다.
-  const [streamTick, setStreamTick] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
 
   // 본인 이벤트 무시용 userId. 로그인 시 user.id = userId 로 저장됨(authStore).
   const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [g, ms] = await Promise.all([getGroup(groupId), getGroupMembers(groupId)]);
-        setGroup(g);
-        setMembers(ms);
-        // 여행 계획 존재 여부는 그룹 로딩과 분리해, 실패해도 화면이 깨지지 않게 한다.
-        try {
-          const accs = await getAccommodations(groupId);
-          setPlanExists(accs.length > 0);
-        } catch {
-          /* 계획 조회 실패는 무시(없음으로 간주) */
-        }
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [groupId]);
+  // 그룹 기본 정보·멤버·여행 계획 존재 여부를 React Query로 관리한다.
+  // SSE 이벤트는 이 키들을 정밀 무효화해 해당 데이터만 refetch한다(탭 전체 remount 없음).
+  const groupQuery = useQuery({
+    queryKey: groupQueryKeys.detail(groupId),
+    queryFn: () => getGroup(groupId),
+    enabled: Number.isFinite(groupId),
+  });
+  const membersQuery = useQuery({
+    queryKey: groupQueryKeys.members(groupId),
+    queryFn: () => getGroupMembers(groupId),
+    enabled: Number.isFinite(groupId),
+  });
+  // 여행 계획 존재 여부는 그룹 로딩과 분리(실패해도 화면이 깨지지 않게 false 폴백). SSE 비대상.
+  const planQuery = useQuery({
+    queryKey: groupQueryKeys.plan(groupId),
+    queryFn: () => getAccommodations(groupId).then((accs) => accs.length > 0),
+    enabled: Number.isFinite(groupId),
+    retry: false,
+  });
+
+  const group = groupQuery.data ?? null;
+  // useMemo로 참조를 안정화해 resolveActorName(useCallback)이 매 렌더 재생성되지 않게 한다.
+  const members: GroupMember[] = useMemo(() => membersQuery.data ?? [], [membersQuery.data]);
+  const planExists = planQuery.data ?? false;
+  const loading = groupQuery.isLoading || membersQuery.isLoading;
+  const error = groupQuery.isError;
 
   // 실시간 구독(SSE): /api/groups/{id}/stream (Part B 구현 완료). 그룹 로딩되면 연결.
-  //   콜백/리졸버는 안정 참조(useCallback)로 넘겨 렌더마다 재연결되는 것을 막는다.
+  //   리졸버는 안정 참조(useCallback)로 넘겨 렌더마다 재연결되는 것을 막는다.
   const resolveActorName = useCallback(
     (actorId: number) => members.find((m) => m.userId === actorId)?.name ?? '멤버',
     [members],
   );
-  const handleStreamEvent = useCallback(() => setStreamTick((t) => t + 1), []);
   useGroupStream({
     groupId,
     currentUserId,
     enabled: !!group,
     resolveActorName,
-    onEvent: handleStreamEvent,
   });
 
   // 초대 코드를 실제로 클립보드에 복사한다(복사 실패 시 코드 노출로 폴백).
@@ -118,12 +117,13 @@ export default function GroupDetailPage() {
     }
   }, [group?.inviteCode, toast]);
 
-  // 멤버 변경(강퇴/위임/코드 재발급) 후 그룹·멤버를 다시 불러온다.
+  // 멤버 변경(강퇴/위임/코드 재발급) 후 그룹·멤버 캐시를 무효화해 다시 불러온다.
   const refreshGroupAndMembers = useCallback(async () => {
-    const [g, ms] = await Promise.all([getGroup(groupId), getGroupMembers(groupId)]);
-    setGroup(g);
-    setMembers(ms);
-  }, [groupId]);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.detail(groupId) }),
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.members(groupId) }),
+    ]);
+  }, [groupId, queryClient]);
 
   const isOwner = members.find((m) => m.userId === currentUserId)?.role === 'OWNER';
 
@@ -238,15 +238,15 @@ export default function GroupDetailPage() {
         {loading ? (
           <p className="py-10 text-center text-[13px] text-muted">불러오는 중…</p>
         ) : tab === 'schedule' ? (
-          <ScheduleBuilderPage key={streamTick} groupId={groupId} isOwner={isOwner} />
+          <ScheduleBuilderPage groupId={groupId} isOwner={isOwner} />
         ) : tab === 'place' ? (
-          <BookmarkListPage key={streamTick} groupId={groupId} planExists={planExists} />
+          <BookmarkListPage groupId={groupId} planExists={planExists} />
         ) : tab === 'vote' ? (
-          <VoteTab key={streamTick} groupId={groupId} isOwner={isOwner} />
+          <VoteTab groupId={groupId} isOwner={isOwner} />
         ) : tab === 'settle' ? (
-          <ExpensePage key={streamTick} groupId={groupId} members={members} />
+          <ExpensePage groupId={groupId} members={members} />
         ) : tab === 'gallery' ? (
-          <GroupGalleryPage key={streamTick} groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
+          <GroupGalleryPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
         ) : tab === 'member' ? (
           <MemberTab
             groupId={groupId}
@@ -265,7 +265,8 @@ export default function GroupDetailPage() {
         <GroupEditModal
           group={group}
           onClose={() => setEditOpen(false)}
-          onSaved={(updated) => setGroup(updated)}
+          onSaved={(updated) => queryClient.setQueryData(groupQueryKeys.detail(groupId), updated)}
+          onDeleted={() => navigate('/groups')}
         />
       )}
     </div>
