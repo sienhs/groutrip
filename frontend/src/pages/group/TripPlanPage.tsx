@@ -79,6 +79,11 @@ export default function TripPlanPage() {
   const [pickSearching, setPickSearching] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  // 통합 검색(카테고리 무관) 여부 — true면 장소 자체 카테고리로 담는다.
+  const [pickUnified, setPickUnified] = useState(false);
+  // 갈 만한 곳 추천 → 보관함 담기 상태.
+  const [savingRecId, setSavingRecId] = useState<number | null>(null);
+  const [savedRecIds, setSavedRecIds] = useState<Set<number>>(new Set());
 
   const photoPreview = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
   useEffect(() => () => {
@@ -217,11 +222,38 @@ export default function TripPlanPage() {
     }
   };
 
+  // 갈 만한 곳 추천을 보관함에 담는다(이름으로 검색 → 첫 결과 추가, Google 단일 소스 규칙).
+  const onSaveRec = async (rec: RecommendItem) => {
+    setSavingRecId(rec.contentId);
+    try {
+      const page = await searchPlaces(groupId, rec.title);
+      const found = page.items[0];
+      if (!found) {
+        toast.warning('보관함에 담지 못했어요', '검색 결과가 없어요. 통합 검색으로 직접 담아보세요.');
+        return;
+      }
+      await addBookmark(groupId, { googlePlaceId: found.googlePlaceId, categoryTag: found.category });
+      setSavedRecIds((prev) => new Set(prev).add(rec.contentId));
+      toast.success('보관함에 담았어요', found.name);
+    } catch (e) {
+      const status = (e as { response?: { status?: number } }).response?.status;
+      if (status === 409) {
+        setSavedRecIds((prev) => new Set(prev).add(rec.contentId));
+        toast.info('이미 담긴 장소예요', rec.title);
+      } else {
+        toast.error('담기에 실패했어요', '잠시 후 다시 시도해 주세요.');
+      }
+    } finally {
+      setSavingRecId(null);
+    }
+  };
+
   // 맛집/명소/카페 선정 반복 — 검색해 보관함에 담는다(여러 개 가능).
   const openPlaceSelect = (cat: PlaceCategory) => {
     const region = sigungu || destination;
     const keyword = PICK_CATEGORIES.find((c) => c.value === cat)?.keyword ?? '';
     const q = `${region} ${keyword}`.trim();
+    setPickUnified(false);
     setPickCategory(cat);
     setPickQuery(q);
     setPickResults([]);
@@ -230,7 +262,17 @@ export default function TripPlanPage() {
     void runPickSearch(q, cat);
   };
 
-  const runPickSearch = async (q: string, cat: PlaceCategory, token?: string) => {
+  // 통합 검색 — 카테고리 필터 없이 키워드로 검색해, 장소 자체 카테고리로 담는다.
+  const openUnifiedSearch = () => {
+    const region = sigungu || destination;
+    setPickUnified(true);
+    setPickQuery(region ? `${region} ` : '');
+    setPickResults([]);
+    setPickNext(null);
+    setStep('placeselect');
+  };
+
+  const runPickSearch = async (q: string, cat: PlaceCategory | undefined, token?: string) => {
     if (!q.trim()) {
       setPickResults([]);
       setPickNext(null);
@@ -251,7 +293,9 @@ export default function TripPlanPage() {
   const handleAddBookmark = async (place: PlaceSearchResult) => {
     setAddingId(place.googlePlaceId);
     try {
-      await addBookmark(groupId, { googlePlaceId: place.googlePlaceId, categoryTag: pickCategory });
+      // 통합 검색이면 장소 자체 카테고리로, 카테고리 선정 모드면 선택한 카테고리로 담는다.
+      const categoryTag = pickUnified ? place.category : pickCategory;
+      await addBookmark(groupId, { googlePlaceId: place.googlePlaceId, categoryTag });
       setAddedIds((prev) => new Set(prev).add(place.googlePlaceId));
       toast.success('보관함에 담았어요', place.name);
     } catch (e) {
@@ -279,7 +323,7 @@ export default function TripPlanPage() {
             : step === 'recommend'
               ? '갈 만한 곳 추천'
               : step === 'placeselect'
-                ? `${CATEGORY_LABEL[pickCategory]} 선정`
+                ? (pickUnified ? '통합 검색' : `${CATEGORY_LABEL[pickCategory]} 선정`)
                 : '여행 계획 시작';
 
   return (
@@ -536,6 +580,18 @@ export default function TripPlanPage() {
                 desc="가볼 만한 명소를 검색해 보관함에 담아요."
                 onClick={() => openPlaceSelect('TOURIST_ATTRACTION')}
               />
+              {/* 통합 검색 — 카테고리 구분 없이 키워드로 직접 검색(사진 포함). 위 선정 버튼과 색을 구분한다. */}
+              <button
+                type="button"
+                onClick={openUnifiedSearch}
+                className="flex w-full items-center justify-center gap-2 rounded-card bg-gradient-to-r from-[#3182F6] to-[#5A9CFF] px-4 py-3.5 text-[15px] font-extrabold text-white shadow-sm transition-transform active:scale-[0.99]"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                  <path d="m20 20-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                검색하기 · 통합 검색
+              </button>
             </div>
           </div>
 
@@ -576,11 +632,23 @@ export default function TripPlanPage() {
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="line-clamp-2 text-[14px] font-bold text-[#3A322B]">{r.title}</div>
                     <div className="mt-0.5 text-[12px] text-muted">{contentTypeLabel(r.contentTypeId)}</div>
-                    {r.matchScore != null && (
-                      <div className="mt-auto pt-1 text-[12px] font-bold text-[#E8742E]">
-                        성향 일치 {r.matchScore}%
-                      </div>
-                    )}
+                    <div className="mt-auto flex items-center justify-between gap-2 pt-1.5">
+                      {r.matchScore != null ? (
+                        <span className="text-[12px] font-bold text-[#E8742E]">성향 일치 {r.matchScore}%</span>
+                      ) : (
+                        <span />
+                      )}
+                      <Button
+                        size="sm"
+                        variant={savedRecIds.has(r.contentId) ? 'ghost' : 'secondary'}
+                        loading={savingRecId === r.contentId}
+                        disabled={savedRecIds.has(r.contentId)}
+                        className={cn(savedRecIds.has(r.contentId) && 'border border-border text-[#A6907B]')}
+                        onClick={() => onSaveRec(r)}
+                      >
+                        {savedRecIds.has(r.contentId) ? '담음 ✓' : '+ 보관함'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -596,33 +664,37 @@ export default function TripPlanPage() {
         <div className="space-y-3.5">
           <StepBack onClick={() => setStep('hub')} label="여행 계획으로" />
 
-          <div className="flex gap-1.5">
-            {PICK_CATEGORIES.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={() => openPlaceSelect(c.value)}
-                aria-pressed={pickCategory === c.value}
-                className={cn(
-                  'rounded-full px-3 py-1.5 text-[13px] font-bold transition-colors',
-                  pickCategory === c.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'border border-border bg-surface text-[#7A6A58]',
-                )}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
+          {pickUnified ? (
+            <p className="text-[13px] font-bold text-[#3182F6]">통합 검색 · 카테고리 구분 없이 검색해요</p>
+          ) : (
+            <div className="flex gap-1.5">
+              {PICK_CATEGORIES.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => openPlaceSelect(c.value)}
+                  aria-pressed={pickCategory === c.value}
+                  className={cn(
+                    'rounded-full px-3 py-1.5 text-[13px] font-bold transition-colors',
+                    pickCategory === c.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'border border-border bg-surface text-[#7A6A58]',
+                  )}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Input
               value={pickQuery}
               onChange={(e) => setPickQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && runPickSearch(pickQuery, pickCategory)}
-              placeholder="검색어"
+              onKeyDown={(e) => e.key === 'Enter' && runPickSearch(pickQuery, pickUnified ? undefined : pickCategory)}
+              placeholder={pickUnified ? '예: 강남 분위기 좋은 곳' : '검색어'}
             />
-            <Button onClick={() => runPickSearch(pickQuery, pickCategory)} loading={pickSearching} disabled={!pickQuery.trim()}>
+            <Button onClick={() => runPickSearch(pickQuery, pickUnified ? undefined : pickCategory)} loading={pickSearching} disabled={!pickQuery.trim()}>
               검색
             </Button>
           </div>
@@ -636,7 +708,7 @@ export default function TripPlanPage() {
                 <div key={p.googlePlaceId} className="flex gap-3 rounded-card border border-border bg-surface p-2.5">
                   <NaverThumb
                     photoUrl={p.photoUrl}
-                    category={pickCategory}
+                    category={p.category}
                     name={p.name}
                     naverHref={naverPlaceUrl(p.name, p.address)}
                     className="size-[68px] rounded-[10px]"
@@ -668,7 +740,7 @@ export default function TripPlanPage() {
             <Button
               variant="secondary"
               fullWidth
-              onClick={() => runPickSearch(pickQuery, pickCategory, pickNext)}
+              onClick={() => runPickSearch(pickQuery, pickUnified ? undefined : pickCategory, pickNext)}
               loading={pickSearching}
             >
               더 보기

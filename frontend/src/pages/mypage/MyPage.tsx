@@ -7,7 +7,7 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import ChangePasswordModal from './ChangePasswordModal';
-import { deleteAccount, uploadMyAvatar } from '../../api/user';
+import { deleteAccount, uploadMyAvatar, userAvatarUrl } from '../../api/user';
 import { logout } from '../../api/auth';
 import useAuthStore from '../../store/authStore';
 import { cn } from '../../lib/cn';
@@ -29,6 +29,7 @@ export default function MyPage() {
   const avatarRef = useRef<HTMLInputElement>(null);
   const [avatarVersion, setAvatarVersion] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,7 +85,14 @@ export default function MyPage() {
       {/* 프로필 */}
       <div className="flex items-center gap-3.5">
         <div className="relative">
-          <Avatar name={user?.name ?? '여행자'} userId={user?.id} version={avatarVersion} size="lg" className="size-[60px] text-2xl" />
+          <button
+            type="button"
+            aria-label="프로필 사진 크게 보기"
+            onClick={() => setPhotoOpen(true)}
+            className="rounded-full"
+          >
+            <Avatar name={user?.name ?? '여행자'} userId={user?.id} version={avatarVersion} size="lg" className="size-[60px] text-2xl" />
+          </button>
           <button
             type="button"
             aria-label="프로필 사진 변경"
@@ -129,6 +137,21 @@ export default function MyPage() {
         className="w-full rounded-card border border-[#FECACA] bg-surface px-4 py-3.5 text-left text-[15px] font-bold text-danger transition-colors hover:bg-[#FEF2F2]">
         계정 탈퇴
       </button>
+
+      {/* 프로필 사진 크게 보기(라이트박스). 등록된 사진이 없으면(로드 실패) 닫는다. */}
+      {photoOpen && user?.id != null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          onClick={() => setPhotoOpen(false)}
+        >
+          <img
+            src={userAvatarUrl(user.id, avatarVersion)}
+            alt={user?.name ?? '프로필 사진'}
+            className="max-h-[80vh] max-w-full rounded-2xl object-contain"
+            onError={() => setPhotoOpen(false)}
+          />
+        </div>
+      )}
 
       <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />
 

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import Modal from '../../components/Modal';
+import Modal, { ConfirmModal } from '../../components/Modal';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import DestinationAutocomplete from '../../components/DestinationAutocomplete';
 import { useToast } from '../../components/Toast';
-import { updateGroup } from '../../api/group';
+import { updateGroup, dissolveGroup } from '../../api/group';
 import { isKnownRegion } from '../../lib/regions';
 import { COVER_GRADIENT, COVER_LABEL, COVER_PRESETS } from './groupUi';
 import { cn } from '../../lib/cn';
@@ -14,11 +14,15 @@ interface Props {
   group: TravelGroup;
   onClose: () => void;
   onSaved: (updated: TravelGroup) => void;
+  /** 그룹 삭제(해체) 후 호출 — 상위에서 목록으로 이동시킨다. */
+  onDeleted: () => void;
 }
 
-/** FR-GROUP-04: 그룹 정보 수정(Owner). 제목/목적지/기간/커버. */
-export default function GroupEditModal({ group, onClose, onSaved }: Props) {
+/** FR-GROUP-04/06: 그룹 정보 수정 + 그룹 삭제(Owner). 제목/목적지/기간/커버. */
+export default function GroupEditModal({ group, onClose, onSaved, onDeleted }: Props) {
   const toast = useToast();
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [title, setTitle] = useState(group.title);
   // 기존 목적지가 알려진 지역이면 자동완성 선택값으로, 아니면 자유 입력으로 둔다.
   const [destination, setDestination] = useState(isKnownRegion(group.destination) ? group.destination : '');
@@ -32,13 +36,30 @@ export default function GroupEditModal({ group, onClose, onSaved }: Props) {
   // 종료일은 최소 내일(현재+1)부터 수정 가능.
   const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const today = ymd(new Date());
-  const tomorrow = ymd(new Date(Date.now() + 86400000));
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = ymd(tomorrowDate);
   const started = group.startDate <= today;
   const endMin = start > tomorrow ? start : tomorrow;
 
   const dest = destination || freeDestination.trim();
   const valid =
     title.trim().length > 0 && dest.length > 0 && !!start && !!end && start <= end && end >= endMin;
+
+  // FR-GROUP-06: 그룹 해체(soft delete). 모든 멤버에게서 사라지고 30일 후 완전 삭제.
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await dissolveGroup(group.id);
+      toast.info('그룹을 삭제했어요', '30일 후 완전 삭제됩니다.');
+      setConfirmDel(false);
+      onDeleted();
+    } catch (e) {
+      const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
+      toast.error('삭제하지 못했어요', message ?? '권한이 없거나 일시적 오류일 수 있어요.');
+      setDeleting(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!valid) return;
@@ -63,16 +84,17 @@ export default function GroupEditModal({ group, onClose, onSaved }: Props) {
   };
 
   return (
+    <>
     <Modal
       open
-      onClose={() => !saving && onClose()}
+      onClose={() => !saving && !deleting && onClose()}
       title="그룹 정보 수정"
       footer={
         <>
-          <Button variant="ghost" fullWidth className="border border-border" onClick={onClose} disabled={saving}>
+          <Button variant="ghost" fullWidth className="border border-border" onClick={onClose} disabled={saving || deleting}>
             취소
           </Button>
-          <Button fullWidth onClick={handleSave} loading={saving} disabled={!valid}>
+          <Button fullWidth onClick={handleSave} loading={saving} disabled={!valid || deleting}>
             저장
           </Button>
         </>
@@ -137,7 +159,30 @@ export default function GroupEditModal({ group, onClose, onSaved }: Props) {
             ))}
           </div>
         </div>
+
+        {/* 위험 구역 — 그룹 삭제(Owner, FR-GROUP-06) */}
+        <div className="border-t border-[#F4ECE0] pt-3">
+          <p className="mb-2 text-[12px] font-extrabold tracking-wide text-[#C9AFA0]">위험 구역</p>
+          <Button variant="danger" fullWidth onClick={() => setConfirmDel(true)} disabled={saving || deleting}>
+            그룹 삭제
+          </Button>
+          <p className="mt-1.5 text-[12px] text-muted">
+            삭제하면 모든 멤버에게서 그룹이 사라지고 30일 후 완전 삭제돼요.
+          </p>
+        </div>
       </div>
     </Modal>
+
+    <ConfirmModal
+      open={confirmDel}
+      onClose={() => !deleting && setConfirmDel(false)}
+      onConfirm={handleDelete}
+      loading={deleting}
+      danger
+      title="그룹을 삭제할까요?"
+      description="모든 멤버에게서 그룹이 사라지며 30일 후 완전 삭제됩니다. 되돌릴 수 없어요."
+      confirmText="삭제"
+    />
+    </>
   );
 }

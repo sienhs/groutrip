@@ -1,5 +1,6 @@
 package com.enjoytrip.backend.domain.place.client;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -143,11 +144,27 @@ public class GooglePlacesClient {
     public PhotoData fetchPhoto(String photoName, int maxWidthPx) {
         requireApiKey();
         try {
+            // Places API(New) 미디어 엔드포인트는 기본적으로 이미지로 302 리다이렉트하지만,
+            // RestClient/JSON Accept 협상에선 바이트가 아니라 메타 JSON({name, photoUri})이 내려와
+            // <img>가 깨졌다. skipHttpRedirect=true로 photoUri(실제 이미지 URL)를 명시적으로 받아 처리한다.
             // photoName(places/{id}/photos/{ref})의 슬래시가 경로 변수로 인코딩되지 않도록 리터럴 경로로 구성한다.
-            String path = "/" + photoName + "/media?maxWidthPx=" + maxWidthPx;
-            ResponseEntity<byte[]> response = restClient.get()
-                    .uri(path)
+            String metaPath = "/" + photoName + "/media?maxWidthPx=" + maxWidthPx + "&skipHttpRedirect=true";
+            String meta = restClient.get()
+                    .uri(metaPath)
                     .header(API_KEY_HEADER, apiKey)
+                    .retrieve()
+                    .body(String.class);
+            JsonNode metaNode = (meta == null || meta.isBlank()) ? null : objectMapper.readTree(meta);
+            String photoUri = (metaNode != null && metaNode.hasNonNull("photoUri"))
+                    ? metaNode.get("photoUri").asText()
+                    : null;
+            if (photoUri == null || photoUri.isBlank()) {
+                throw new BusinessException(ErrorCode.PLACE_SEARCH_FAILED);
+            }
+
+            // 실제 이미지 바이트(lh3.googleusercontent.com, API 키 불필요)를 받아 그대로 스트리밍한다.
+            ResponseEntity<byte[]> response = restClient.get()
+                    .uri(URI.create(photoUri))
                     .retrieve()
                     .toEntity(byte[].class);
 
@@ -156,6 +173,8 @@ public class GooglePlacesClient {
                     response.getBody(),
                     contentType != null ? contentType : MediaType.IMAGE_JPEG
             );
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("Google Place Photos failed: {}", e.getMessage());
             throw new BusinessException(ErrorCode.PLACE_SEARCH_FAILED);
