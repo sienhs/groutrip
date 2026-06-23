@@ -16,6 +16,7 @@ import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
 import VoteTab from '../vote/VoteTab';
 import GroupGalleryPage from '../gallery/GroupGalleryPage';
 import GroupEditModal from './GroupEditModal';
+import GroupPersonaCard from './GroupPersonaCard';
 import {
   getGroup,
   getGroupMembers,
@@ -349,6 +350,9 @@ function MemberTab({
 
   return (
     <div>
+      {/* 그룹 여행 성향(일치율/충돌 차원 절충 안내) */}
+      <GroupPersonaCard groupId={groupId} />
+
       {/* 초대 코드 */}
       <div className="mb-3.5 rounded-card border border-border bg-surface p-3.5">
         <div className="flex items-center justify-between">
