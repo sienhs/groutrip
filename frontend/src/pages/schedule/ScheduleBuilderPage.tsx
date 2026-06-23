@@ -7,7 +7,7 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import ScheduleAddModal from './ScheduleAddModal';
-import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg } from '../../api/schedule';
+import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg, updateSchedule } from '../../api/schedule';
 import { createVoteSession, getVoteSessions } from '../../api/vote';
 import {
   TRANSPORT_META,
@@ -22,6 +22,31 @@ import {
 import { cn } from '../../lib/cn';
 
 type LegState = TransportLeg | 'loading' | 'error' | undefined;
+
+const toMin = (t: string): number => {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+};
+const toHHMM = (min: number): string => {
+  const v = ((min % 1440) + 1440) % 1440;
+  return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
+};
+
+// 드래그 후 새 순서 기준으로 시간 재계산: 첫 일정은 유지, 이후 일정은 직전 일정 종료 이후로 시작(소요시간 보존).
+const recomputeTimes = (list: Schedule[]): Schedule[] => {
+  let prevEnd: number | null = null;
+  return list.map((s) => {
+    if (prevEnd === null) {
+      prevEnd = toMin(s.endTime);
+      return s;
+    }
+    const dur = toMin(s.endTime) - toMin(s.startTime);
+    const start = prevEnd;
+    const end = start + (dur > 0 ? dur : 60);
+    prevEnd = end;
+    return { ...s, startTime: toHHMM(start), endTime: toHHMM(end) };
+  });
+};
 
 /**
  * 일정 빌더 — 일자(scheduleDate) 탭 + 타임라인 + 드래그 순서변경 + 이동 카드.
@@ -134,12 +159,33 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
     dragFrom.current = null;
     if (!dirty.current) return;
     dirty.current = false;
-    const items: ReorderItem[] = stops.map((s, i) => ({ scheduleId: s.id, scheduleDate: activeDate, orderIndex: i }));
+
+    // 새 순서로 시간 재계산(직전 일정 종료 이후로 시작) → 변경분만 저장.
+    const retimed = recomputeTimes(stops);
+    const changed = retimed.filter(
+      (s, i) => s.startTime !== stops[i].startTime || s.endTime !== stops[i].endTime,
+    );
+    setStops(retimed); // 낙관적 반영(순서 + 시간)
+
+    const items: ReorderItem[] = retimed.map((s, i) => ({ scheduleId: s.id, scheduleDate: activeDate, orderIndex: i }));
     try {
       await reorderSchedules(groupId, items);
+      await Promise.all(
+        // 시간 외 필드는 백엔드 update가 전체 교체이므로 기존 값을 그대로 보존해 보낸다.
+        changed.map((s) =>
+          updateSchedule(groupId, s.id, {
+            startTime: s.startTime,
+            endTime: s.endTime,
+            memo: s.memo ?? undefined,
+            estimatedCost: s.estimatedCost ?? undefined,
+            transportMode: s.transportMode ?? undefined,
+            status: s.status ?? undefined,
+          }),
+        ),
+      );
       setLegs({}); setLegMode({}); // 인접 변동 → 이동 카드 갱신
     } catch {
-      toast.error('순서 변경에 실패했어요', '다시 시도해 주세요.');
+      toast.error('순서·시간 변경에 실패했어요', '다시 시도해 주세요.');
       load();
     }
   };
