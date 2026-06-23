@@ -13,6 +13,9 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     // FR-PLACE-02: 같은 그룹에 동일 장소가 이미 보관되어 있는지 확인한다.
     boolean existsByTravelGroupIdAndPlaceId(Long groupId, Long placeId);
 
+    // FR-MYPAGE: 내가 담은 보관함 항목 수(여행 통계).
+    long countByCreatedById(Long userId);
+
     // FR-PLACE-03: 그룹 보관함 목록. 장소/추가자를 함께 로딩해 N+1을 피한다.
     @EntityGraph(attributePaths = {"place", "createdBy"})
     List<Bookmark> findByTravelGroupId(Long groupId);

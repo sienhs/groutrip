@@ -30,6 +30,16 @@ public class UserAccountService {
     private final GroupMemberRepository groupMemberRepository;
 
     /**
+     * FR-MYPAGE: 표시 이름 변경. 변경된 이름을 반환한다.
+     */
+    public String updateName(String email, String name) {
+        User user = findActiveUser(email);
+        user.updateName(name.trim());
+        log.info("이름 변경: userId={}", user.getId());
+        return user.getName();
+    }
+
+    /**
      * FR-AUTH-06: 계정 탈퇴.
      * 본인 확인은 클라이언트 측 확인 절차로 대체한다(SNS 전용이라 비밀번호 재확인 없음).
      * Owner인 그룹이 남아있으면 거부한다(위임/해체 선행 필요).

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { reissue } from './api/auth';
 import useAuthStore from './store/authStore';
+import { useSettingsStore } from './store/settingsStore';
 import type { User } from './types/auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
@@ -21,6 +22,12 @@ import MyPage from './pages/mypage/MyPage';
 function App() {
   const [isRestoring, setIsRestoring] = useState(true);
   const { setAuth, clearAuth } = useAuthStore();
+  const theme = useSettingsStore((s) => s.theme);
+
+  // 개인설정 테마를 <html>.dark 클래스로 반영(기기 단위, localStorage).
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   useEffect(() => {
     const restoreAuth = async () => {

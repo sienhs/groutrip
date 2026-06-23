@@ -2,10 +2,33 @@ import instance from './instance';
 import type { ApiResponse } from '../types/auth';
 
 /**
- * 계정 API (백엔드 Part A: FR-AUTH-06).
+ * 계정 API (백엔드 Part A: FR-AUTH-06 / FR-MYPAGE).
  * 인증은 SNS 전용이라 비밀번호 변경은 없다. 탈퇴 성공 시 refresh 쿠키 제거 → 재로그인 필요.
- * (프로필/이름 변경 엔드포인트는 Part A 에 없음 → 제공 시 추가.)
  */
+
+/** 내 여행 통계(마이페이지). */
+export interface MyStats {
+  inProgressTrips: number;
+  upcomingTrips: number;
+  completedTrips: number;
+  totalTrips: number;
+  totalTripDays: number;
+  visitedRegions: number;
+  bookmarkCount: number;
+  totalSpending: number;
+}
+
+/** 표시 이름 변경. 변경된 이름을 반환한다. */
+export const updateMyName = async (name: string): Promise<string> => {
+  const res = await instance.patch<ApiResponse<string>>('/api/users/me', { name });
+  return res.data.data;
+};
+
+/** 내 여행 통계 조회. */
+export const getMyStats = async (): Promise<MyStats> => {
+  const res = await instance.get<ApiResponse<MyStats>>('/api/mypage/stats');
+  return res.data.data;
+};
 
 /**
  * 계정 탈퇴(SNS 전용이라 비밀번호 재확인 없음 — 확인은 클라이언트에서 처리).

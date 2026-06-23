@@ -4,9 +4,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.enjoytrip.backend.domain.auth.dto.ProfileUpdateRequest;
 import com.enjoytrip.backend.domain.auth.service.UserAccountService;
 import com.enjoytrip.backend.global.response.ApiResponse;
 
@@ -14,21 +17,32 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * FR-AUTH-06: 본인 계정 관리 API. 인증된 사용자만 호출할 수 있다.
+ * FR-AUTH-06 / FR-MYPAGE: 본인 계정 관리 API. 인증된 사용자만 호출할 수 있다.
  * 인증은 SNS(OAuth) 전용이라 비밀번호 변경은 제공하지 않는다.
  */
 @RestController
 @RequestMapping("/api/users/me")
 @RequiredArgsConstructor
-@Tag(name = "User Account", description = "계정 탈퇴 API")
+@Tag(name = "User Account", description = "프로필 수정, 계정 탈퇴 API")
 public class UserAccountController {
 
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     private final UserAccountService userAccountService;
+
+    @PatchMapping
+    @Operation(summary = "이름 변경", description = "FR-MYPAGE: 표시 이름을 변경하고 변경된 이름을 반환한다.")
+    public ResponseEntity<ApiResponse<String>> updateProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid ProfileUpdateRequest request
+    ) {
+        String name = userAccountService.updateName(userDetails.getUsername(), request.name());
+        return ResponseEntity.ok(ApiResponse.success("이름이 변경되었습니다.", name));
+    }
 
     @DeleteMapping
     @Operation(

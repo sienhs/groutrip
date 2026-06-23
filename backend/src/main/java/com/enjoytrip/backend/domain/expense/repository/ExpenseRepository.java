@@ -44,4 +44,13 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     Optional<Expense> findByIdAndTravelGroupIdAndDeletedAtIsNull(Long id, Long groupId);
 
     void deleteByTravelGroupId(Long groupId);
+
+    // FR-MYPAGE: 내가 결제한 지출 총액(여행 통계). 삭제된 지출은 제외한다.
+    @Query("""
+            SELECT COALESCE(SUM(expense.amount), 0)
+            FROM Expense expense
+            WHERE expense.payer.id = :userId
+              AND expense.deletedAt IS NULL
+            """)
+    long sumAmountByPayerId(@Param("userId") Long userId);
 }
