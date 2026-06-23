@@ -189,6 +189,25 @@ public class PlaceService {
         return resolvePlaceWithDetails(googlePlaceId);
     }
 
+    /**
+     * 이미 확보한 Place를 그룹 보관함에 자동 등록한다(숙소 선정 등에서 재사용).
+     * 같은 그룹에 동일 장소가 이미 있으면 조용히 무시한다(중복 예외 없음).
+     * 신규 등록 시 PLACE_BOOKMARKED를 발행해 보관함 화면/다른 멤버와 동기화한다.
+     */
+    public void ensureBookmarked(TravelGroup group, Place place, User user, PlaceCategory category) {
+        if (bookmarkRepository.existsByTravelGroupIdAndPlaceId(group.getId(), place.getId())) {
+            return;
+        }
+        Bookmark bookmark = bookmarkRepository.save(Bookmark.builder()
+                .travelGroup(group)
+                .place(place)
+                .createdBy(user)
+                .categoryTag(category)
+                .build());
+        eventPublisher.publishEvent(
+                DomainEvent.of(EventType.PLACE_BOOKMARKED, group.getId(), user.getId(), toResponse(bookmark)));
+    }
+
     // FR-PLACE-02: 기존 마스터가 있으면서 Details 캐시(7일)가 유효하면 재사용하고, 아니면 Place Details로 갱신한다.
     private Place resolvePlaceWithDetails(String googlePlaceId) {
         LocalDateTime now = LocalDateTime.now();

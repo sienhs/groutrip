@@ -3,6 +3,7 @@ package com.enjoytrip.backend.domain.accommodation.service;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -15,13 +16,19 @@ import com.enjoytrip.backend.domain.accommodation.entity.Accommodation;
 import com.enjoytrip.backend.domain.accommodation.entity.BookingStatus;
 import com.enjoytrip.backend.domain.accommodation.repository.AccommodationRepository;
 import com.enjoytrip.backend.domain.auth.entity.User;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseCreateRequest;
+import com.enjoytrip.backend.domain.expense.entity.ExpenseCategory;
+import com.enjoytrip.backend.domain.expense.entity.SplitType;
+import com.enjoytrip.backend.domain.expense.service.ExpenseService;
 import com.enjoytrip.backend.domain.group.entity.TravelGroup;
+import com.enjoytrip.backend.domain.group.repository.GroupMemberRepository;
 import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.domain.place.controller.PlacePhotoController;
 import com.enjoytrip.backend.domain.place.dto.PlaceResponse;
 import com.enjoytrip.backend.domain.place.entity.Place;
+import com.enjoytrip.backend.domain.place.entity.PlaceCategory;
 import com.enjoytrip.backend.domain.place.service.PlaceService;
 import com.enjoytrip.backend.global.exception.BusinessException;
 import com.enjoytrip.backend.global.exception.ErrorCode;
@@ -44,6 +51,8 @@ public class AccommodationService {
     private final AccommodationRepository accommodationRepository;
     private final TravelGroupRepository travelGroupRepository;
     private final PlaceService placeService;
+    private final ExpenseService expenseService;
+    private final GroupMemberRepository groupMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
 
@@ -62,6 +71,8 @@ public class AccommodationService {
                 .sigungu(request.sigungu())
                 .status(BookingStatus.SELECTED)
                 .build());
+        // 선정한 숙소를 그룹 보관함(LODGING)에도 등록해 '장소' 탭에 바로 보이게 한다.
+        placeService.ensureBookmarked(group, place, user, PlaceCategory.LODGING);
         return toResponse(groupId, acc);
     }
 
@@ -103,8 +114,33 @@ public class AccommodationService {
             contentType = photo.getContentType();
         }
 
+        boolean firstBooking = acc.getStatus() != BookingStatus.BOOKED;
         acc.markBooked(reservationPrice, bytes, contentType);
+
+        // 최초 예약 확정 + 금액이 있으면 숙박 지출을 정산에 자동 등록한다(FR-EXPENSE-01, 숙박/균등).
+        // 재확정(이미 BOOKED) 시 중복 등록을 막는다 — 금액 정정은 정산 화면에서 직접 수정.
+        if (firstBooking && reservationPrice != null && reservationPrice > 0) {
+            registerLodgingExpense(groupId, user, acc, reservationPrice);
+        }
         return toResponse(groupId, acc);
+    }
+
+    // FR-EXPENSE-01: 숙소 예약 금액을 숙박 카테고리·균등 분담 지출로 정산에 등록한다(결제자=확정한 사용자).
+    private void registerLodgingExpense(Long groupId, User payer, Accommodation acc, long price) {
+        List<Long> participantIds = groupMemberRepository.findByTravelGroupIdAndLeftAtIsNull(groupId).stream()
+                .map(member -> member.getUser().getId())
+                .toList();
+        ExpenseCreateRequest request = new ExpenseCreateRequest(
+                price,
+                payer.getId(),
+                ExpenseCategory.LODGING,
+                SplitType.EQUAL,
+                "[숙소] " + acc.getPlace().getName(),
+                LocalDate.now(),
+                participantIds,
+                null
+        );
+        expenseService.create(groupId, request);
     }
 
     /** 예약완료 사진 바이트 로드(그룹 멤버 전용). 컨트롤러가 이미지로 스트리밍한다. */

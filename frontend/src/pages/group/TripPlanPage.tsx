@@ -498,6 +498,11 @@ export default function TripPlanPage() {
               {current.reservationPrice != null && ` · ${current.reservationPrice.toLocaleString()}원`}
               {current.reservationPrice == null && current.bookingPhotoUrl && ' · 예약 사진 첨부됨'}
             </div>
+            {current.reservationPrice != null && (
+              <div className="mt-1 text-[12px] font-semibold text-[#7FAE6B]">
+                숙박비가 정산(균등 분담)에 자동 추가됐어요 · 보관함에도 담겼어요
+              </div>
+            )}
           </div>
 
           <div>

@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -22,9 +24,12 @@ import com.enjoytrip.backend.domain.accommodation.entity.Accommodation;
 import com.enjoytrip.backend.domain.accommodation.entity.BookingStatus;
 import com.enjoytrip.backend.domain.accommodation.repository.AccommodationRepository;
 import com.enjoytrip.backend.domain.accommodation.service.AccommodationService.BookingPhoto;
+import com.enjoytrip.backend.domain.expense.dto.ExpenseCreateRequest;
 import com.enjoytrip.backend.domain.auth.entity.User;
+import com.enjoytrip.backend.domain.expense.service.ExpenseService;
 import com.enjoytrip.backend.domain.group.entity.GroupStatus;
 import com.enjoytrip.backend.domain.group.entity.TravelGroup;
+import com.enjoytrip.backend.domain.group.repository.GroupMemberRepository;
 import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
@@ -38,6 +43,8 @@ class AccommodationServiceTest {
     private AccommodationRepository accommodationRepository;
     private TravelGroupRepository travelGroupRepository;
     private PlaceService placeService;
+    private ExpenseService expenseService;
+    private GroupMemberRepository groupMemberRepository;
     private CurrentUserResolver currentUserResolver;
     private GroupAccessValidator groupAccessValidator;
     private AccommodationService service;
@@ -47,10 +54,12 @@ class AccommodationServiceTest {
         accommodationRepository = mock(AccommodationRepository.class);
         travelGroupRepository = mock(TravelGroupRepository.class);
         placeService = mock(PlaceService.class);
+        expenseService = mock(ExpenseService.class);
+        groupMemberRepository = mock(GroupMemberRepository.class);
         currentUserResolver = mock(CurrentUserResolver.class);
         groupAccessValidator = mock(GroupAccessValidator.class);
         service = new AccommodationService(accommodationRepository, travelGroupRepository,
-                placeService, currentUserResolver, groupAccessValidator);
+                placeService, expenseService, groupMemberRepository, currentUserResolver, groupAccessValidator);
     }
 
     @Test
@@ -96,6 +105,8 @@ class AccommodationServiceTest {
 
         assertThat(res.status()).isEqualTo(BookingStatus.BOOKED);
         assertThat(res.reservationPrice()).isEqualTo(250000L);
+        // 예약 금액이 숙박 지출로 정산에 자동 등록되어야 한다.
+        verify(expenseService).create(eq(1L), any(ExpenseCreateRequest.class));
     }
 
     @Test
@@ -111,6 +122,8 @@ class AccommodationServiceTest {
         assertThat(res.status()).isEqualTo(BookingStatus.BOOKED);
         assertThat(res.bookingPhotoUrl()).isEqualTo("/api/groups/1/accommodations/10/photo");
         assertThat(acc.hasPhoto()).isTrue();
+        // 사진만 있고 금액이 없으면 정산 지출은 만들지 않는다.
+        verify(expenseService, never()).create(any(), any());
     }
 
     @Test

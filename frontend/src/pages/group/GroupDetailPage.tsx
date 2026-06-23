@@ -6,11 +6,20 @@ import EmptyState from '../../components/EmptyState';
 import Avatar from '../../components/Avatar';
 import Badge from '../../components/Badge';
 import { useToast } from '../../components/Toast';
+import { ConfirmModal } from '../../components/Modal';
 import NotificationBell from '../../components/NotificationBell';
 import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
-import { getGroup, getGroupMembers } from '../../api/group';
+import {
+  getGroup,
+  getGroupMembers,
+  leaveGroup,
+  kickMember,
+  transferOwner,
+  dissolveGroup,
+  regenerateInviteCode,
+} from '../../api/group';
 import { getAccommodations } from '../../api/accommodation';
 import { useGroupStream } from '../../hooks/useGroupStream';
 import useAuthStore from '../../store/authStore';
@@ -102,6 +111,15 @@ export default function GroupDetailPage() {
       toast.info('초대 코드', `코드 ${code}`);
     }
   }, [group?.inviteCode, toast]);
+
+  // 멤버 변경(강퇴/위임/코드 재발급) 후 그룹·멤버를 다시 불러온다.
+  const refreshGroupAndMembers = useCallback(async () => {
+    const [g, ms] = await Promise.all([getGroup(groupId), getGroupMembers(groupId)]);
+    setGroup(g);
+    setMembers(ms);
+  }, [groupId]);
+
+  const isOwner = members.find((m) => m.userId === currentUserId)?.role === 'OWNER';
 
   if (error) {
     return (
@@ -197,7 +215,16 @@ export default function GroupDetailPage() {
         ) : tab === 'settle' ? (
           <ExpensePage key={streamTick} groupId={groupId} members={members} />
         ) : tab === 'member' ? (
-          <MemberTab members={members} onInvite={copyInvite} />
+          <MemberTab
+            groupId={groupId}
+            members={members}
+            currentUserId={currentUserId}
+            isOwner={isOwner}
+            inviteCode={group?.inviteCode ?? ''}
+            onCopyInvite={copyInvite}
+            onRefresh={refreshGroupAndMembers}
+            onExit={() => navigate('/groups')}
+          />
         ) : (
           <ComingSoon />
         )}
@@ -206,40 +233,193 @@ export default function GroupDetailPage() {
   );
 }
 
-function MemberTab({ members, onInvite }: { members: GroupMember[]; onInvite: () => void }) {
-  const active = members; // /members 는 활성 멤버만 반환
+interface MemberTabProps {
+  groupId: number;
+  members: GroupMember[];
+  currentUserId: number;
+  isOwner: boolean;
+  inviteCode: string;
+  onCopyInvite: () => void;
+  onRefresh: () => Promise<void>;
+  onExit: () => void;
+}
+
+/** 멤버 관리(FR-GROUP-05~07): 초대 코드 공유/재발급, 강퇴·Owner 위임, 그룹 떠나기/해체. */
+function MemberTab({
+  groupId,
+  members,
+  currentUserId,
+  isOwner,
+  inviteCode,
+  onCopyInvite,
+  onRefresh,
+  onExit,
+}: MemberTabProps) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  // 확인이 필요한 위험 액션
+  const [confirm, setConfirm] = useState<
+    | { kind: 'kick' | 'transfer'; member: GroupMember }
+    | { kind: 'leave' | 'dissolve' | 'regenerate' }
+    | null
+  >(null);
+
+  const run = async (fn: () => Promise<void>, ok: string, after: 'refresh' | 'exit') => {
+    setBusy(true);
+    try {
+      await fn();
+      toast.success(ok);
+      setConfirm(null);
+      if (after === 'exit') onExit();
+      else await onRefresh();
+    } catch (e) {
+      const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
+      toast.error('처리하지 못했어요', message ?? '권한이 없거나 일시적 오류일 수 있어요.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onConfirm = () => {
+    if (!confirm) return;
+    switch (confirm.kind) {
+      case 'kick':
+        return run(() => kickMember(groupId, confirm.member.userId), '멤버를 내보냈어요', 'refresh');
+      case 'transfer':
+        return run(() => transferOwner(groupId, confirm.member.userId), 'Owner 권한을 넘겼어요', 'refresh');
+      case 'leave':
+        return run(() => leaveGroup(groupId), '그룹에서 나왔어요', 'exit');
+      case 'dissolve':
+        return run(() => dissolveGroup(groupId), '그룹을 해체했어요', 'exit');
+      case 'regenerate':
+        return run(async () => {
+          await regenerateInviteCode(groupId);
+        }, '새 초대 코드를 발급했어요', 'refresh');
+    }
+  };
+
   return (
     <div>
-      <button
-        type="button"
-        onClick={onInvite}
-        className="mb-3.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCBA6] bg-[#FFF7F0] py-3 text-[14px] font-bold text-[#E8742E]"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.8" />
-          <path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M18 8v6M21 11h-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-        초대 링크 · 코드 공유
-      </button>
+      {/* 초대 코드 */}
+      <div className="mb-3.5 rounded-card border border-border bg-surface p-3.5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[12px] text-muted">초대 코드</div>
+            <div className="text-[18px] font-extrabold tracking-[0.15em] text-[#3A322B]">{inviteCode || '------'}</div>
+          </div>
+          <Button size="sm" variant="secondary" onClick={onCopyInvite}>코드 복사</Button>
+        </div>
+        {isOwner && (
+          <button
+            type="button"
+            onClick={() => setConfirm({ kind: 'regenerate' })}
+            className="mt-2.5 text-[12px] font-semibold text-[#A6907B] underline-offset-2 hover:underline"
+          >
+            초대 코드 재발급(기존 코드 무효화)
+          </button>
+        )}
+      </div>
 
-      {active.length === 0 ? (
+      {members.length === 0 ? (
         <p className="py-8 text-center text-[13px] text-muted">멤버 정보를 불러오는 중이에요.</p>
       ) : (
         <div className="space-y-2.5">
-          {active.map((m) => (
-            <div key={m.userId} className="flex items-center gap-3 rounded-card border border-border bg-surface px-3.5 py-3">
-              <Avatar name={m.name} size="lg" />
-              <div className="flex-1">
-                <div className="text-[15px] font-extrabold">{m.name}</div>
-                <div className="text-[12px] text-muted">
-                  {m.role === 'OWNER' ? '그룹 생성' : `${m.joinedAt.slice(5, 10).replace('-', '.')} 참여`}
+          {members.map((m) => {
+            const isMe = m.userId === currentUserId;
+            return (
+              <div key={m.userId} className="flex items-center gap-3 rounded-card border border-border bg-surface px-3.5 py-3">
+                <Avatar name={m.name} size="lg" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 text-[15px] font-extrabold">
+                    <span className="truncate">{m.name}</span>
+                    {isMe && <span className="shrink-0 text-[11px] font-bold text-[#A6907B]">(나)</span>}
+                  </div>
+                  <div className="text-[12px] text-muted">
+                    {m.role === 'OWNER' ? '그룹 생성' : `${m.joinedAt.slice(5, 10).replace('-', '.')} 참여`}
+                  </div>
                 </div>
+                {m.role === 'OWNER' && <Badge tone="primary">OWNER</Badge>}
+                {/* Owner가 다른 멤버를 관리 */}
+                {isOwner && !isMe && m.role !== 'OWNER' && (
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setConfirm({ kind: 'transfer', member: m })}
+                      className="rounded-button px-2 py-1 text-[12px] font-bold text-[#E8742E] hover:bg-[#FFF1E6]"
+                    >
+                      위임
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirm({ kind: 'kick', member: m })}
+                      className="rounded-button px-2 py-1 text-[12px] font-bold text-danger hover:bg-[#FEE2E2]"
+                    >
+                      강퇴
+                    </button>
+                  </div>
+                )}
               </div>
-              {m.role === 'OWNER' && <Badge tone="primary">OWNER</Badge>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      {/* 떠나기 / 해체 */}
+      <div className="mt-5 space-y-2">
+        {isOwner ? (
+          <>
+            <p className="text-[12px] text-muted">
+              Owner는 바로 나갈 수 없어요. 다른 멤버에게 위임하거나 그룹을 해체해 주세요.
+            </p>
+            <Button variant="danger" fullWidth onClick={() => setConfirm({ kind: 'dissolve' })}>
+              그룹 해체
+            </Button>
+          </>
+        ) : (
+          <Button variant="ghost" fullWidth className="border border-border" onClick={() => setConfirm({ kind: 'leave' })}>
+            그룹 떠나기
+          </Button>
+        )}
+      </div>
+
+      <ConfirmModal
+        open={!!confirm}
+        onClose={() => !busy && setConfirm(null)}
+        onConfirm={onConfirm}
+        loading={busy}
+        danger={confirm?.kind === 'kick' || confirm?.kind === 'dissolve' || confirm?.kind === 'leave'}
+        title={
+          confirm?.kind === 'kick'
+            ? `${confirm.member.name}님을 내보낼까요?`
+            : confirm?.kind === 'transfer'
+              ? `${confirm.member.name}님께 Owner를 넘길까요?`
+              : confirm?.kind === 'leave'
+                ? '그룹에서 나갈까요?'
+                : confirm?.kind === 'dissolve'
+                  ? '그룹을 해체할까요?'
+                  : '초대 코드를 재발급할까요?'
+        }
+        description={
+          confirm?.kind === 'dissolve'
+            ? '모든 멤버에게서 그룹이 사라지며 30일 후 완전 삭제됩니다.'
+            : confirm?.kind === 'transfer'
+              ? '권한을 넘기면 나는 일반 멤버가 됩니다.'
+              : confirm?.kind === 'regenerate'
+                ? '기존 초대 코드는 즉시 사용할 수 없게 됩니다.'
+                : undefined
+        }
+        confirmText={
+          confirm?.kind === 'kick'
+            ? '강퇴'
+            : confirm?.kind === 'dissolve'
+              ? '해체'
+              : confirm?.kind === 'leave'
+                ? '나가기'
+                : confirm?.kind === 'transfer'
+                  ? '위임'
+                  : '재발급'
+        }
+      />
     </div>
   );
 }
