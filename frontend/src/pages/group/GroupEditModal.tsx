@@ -28,8 +28,17 @@ export default function GroupEditModal({ group, onClose, onSaved }: Props) {
   const [cover, setCover] = useState<CoverPreset>((group.coverImageKey as CoverPreset) ?? 'SUNSET');
   const [saving, setSaving] = useState(false);
 
+  // 로컬 기준 오늘/내일(YYYY-MM-DD). 여행이 이미 시작됐으면 시작일은 변경 불가(백엔드도 거부),
+  // 종료일은 최소 내일(현재+1)부터 수정 가능.
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = ymd(new Date());
+  const tomorrow = ymd(new Date(Date.now() + 86400000));
+  const started = group.startDate <= today;
+  const endMin = start > tomorrow ? start : tomorrow;
+
   const dest = destination || freeDestination.trim();
-  const valid = title.trim().length > 0 && dest.length > 0 && !!start && !!end && start <= end;
+  const valid =
+    title.trim().length > 0 && dest.length > 0 && !!start && !!end && start <= end && end >= endMin;
 
   const handleSave = async () => {
     if (!valid) return;
@@ -94,12 +103,18 @@ export default function GroupEditModal({ group, onClose, onSaved }: Props) {
         <div>
           <span className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">여행 기간</span>
           <div className="flex items-center gap-2">
-            <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+            <Input type="date" value={start} disabled={started} onChange={(e) => setStart(e.target.value)} />
             <span className="text-[#C0AE9B]">–</span>
-            <Input type="date" value={end} min={start || undefined} onChange={(e) => setEnd(e.target.value)} />
+            <Input type="date" value={end} min={endMin} onChange={(e) => setEnd(e.target.value)} />
           </div>
+          {started && (
+            <p className="mt-1.5 text-[12px] text-muted">여행이 시작돼 시작일은 변경할 수 없어요. 종료일만 조정할 수 있어요.</p>
+          )}
           {start && end && start > end && (
             <p className="mt-1.5 text-[12px] text-danger">종료일이 시작일보다 빠를 수 없어요.</p>
+          )}
+          {end && end < endMin && (
+            <p className="mt-1.5 text-[12px] text-danger">종료일은 {endMin.slice(5).replace('-', '.')} 이후여야 해요.</p>
           )}
         </div>
 
