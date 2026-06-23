@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
 import { cn } from '../lib/cn';
+import { pathForNotification, timeAgo } from '../lib/notifications';
 import type { ToastType } from './Toast';
 import type { GroupEventType } from '../types/sse';
 
@@ -11,26 +12,6 @@ const DOT: Record<ToastType, string> = {
   info: 'bg-info',
   warning: 'bg-warning',
 };
-
-/** 알림 종류 → 그룹 상세의 어느 탭으로 보낼지(GroupDetailPage가 ?tab= 으로 읽음). */
-function tabForType(type: GroupEventType): string | null {
-  if (type.startsWith('SCHEDULE')) return 'schedule';
-  if (type.startsWith('VOTE')) return 'vote';
-  if (type.startsWith('PLACE')) return 'place';
-  if (type.startsWith('EXPENSE')) return 'settle';
-  if (type.startsWith('MEMBER')) return 'member';
-  return null; // GROUP_UPDATED 등은 그룹 홈으로
-}
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return '방금';
-  if (m < 60) return `${m}분 전`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  return `${Math.floor(h / 24)}일 전`;
-}
 
 /** 알림 벨 + 드롭다운. 헤더 actions 에 넣어 사용. 실시간 알림은 notificationStore 가 채운다. */
 export default function NotificationBell() {
@@ -52,8 +33,7 @@ export default function NotificationBell() {
   const openNotification = (id: string, groupId: number, type: GroupEventType) => {
     markRead(id);
     setOpen(false);
-    const tab = tabForType(type);
-    navigate(`/groups/${groupId}${tab ? `?tab=${tab}` : ''}`);
+    navigate(pathForNotification({ groupId, type }));
   };
 
   return (
@@ -104,6 +84,16 @@ export default function NotificationBell() {
               ))
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              navigate('/notifications');
+            }}
+            className="block w-full border-t border-border px-4 py-3 text-center text-[13px] font-bold text-primary"
+          >
+            전체 알림 보기
+          </button>
         </div>
       )}
     </div>

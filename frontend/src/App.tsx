@@ -19,6 +19,7 @@ import RecommendPage from './pages/recommend/RecommendPage';
 import RecommendLandingPage from './pages/recommend/RecommendLandingPage';
 import VoteDetailPage from './pages/vote/VoteDetailPage';
 import MyPage from './pages/mypage/MyPage';
+import NotificationsPage from './pages/notifications/NotificationsPage';
 
 function App() {
   const [isRestoring, setIsRestoring] = useState(true);
@@ -81,6 +82,7 @@ function App() {
 
         {/* 마이페이지 */}
         <Route path="/mypage" element={<ProtectedRoute><MyPage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );
