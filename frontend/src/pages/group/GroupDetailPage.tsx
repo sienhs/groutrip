@@ -226,7 +226,7 @@ export default function GroupDetailPage() {
         {loading ? (
           <p className="py-10 text-center text-[13px] text-muted">불러오는 중…</p>
         ) : tab === 'schedule' ? (
-          <ScheduleBuilderPage key={streamTick} groupId={groupId} />
+          <ScheduleBuilderPage key={streamTick} groupId={groupId} isOwner={isOwner} />
         ) : tab === 'place' ? (
           <BookmarkListPage key={streamTick} groupId={groupId} planExists={planExists} />
         ) : tab === 'vote' ? (

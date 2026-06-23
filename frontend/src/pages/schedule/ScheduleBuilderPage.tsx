@@ -7,7 +7,8 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import ScheduleAddModal from './ScheduleAddModal';
-import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg, updateSchedule } from '../../api/schedule';
+import PlacePickerModal from '../place/PlacePickerModal';
+import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg, updateSchedule, setSchedulePlace } from '../../api/schedule';
 import { createVoteSession, getVoteSessions } from '../../api/vote';
 import { getGroup } from '../../api/group';
 import {
@@ -71,11 +72,12 @@ const recomputeTimes = (list: Schedule[]): Schedule[] => {
  * 순서변경은 reorder 일괄(items[]). 이동 카드는 인접 일정쌍을 /transport 로 조회(기본 CAR).
  * groupId 는 prop(허브) 또는 라우트(:id).
  */
-export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?: number }) {
+export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = false }: { groupId?: number; isOwner?: boolean }) {
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
   const navigate = useNavigate();
   const toast = useToast();
+  const [pickFor, setPickFor] = useState<Schedule | null>(null);
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -301,18 +303,29 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
                     </div>
                     <div className="mt-0.5 text-[12px] text-muted">{stop.startTime}–{stop.endTime}</div>
                     {stop.memo && <div className="mt-1 text-[12px] text-[#5C5044]">{stop.memo}</div>}
-                    {/* 빈 일정: 투표로 장소 정하기 */}
+                    {/* 빈 일정: 투표로 정하기 / (Owner) 직접 정하기 */}
                     {!stop.placeId && (
-                      <button
-                        type="button"
-                        onClick={() => goVote(stop)}
-                        className="mt-2 inline-flex items-center gap-1 rounded-button bg-[#FFF1E6] px-2.5 py-1 text-[12px] font-bold text-[#E8742E]"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
-                          <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        {stop.status === 'VOTING' ? '투표 보기' : '투표로 장소 정하기'}
-                      </button>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => goVote(stop)}
+                          className="inline-flex items-center gap-1 rounded-button bg-[#FFF1E6] px-2.5 py-1 text-[12px] font-bold text-[#E8742E]"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          {stop.status === 'VOTING' ? '투표 보기' : '투표로 정하기'}
+                        </button>
+                        {isOwner && stop.status !== 'VOTING' && (
+                          <button
+                            type="button"
+                            onClick={() => setPickFor(stop)}
+                            className="inline-flex items-center gap-1 rounded-button border border-border bg-surface px-2.5 py-1 text-[12px] font-bold text-[#7A6A58]"
+                          >
+                            직접 정하기
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                   <span className="cursor-grab text-[#C0AE9B] active:cursor-grabbing" aria-hidden>
@@ -354,6 +367,27 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
           defaultStart={stops.length ? stops[stops.length - 1].endTime : undefined}
           onClose={() => setAddOpen(false)}
           onAdded={() => { setLegs({}); load(); }}
+        />
+      )}
+
+      {pickFor && (
+        <PlacePickerModal
+          groupId={groupId}
+          title="장소 직접 정하기"
+          description="이 빈 일정의 장소를 투표 없이 바로 확정해요."
+          onClose={() => setPickFor(null)}
+          onPick={async (placeId) => {
+            try {
+              await setSchedulePlace(groupId, pickFor.id, placeId);
+              toast.success('장소를 확정했어요');
+              setPickFor(null);
+              setLegs({});
+              load();
+            } catch (e) {
+              const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+              toast.error('확정하지 못했어요', message ?? '잠시 후 다시 시도해 주세요.');
+            }
+          }}
         />
       )}
     </div>

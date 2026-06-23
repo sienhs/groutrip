@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
+import com.enjoytrip.backend.domain.group.aop.RequiredGroupOwner;
+import com.enjoytrip.backend.domain.schedule.dto.ScheduleSetPlaceRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleCreateRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleReorderRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleResponse;
@@ -86,6 +88,22 @@ public class ScheduleController {
     ) {
         ScheduleResponse response = scheduleService.update(groupId, scheduleId, request);
         return ResponseEntity.ok(ApiResponse.success("일정이 수정되었습니다.", response));
+    }
+
+    // FR-VOTE-03 대안: 빈 일정 장소를 Owner가 직접 확정(투표 대신).
+    @RequiredGroupOwner
+    @PatchMapping("/{scheduleId}/place")
+    @Operation(
+            summary = "일정 장소 직접 확정(Owner)",
+            description = "빈 일정(장소 미정)의 장소를 Owner가 투표 없이 직접 정한다."
+    )
+    public ResponseEntity<ApiResponse<ScheduleResponse>> setPlace(
+            @PathVariable Long groupId,
+            @PathVariable Long scheduleId,
+            @RequestBody @Valid ScheduleSetPlaceRequest request
+    ) {
+        ScheduleResponse response = scheduleService.setPlace(groupId, scheduleId, request);
+        return ResponseEntity.ok(ApiResponse.success("일정 장소가 확정되었습니다.", response));
     }
 
     @RequiredGroupMember

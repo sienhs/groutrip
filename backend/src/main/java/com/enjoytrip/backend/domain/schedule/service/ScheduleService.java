@@ -17,6 +17,7 @@ import com.enjoytrip.backend.domain.place.entity.Place;
 import com.enjoytrip.backend.domain.place.repository.PlaceRepository;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleCreateRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleReorderRequest;
+import com.enjoytrip.backend.domain.schedule.dto.ScheduleSetPlaceRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleResponse;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleUpdateRequest;
 import com.enjoytrip.backend.domain.schedule.entity.Schedule;
@@ -129,6 +130,23 @@ public class ScheduleService {
 
         scheduleRepository.delete(schedule);
         eventPublisher.publishEvent(DomainEvent.of(EventType.SCHEDULE_DELETED, groupId, user.getId(), scheduleId));
+    }
+
+    /**
+     * 빈 일정의 장소를 Owner가 투표 없이 직접 확정한다(권한은 컨트롤러 @RequiredGroupOwner + 서비스 재검증).
+     */
+    public ScheduleResponse setPlace(Long groupId, Long scheduleId, ScheduleSetPlaceRequest request) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateOwner(groupId, user.getId());
+        Schedule schedule = findSchedule(groupId, scheduleId);
+
+        Place place = placeRepository.findById(request.placeId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
+        schedule.adoptPlace(place, user); // 장소 확정 + 상태 PLANNED
+
+        ScheduleResponse response = toResponse(schedule);
+        eventPublisher.publishEvent(DomainEvent.of(EventType.SCHEDULE_UPDATED, groupId, user.getId(), response));
+        return response;
     }
 
     /**

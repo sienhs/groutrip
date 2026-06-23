@@ -80,6 +80,19 @@ export const deleteSchedule = async (groupId: number, scheduleId: number): Promi
   await instance.delete<ApiResponse<unknown>>(`/api/groups/${groupId}/schedules/${scheduleId}`);
 };
 
+/** 빈 일정의 장소를 Owner가 직접 확정(투표 대신). */
+export const setSchedulePlace = async (
+  groupId: number,
+  scheduleId: number,
+  placeId: number,
+): Promise<Schedule> => {
+  const res = await instance.patch<ApiResponse<ScheduleApiResponse>>(
+    `/api/groups/${groupId}/schedules/${scheduleId}/place`,
+    { placeId },
+  );
+  return toSchedule(res.data.data);
+};
+
 /** 순서 일괄 변경(드래그 종료 시). 날짜 이동 포함. */
 export const reorderSchedules = async (groupId: number, items: ReorderItem[]): Promise<void> => {
   await instance.patch<ApiResponse<unknown>>(`/api/groups/${groupId}/schedules/reorder`, { items });
