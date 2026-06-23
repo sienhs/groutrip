@@ -10,6 +10,7 @@ import { getRecommendations } from '../../api/recommend';
 import { searchPlaces, addBookmark } from '../../api/place';
 import { contentTypeLabel, type RecommendItem } from '../../types/recommend';
 import { cn } from '../../lib/cn';
+import { naverPlaceUrl } from '../../lib/naver';
 
 /**
  * 맞춤 추천(TourAPI). thumbnailUrl 은 절대 URL → 그대로 사용.
@@ -88,16 +89,28 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
           const isSaved = saved.has(item.contentId);
           return (
             <div key={item.contentId} className="overflow-hidden rounded-card border border-border bg-surface shadow-sm">
-              {item.thumbnailUrl ? (
-                <img src={item.thumbnailUrl} alt={item.title} loading="lazy" className="h-28 w-full object-cover" />
-              ) : (
-                <div className="flex h-28 items-center justify-center bg-gradient-to-br from-[#FFB088] to-[#FF8A47] text-white/80">
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path d="M12 21s-7-5.2-7-10.5A7 7 0 0 1 19 10.5C19 15.8 12 21 12 21Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-                    <circle cx="12" cy="10.5" r="2" fill="currentColor" />
-                  </svg>
-                </div>
-              )}
+              <a
+                href={naverPlaceUrl(item.title, item.address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block"
+                title="네이버 지도에서 사진·리뷰 보기"
+              >
+                {item.thumbnailUrl ? (
+                  <img src={item.thumbnailUrl} alt={item.title} loading="lazy" className="h-28 w-full object-cover" />
+                ) : (
+                  <div className="flex h-28 flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#FFB088] to-[#FF8A47] text-white/90">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M12 21s-7-5.2-7-10.5A7 7 0 0 1 19 10.5C19 15.8 12 21 12 21Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                      <circle cx="12" cy="10.5" r="2" fill="currentColor" />
+                    </svg>
+                    <span className="text-[11px] font-bold">네이버 지도에서 사진 보기</span>
+                  </div>
+                )}
+                <span className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-[#03C75A] px-2 py-0.5 text-[10px] font-extrabold text-white shadow">
+                  N 지도
+                </span>
+              </a>
               <div className="p-3.5">
                 <div className="flex items-center gap-1.5">
                   <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold">{item.title}</span>

@@ -11,6 +11,7 @@ import { PlacePhoto, StarRating, PriceTag } from './PlaceBits';
 import BookmarkFormModal from './BookmarkFormModal';
 import { getBookmarks, deleteBookmark } from '../../api/place';
 import { cn } from '../../lib/cn';
+import { naverPlaceUrl } from '../../lib/naver';
 import {
   PLACE_CATEGORIES,
   CATEGORY_LABEL,
@@ -223,6 +224,7 @@ function BookmarkCard({
           photoUrl={place.photoUrl}
           category={bookmark.categoryTag}
           name={place.name}
+          naverHref={naverPlaceUrl(place.name, place.address)}
           className="size-[84px] shrink-0 rounded-[10px]"
         />
         <div className="flex min-w-0 flex-1 flex-col">

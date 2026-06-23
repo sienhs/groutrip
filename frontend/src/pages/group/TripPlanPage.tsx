@@ -14,6 +14,7 @@ import {
   confirmBooking,
 } from '../../api/accommodation';
 import { sigunguOptionsFor } from '../../lib/regions';
+import { naverPlaceUrl } from '../../lib/naver';
 import { cn } from '../../lib/cn';
 import { CATEGORY_LABEL, type PlaceCategory, type PlaceSearchResult } from '../../types/place';
 import { contentTypeLabel, type RecommendItem } from '../../types/recommend';
@@ -362,6 +363,7 @@ export default function TripPlanPage() {
                   photoUrl={p.photoUrl}
                   category="LODGING"
                   name={p.name}
+                  naverHref={naverPlaceUrl(p.name, p.address)}
                   className="size-[68px] shrink-0 rounded-[10px]"
                 />
                 <div className="flex min-w-0 flex-1 flex-col">
@@ -403,6 +405,7 @@ export default function TripPlanPage() {
               photoUrl={current.place.photoUrl}
               category="LODGING"
               name={current.place.name}
+              naverHref={naverPlaceUrl(current.place.name, current.place.address)}
               className="size-[72px] shrink-0 rounded-[10px]"
             />
             <div className="min-w-0 flex-1">
@@ -553,18 +556,23 @@ export default function TripPlanPage() {
             <div className="space-y-2.5">
               {recs.map((r) => (
                 <div key={r.contentId} className="flex gap-3 rounded-card border border-border bg-surface p-2.5">
-                  {r.thumbnailUrl ? (
-                    <img
-                      src={r.thumbnailUrl}
-                      alt={r.title}
-                      loading="lazy"
-                      className="size-[68px] shrink-0 rounded-[10px] object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-[68px] shrink-0 items-center justify-center rounded-[10px] bg-[#FFF1E6] text-[11px] text-[#FFB585]">
-                      {contentTypeLabel(r.contentTypeId)}
-                    </div>
-                  )}
+                  <a
+                    href={naverPlaceUrl(r.title, r.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative size-[68px] shrink-0 overflow-hidden rounded-[10px]"
+                    title="네이버 지도에서 사진·리뷰 보기"
+                  >
+                    {r.thumbnailUrl ? (
+                      <img src={r.thumbnailUrl} alt={r.title} loading="lazy" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-[#FFF1E6] text-[11px] text-[#FFB585]">
+                        {contentTypeLabel(r.contentTypeId)}
+                        <span className="text-[9px] font-bold text-[#03C75A]">사진 보기</span>
+                      </div>
+                    )}
+                    <span className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-[5px] bg-[#03C75A] text-[10px] font-black leading-none text-white shadow">N</span>
+                  </a>
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="line-clamp-2 text-[14px] font-bold text-[#3A322B]">{r.title}</div>
                     <div className="mt-0.5 text-[12px] text-muted">{contentTypeLabel(r.contentTypeId)}</div>
@@ -630,6 +638,7 @@ export default function TripPlanPage() {
                     photoUrl={p.photoUrl}
                     category={pickCategory}
                     name={p.name}
+                    naverHref={naverPlaceUrl(p.name, p.address)}
                     className="size-[68px] shrink-0 rounded-[10px]"
                   />
                   <div className="flex min-w-0 flex-1 flex-col">
