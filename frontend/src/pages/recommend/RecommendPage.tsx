@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import AppLayout from '../../components/AppLayout';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
@@ -20,6 +20,7 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [items, setItems] = useState<RecommendItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,20 +28,24 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
   const [savingId, setSavingId] = useState<number | null>(null);
   const [saved, setSaved] = useState<Set<number>>(new Set());
 
-  const load = async () => {
+  // 재시도 버튼용(이벤트 핸들러).
+  const load = useCallback(() => {
     setLoading(true);
     setError(false);
-    try {
-      setItems(await getRecommendations(groupId));
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+    getRecommendations(groupId)
+      .then(setItems)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [groupId]);
 
+  // 진입/그룹 변경 시 로드. effect 본문 동기 setState를 피해 async 콜백에서만 상태를 바꾼다.
   useEffect(() => {
-    load();
+    let active = true;
+    getRecommendations(groupId)
+      .then((d) => { if (active) { setItems(d); setError(false); } })
+      .catch(() => { if (active) setError(true); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [groupId]);
 
   // 추천 장소명으로 검색 → 첫 결과를 보관함에 추가(Google 단일 소스 규칙)
@@ -72,6 +77,18 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
         </div>
       </div>
       <p className="mt-4 text-[12px] font-bold text-[#BCA48C]">TourAPI · 성향 미응답 시 기본순</p>
+
+      {/* 추천 → 계획 연결: 담은 장소를 그룹 보관함/일정에서 바로 이어서 짠다. */}
+      <button
+        type="button"
+        onClick={() => navigate(`/groups/${groupId}?tab=place`)}
+        className="mt-2.5 flex w-full items-center justify-between rounded-card border border-border bg-surface px-4 py-3 text-left active:scale-[.99]"
+      >
+        <span className="text-[13px] font-bold text-foreground">
+          {saved.size > 0 ? `담은 장소 ${saved.size}곳으로 일정 짜기` : '보관함에서 일정 짜러 가기'}
+        </span>
+        <span className="text-[#E8742E]">→</span>
+      </button>
 
       <div className="mt-2.5 space-y-3">
         {loading && [0, 1, 2].map((i) => <SkeletonCard key={i} />)}
