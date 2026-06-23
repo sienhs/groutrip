@@ -27,8 +27,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "${SERVER_PORT:-8080}:8080"
+    # 외부에 8080을 직접 열지 않는다. 같은 네트워크의 frontend(Nginx)만 접근.
+    expose:
+      - "8080"
     env_file:
       - .env
     environment:
@@ -39,6 +40,20 @@ services:
       DB_USER: ${DB_USER:-enjoy_trip_user}
       DB_PASS: ${DB_PASS}
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
+    networks:
+      - enjoy-trip-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: enjoy-trip-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    # 외부에 노출되는 유일한 포트. 사용자는 http://EC2_PUBLIC_IP 로 접속.
+    ports:
+      - "80:80"
     networks:
       - enjoy-trip-network
 

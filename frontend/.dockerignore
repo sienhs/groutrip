@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.log
+.git
+.gitignore
+# 로컬 개발용 env(localhost:8080)는 빌드 컨텍스트에서 제외 — .env.production만 사용
+.env
+.env.local
+.env.*.local
