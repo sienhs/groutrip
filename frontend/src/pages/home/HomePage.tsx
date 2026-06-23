@@ -57,6 +57,9 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* 빠른 시작 — 주요 기능 바로가기 */}
+      <QuickActions navigate={navigate} />
+
       {loading && <div className="mt-5 space-y-3"><SkeletonCard /><SkeletonCard /></div>}
 
       {!loading && error && (
@@ -86,7 +89,7 @@ export default function HomePage() {
           {home.upcoming.length > 0 && (
             <section>
               <SectionTitle>예정된 여행</SectionTitle>
-              <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+              <div className="scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
                 {home.upcoming.map((g) => <UpcomingCard key={g.id} g={g} onClick={() => navigate(`/groups/${g.id}`)} />)}
               </div>
             </section>
@@ -107,6 +110,53 @@ export default function HomePage() {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-[#BCA48C]">{children}</h2>;
+}
+
+interface QuickAction {
+  label: string;
+  to: string;
+  bg: string;
+  fg: string;
+  icon: React.ReactNode;
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    label: '새 그룹', to: '/groups/new', bg: 'bg-[#FFE3CC]', fg: 'text-[#E8742E]',
+    icon: <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />,
+  },
+  {
+    label: '내 그룹', to: '/groups', bg: 'bg-[#E5F0FF]', fg: 'text-[#3182F6]',
+    icon: <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />,
+  },
+  {
+    label: '여행 추천', to: '/recommend', bg: 'bg-[#E9F8EE]', fg: 'text-[#22A964]',
+    icon: <path d="M12 3l2.2 5.8L20 9l-4.6 3.7L17 19l-5-3.4L7 19l1.6-6.3L4 9l5.8-.2L12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
+  },
+  {
+    label: '내 성향', to: '/survey/result', bg: 'bg-[#F1E9FF]', fg: 'text-[#7C3AED]',
+    icon: <path d="M5 19V11M10 19V5M15 19v-6M20 19v-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />,
+  },
+];
+
+function QuickActions({ navigate }: { navigate: (to: string) => void }) {
+  return (
+    <div className="mt-4 grid grid-cols-4 gap-2">
+      {QUICK_ACTIONS.map((a) => (
+        <button
+          key={a.label}
+          type="button"
+          onClick={() => navigate(a.to)}
+          className="flex flex-col items-center gap-1.5 rounded-card border border-border bg-surface py-3 transition-transform active:scale-95"
+        >
+          <span className={cn('flex size-10 items-center justify-center rounded-[12px]', a.bg, a.fg)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>{a.icon}</svg>
+          </span>
+          <span className="text-[11px] font-bold text-[#5C5044]">{a.label}</span>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function OngoingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void }) {

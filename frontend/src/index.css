@@ -48,3 +48,7 @@ body {
 }
 .animate-toast-in { animation: toast-in .28s ease; }
 .animate-modal-in { animation: modal-in .26s ease; }
+
+/* 가로 스크롤 영역의 스크롤바 숨김(스크롤은 유지) */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
