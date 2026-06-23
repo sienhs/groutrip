@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../../components/AppLayout';
 import Input from '../../components/Input';
+import DestinationAutocomplete from '../../components/DestinationAutocomplete';
 import Button from '../../components/Button';
 import { useToast } from '../../components/Toast';
 import { createGroup } from '../../api/group';
@@ -63,12 +64,12 @@ export default function GroupCreatePage() {
             placeholder="예: 제주도 한 바퀴"
           />
 
-          <Input
+          <DestinationAutocomplete
             label="목적지"
             value={destination}
-            maxLength={100}
-            onChange={(e) => setDestination(e.target.value)}
-            placeholder="예: 제주특별자치도 제주시"
+            onChange={setDestination}
+            placeholder="지역명을 입력하세요 (예: 용인, 제주)"
+            helper="목록에서 지역을 선택하면 목적지별 추천이 정확해져요."
           />
 
           <div>

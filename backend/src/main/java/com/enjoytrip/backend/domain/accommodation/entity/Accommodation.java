@@ -1,0 +1,101 @@
+package com.enjoytrip.backend.domain.accommodation.entity;
+
+import com.enjoytrip.backend.domain.auth.entity.User;
+import com.enjoytrip.backend.domain.group.entity.TravelGroup;
+import com.enjoytrip.backend.domain.place.entity.Place;
+import com.enjoytrip.backend.global.entity.BaseEntity;
+
+import jakarta.persistence.Basic;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+/**
+ * 그룹 여행 계획의 숙소 선정/예약 단위.
+ *
+ * 사용자가 시/군/구의 숙소(Google Places lodging)를 고르면 SELECTED로 생성되고,
+ * 외부 최저가 사이트에서 예약을 마친 뒤 예약가 또는 예약완료 사진을 입력하면 BOOKED가 된다.
+ *
+ * 예약완료 사진은 MinIO가 본 환경에서 미가동이라 우선 DB(bytea)에 저장한다.
+ * (추후 MinIO 도입 시 photo 컬럼 → 객체 스토리지 키로 교체 가능. {@link #bookingPhoto} 참조.)
+ */
+@Entity
+@Table(name = "group_accommodations")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Accommodation extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private TravelGroup travelGroup;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "place_id", nullable = false)
+    private Place place;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
+    private User createdBy;
+
+    // 추천/검색 스코프로 쓰는 시/군/구(예: "용인시"). 상세주소 경로에서는 null일 수 있다.
+    @Column(length = 100)
+    private String sigungu;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private BookingStatus status;
+
+    // 사용자가 외부 예약 후 입력한 예약 금액(원). 사진만 올린 경우 null.
+    private Long reservationPrice;
+
+    // 예약완료 사진 원본 바이트(가격 포함 스크린샷 등). 사진 엔드포인트로만 로드한다.
+    // 목록/단건 조회는 DTO 매핑에서 이 필드를 접근하지 않아 불필요한 blob 로딩을 피한다.
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "booking_photo")
+    private byte[] bookingPhoto;
+
+    @Column(name = "booking_photo_content_type", length = 100)
+    private String bookingPhotoContentType;
+
+    @Builder
+    private Accommodation(TravelGroup travelGroup, Place place, User createdBy,
+                          String sigungu, BookingStatus status) {
+        this.travelGroup = travelGroup;
+        this.place = place;
+        this.createdBy = createdBy;
+        this.sigungu = sigungu;
+        this.status = status;
+    }
+
+    /** 외부 예약 완료 처리. 예약가/사진 중 전달된 값만 갱신하고 상태를 BOOKED로 올린다. */
+    public void markBooked(Long reservationPrice, byte[] photo, String photoContentType) {
+        this.status = BookingStatus.BOOKED;
+        if (reservationPrice != null) {
+            this.reservationPrice = reservationPrice;
+        }
+        if (photo != null && photo.length > 0) {
+            this.bookingPhoto = photo;
+            this.bookingPhotoContentType = photoContentType;
+        }
+    }
+
+    public boolean hasPhoto() {
+        return bookingPhoto != null && bookingPhoto.length > 0;
+    }
+}

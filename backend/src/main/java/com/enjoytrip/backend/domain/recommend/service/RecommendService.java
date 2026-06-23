@@ -45,6 +45,9 @@ public class RecommendService {
     // 시/도 키워드 → TourAPI areaCode. 그룹 destination 문자열에 포함되는지로 매칭한다.
     private static final Map<String, Integer> AREA_CODES = new LinkedHashMap<>();
 
+    // 시/도 접두어 없이 시/군 이름만 저장된 destination(예: "용인시")을 areaCode로 매칭하기 위한 보조 맵.
+    private static final Map<String, Integer> CITY_CODES = new LinkedHashMap<>();
+
     // contentTypeId → 관광지 특성 5차원 벡터(activity, food, pace, urbanNature, timePref). 휴리스틱(튜닝 가능).
     private static final Map<Integer, double[]> ATTRACTION_VECTORS = new LinkedHashMap<>();
     private static final double[] NEUTRAL_VECTOR = {0.5, 0.5, 0.5, 0.5, 0.5};
@@ -73,6 +76,42 @@ public class RecommendService {
         AREA_CODES.put("전라남", 38);
         AREA_CODES.put("전남", 38);
         AREA_CODES.put("제주", 39);
+
+        // 시/도 접두어 없이 자주 입력되는 주요 시/군 → 소속 광역시·도 areaCode.
+        // 시/도 매칭 실패 시에만 보조로 사용한다(광역시명과 겹치는 "광주시"[경기]는 광역시 우선이라 제외).
+        CITY_CODES.put("수원", 31); CITY_CODES.put("용인", 31); CITY_CODES.put("성남", 31);
+        CITY_CODES.put("고양", 31); CITY_CODES.put("부천", 31); CITY_CODES.put("안양", 31);
+        CITY_CODES.put("안산", 31); CITY_CODES.put("화성", 31); CITY_CODES.put("평택", 31);
+        CITY_CODES.put("의정부", 31); CITY_CODES.put("파주", 31); CITY_CODES.put("김포", 31);
+        CITY_CODES.put("광명", 31); CITY_CODES.put("가평", 31); CITY_CODES.put("양평", 31);
+        CITY_CODES.put("포천", 31); CITY_CODES.put("여주", 31); CITY_CODES.put("이천", 31);
+        CITY_CODES.put("남양주", 31);
+        CITY_CODES.put("춘천", 32); CITY_CODES.put("원주", 32); CITY_CODES.put("강릉", 32);
+        CITY_CODES.put("속초", 32); CITY_CODES.put("동해", 32); CITY_CODES.put("삼척", 32);
+        CITY_CODES.put("태백", 32); CITY_CODES.put("정선", 32); CITY_CODES.put("평창", 32);
+        CITY_CODES.put("홍천", 32); CITY_CODES.put("양양", 32); CITY_CODES.put("인제", 32);
+        CITY_CODES.put("청주", 33); CITY_CODES.put("충주", 33); CITY_CODES.put("제천", 33);
+        CITY_CODES.put("단양", 33); CITY_CODES.put("보은", 33);
+        CITY_CODES.put("천안", 34); CITY_CODES.put("아산", 34); CITY_CODES.put("공주", 34);
+        CITY_CODES.put("보령", 34); CITY_CODES.put("서산", 34); CITY_CODES.put("논산", 34);
+        CITY_CODES.put("당진", 34); CITY_CODES.put("태안", 34); CITY_CODES.put("부여", 34);
+        CITY_CODES.put("예산", 34);
+        CITY_CODES.put("포항", 35); CITY_CODES.put("경주", 35); CITY_CODES.put("안동", 35);
+        CITY_CODES.put("구미", 35); CITY_CODES.put("영주", 35); CITY_CODES.put("문경", 35);
+        CITY_CODES.put("상주", 35); CITY_CODES.put("김천", 35); CITY_CODES.put("영천", 35);
+        CITY_CODES.put("울릉", 35);
+        CITY_CODES.put("창원", 36); CITY_CODES.put("진주", 36); CITY_CODES.put("통영", 36);
+        CITY_CODES.put("김해", 36); CITY_CODES.put("거제", 36); CITY_CODES.put("양산", 36);
+        CITY_CODES.put("사천", 36); CITY_CODES.put("밀양", 36); CITY_CODES.put("남해", 36);
+        CITY_CODES.put("거창", 36); CITY_CODES.put("합천", 36); CITY_CODES.put("하동", 36);
+        CITY_CODES.put("전주", 37); CITY_CODES.put("군산", 37); CITY_CODES.put("익산", 37);
+        CITY_CODES.put("정읍", 37); CITY_CODES.put("남원", 37); CITY_CODES.put("김제", 37);
+        CITY_CODES.put("무주", 37); CITY_CODES.put("부안", 37); CITY_CODES.put("고창", 37);
+        CITY_CODES.put("여수", 38); CITY_CODES.put("순천", 38); CITY_CODES.put("목포", 38);
+        CITY_CODES.put("광양", 38); CITY_CODES.put("나주", 38); CITY_CODES.put("담양", 38);
+        CITY_CODES.put("보성", 38); CITY_CODES.put("해남", 38); CITY_CODES.put("완도", 38);
+        CITY_CODES.put("진도", 38); CITY_CODES.put("곡성", 38);
+        CITY_CODES.put("서귀포", 39);
 
         ATTRACTION_VECTORS.put(12, new double[]{0.55, 0.25, 0.45, 0.35, 0.5}); // 관광지
         ATTRACTION_VECTORS.put(14, new double[]{0.30, 0.25, 0.30, 0.70, 0.5}); // 문화시설
@@ -143,13 +182,19 @@ public class RecommendService {
         return spots;
     }
 
-    // 그룹 destination(시/도 + 시/군/구)에서 시/도 키워드를 찾아 areaCode로 변환한다.
+    // 그룹 destination(시/도 + 시/군/구)에서 지역 키워드를 찾아 areaCode로 변환한다.
     // 시/군/구 이름이 다른 시/도명을 부분 포함할 수 있어(예: 부산 "해운대구"⊃"대구") 첫 토큰(시/도)만 매칭한다.
+    // 시/도 접두어가 없는 경우(예: "용인시")는 보조 시/군 맵으로 다시 매칭한다.
     private int resolveAreaCode(String destination) {
         if (destination != null && !destination.isBlank()) {
-            String sido = destination.trim().split("\\s+")[0];
+            String firstToken = destination.trim().split("\\s+")[0];
             for (Map.Entry<String, Integer> entry : AREA_CODES.entrySet()) {
-                if (sido.contains(entry.getKey())) {
+                if (firstToken.contains(entry.getKey())) {
+                    return entry.getValue();
+                }
+            }
+            for (Map.Entry<String, Integer> entry : CITY_CODES.entrySet()) {
+                if (firstToken.contains(entry.getKey())) {
                     return entry.getValue();
                 }
             }

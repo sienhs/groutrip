@@ -181,6 +181,14 @@ public class PlaceService {
                 DomainEvent.of(EventType.PLACE_REMOVED, groupId, user.getId(), bookmarkId));
     }
 
+    /**
+     * 다른 도메인(예: 숙소 선정)에서도 googlePlaceId로 Place 마스터를 확보할 수 있도록 공개한다.
+     * Place Details 호출/캐시 로직을 단일 소스로 유지하기 위해 내부 메서드에 위임한다.
+     */
+    public Place resolvePlace(String googlePlaceId) {
+        return resolvePlaceWithDetails(googlePlaceId);
+    }
+
     // FR-PLACE-02: 기존 마스터가 있으면서 Details 캐시(7일)가 유효하면 재사용하고, 아니면 Place Details로 갱신한다.
     private Place resolvePlaceWithDetails(String googlePlaceId) {
         LocalDateTime now = LocalDateTime.now();

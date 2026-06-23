@@ -12,6 +12,7 @@ import SurveyResultPage from './pages/survey/SurveyResultPage';
 import GroupListPage from './pages/group/GroupListPage';
 import GroupCreatePage from './pages/group/GroupCreatePage';
 import GroupDetailPage from './pages/group/GroupDetailPage';
+import TripPlanPage from './pages/group/TripPlanPage';
 import RecommendPage from './pages/recommend/RecommendPage';
 import RecommendLandingPage from './pages/recommend/RecommendLandingPage';
 import VoteDetailPage from './pages/vote/VoteDetailPage';
@@ -62,6 +63,7 @@ function App() {
         <Route path="/groups" element={<ProtectedRoute><GroupListPage /></ProtectedRoute>} />
         <Route path="/groups/new" element={<ProtectedRoute><GroupCreatePage /></ProtectedRoute>} />
         <Route path="/groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
+        <Route path="/groups/:id/plan" element={<ProtectedRoute><TripPlanPage /></ProtectedRoute>} />
 
         {/* 추천: 전역 탭은 그룹 선택 랜딩, 실제 추천은 그룹 스코프 */}
         <Route path="/recommend" element={<ProtectedRoute><RecommendLandingPage /></ProtectedRoute>} />

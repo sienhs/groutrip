@@ -127,6 +127,29 @@ export default function GroupDetailPage() {
         )}
       </div>
 
+      {/* 여행 계획 시작 — 목적지 정하기 → 숙소 선정/예약 플로우로 이동 */}
+      <button
+        type="button"
+        onClick={() => navigate(`/groups/${groupId}/plan`)}
+        className="flex w-full items-center justify-between gap-2 border-b border-border bg-[#FFF7F0] px-4 py-3 text-left active:bg-[#FFEEDF]"
+      >
+        <span className="flex items-center gap-2.5">
+          <span className="flex size-8 items-center justify-center rounded-[9px] bg-[#FFE3CC] text-[#E8742E]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 21s-7-5.2-7-10.5A7 7 0 0 1 19 10.5C19 15.8 12 21 12 21Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              <circle cx="12" cy="10.5" r="2.2" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </span>
+          <span>
+            <span className="block text-[14px] font-extrabold text-[#3A322B]">여행 계획 시작</span>
+            <span className="block text-[12px] text-muted">목적지 정하기 · 숙소 선정/예약</span>
+          </span>
+        </span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M9 6l6 6-6 6" stroke="#E8742E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
       {/* 탭 */}
       <div className="sticky top-0 z-20 bg-surface">
         <Tabs items={TABS} value={tab} onChange={(k) => setTab(k as TabKey)} />

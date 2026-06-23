@@ -117,6 +117,20 @@ class RecommendServiceTest {
     }
 
     @Test
+    void resolvesAreaFromBareCityNameWithoutSidoPrefix() {
+        // "용인시"처럼 시/도 접두어 없이 시/군 이름만 저장된 destination도 경기(31)로 매칭돼야 한다.
+        when(currentUserResolver.getCurrentUser()).thenReturn(user());
+        when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group("용인시")));
+        when(recommendationCacheRepository.findByCacheKey(anyString())).thenReturn(Optional.empty());
+        when(tourApiClient.getAreaBasedList(eq(31), any(), anyInt())).thenReturn(List.of(spot("a", "에버랜드", 28)));
+        when(groupPersonaService.getGroupPersona(1L)).thenReturn(persona(null));
+
+        List<RecommendationResponse> result = recommendService.recommend(1L, null);
+
+        assertThat(result).extracting(RecommendationResponse::contentId).containsExactly("a");
+    }
+
+    @Test
     void rejectsUnsupportedDestination() {
         when(currentUserResolver.getCurrentUser()).thenReturn(user());
         when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group("Tokyo Japan")));
