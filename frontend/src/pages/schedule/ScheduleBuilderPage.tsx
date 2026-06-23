@@ -9,6 +9,7 @@ import { useToast } from '../../components/Toast';
 import ScheduleAddModal from './ScheduleAddModal';
 import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg, updateSchedule } from '../../api/schedule';
 import { createVoteSession, getVoteSessions } from '../../api/vote';
+import { getGroup } from '../../api/group';
 import {
   TRANSPORT_META,
   formatKm,
@@ -30,6 +31,23 @@ const toMin = (t: string): number => {
 const toHHMM = (min: number): string => {
   const v = ((min % 1440) + 1440) % 1440;
   return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
+};
+
+// "YYYY-MM-DD" 하루 더하기(정오 기준으로 타임존 경계 회피).
+const addDay = (ymd: string): string => {
+  const d = new Date(`${ymd}T12:00:00`);
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+// 여행 기간(start~end)의 모든 날짜를 일자 탭으로 나열한다.
+const enumerateDates = (start: string, end: string): string[] => {
+  const out: string[] = [];
+  let cur = start;
+  for (let i = 0; cur <= end && i < 60; i += 1) {
+    out.push(cur);
+    cur = addDay(cur);
+  }
+  return out;
 };
 
 // 드래그 후 새 순서 기준으로 시간 재계산: 첫 일정은 유지, 이후 일정은 직전 일정 종료 이후로 시작(소요시간 보존).
@@ -68,6 +86,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
   const [deleting, setDeleting] = useState<Schedule | null>(null);
   const [delLoading, setDelLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [tripDates, setTripDates] = useState<string[]>([]);
 
   const dragFrom = useRef<number | null>(null);
   const dirty = useRef(false);
@@ -76,7 +95,9 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
     setLoading(true);
     setError(false);
     try {
-      setSchedules(await getSchedules(groupId));
+      const [sch, g] = await Promise.all([getSchedules(groupId), getGroup(groupId)]);
+      setSchedules(sch);
+      setTripDates(enumerateDates(g.startDate, g.endDate));
     } catch {
       setError(true);
     } finally {
@@ -88,8 +109,10 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
     load();
   }, [load]);
 
-  // 고유 날짜(정렬) → 일자 탭
-  const dates = [...new Set(schedules.map((s) => s.scheduleDate))].sort();
+  // 일자 탭: 여행 기간의 모든 날짜(일정 없는 날도 포함). 미로딩 시 일정 날짜로 폴백.
+  const dates = tripDates.length
+    ? tripDates
+    : [...new Set(schedules.map((s) => s.scheduleDate))].sort();
   const activeDate = dates[Math.min(activeIdx, Math.max(0, dates.length - 1))];
   const stops = schedules
     .filter((s) => s.scheduleDate === activeDate)
@@ -233,17 +256,22 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
 
   return (
     <div>
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+      <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {dates.map((d, i) => (
           <button key={d} type="button" aria-pressed={activeIdx === i} onClick={() => setActiveIdx(i)}
             className={cn('shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors',
               activeIdx === i ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-surface text-[#7A6A58]')}>
-            {i + 1}일차
+            {i + 1}일차 <span className="opacity-70">{d.slice(5).replace('-', '.')}</span>
           </button>
         ))}
       </div>
 
       <div className="mt-4">
+        {stops.length === 0 && (
+          <p className="rounded-card border border-dashed border-border py-8 text-center text-[13px] text-muted">
+            이 날은 아직 일정이 없어요. 아래 ‘+ 장소 추가’로 채워보세요.
+          </p>
+        )}
         {stops.map((stop, i) => {
           const hasNext = i < stops.length - 1;
           // 양쪽 모두 장소가 있어야 이동 정보를 표시한다(빈 일정 제외).
