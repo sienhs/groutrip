@@ -2,18 +2,17 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../../components/AppLayout';
 import Avatar from '../../components/Avatar';
-import Input from '../../components/Input';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { useToast } from '../../components/Toast';
-import ChangePasswordModal from './ChangePasswordModal';
 import { deleteAccount, uploadMyAvatar, userAvatarUrl } from '../../api/user';
 import { logout } from '../../api/auth';
 import useAuthStore from '../../store/authStore';
 import { cn } from '../../lib/cn';
 
 /**
- * 마이페이지 — 프로필, 페르소나, 메뉴, 계정 탈퇴(비번 확인).
+ * 마이페이지 — 프로필, 페르소나, 메뉴, 계정 탈퇴.
+ * 인증은 SNS 전용이라 비밀번호 변경은 없고, 탈퇴는 확인 다이얼로그로만 본인 확인한다.
  * ⚠️ 이름 변경 API 는 Part A 에 없어 읽기 전용. (제공 시 인라인 수정 추가)
  */
 export default function MyPage() {
@@ -22,9 +21,7 @@ export default function MyPage() {
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
-  const [pwOpen, setPwOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
-  const [delPw, setDelPw] = useState('');
   const [deleting, setDeleting] = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
   const [avatarVersion, setAvatarVersion] = useState(0);
@@ -60,10 +57,9 @@ export default function MyPage() {
   };
 
   const confirmDelete = async () => {
-    if (delPw.length < 1) return;
     setDeleting(true);
     try {
-      await deleteAccount(delPw);
+      await deleteAccount();
       toast.info('탈퇴 처리되었습니다');
       clearAuth();
       navigate('/login', { replace: true });
@@ -73,7 +69,7 @@ export default function MyPage() {
       if (status === 400) {
         toast.error('탈퇴할 수 없어요', '소유한 그룹의 위임 또는 해체를 먼저 진행해 주세요.');
       } else {
-        toast.error('탈퇴에 실패했어요', '비밀번호를 확인해 주세요.');
+        toast.error('탈퇴에 실패했어요', '잠시 후 다시 시도해 주세요.');
       }
     } finally {
       setDeleting(false);
@@ -126,14 +122,13 @@ export default function MyPage() {
 
       {/* 메뉴 */}
       <div className="mt-3.5 overflow-hidden rounded-card border border-border bg-surface">
-        <MenuRow label="비밀번호 변경" onClick={() => setPwOpen(true)} border />
         <MenuRow label="설문 다시하기" onClick={() => navigate('/survey')} border />
         <MenuRow label="로그아웃" onClick={handleLogout} />
       </div>
 
       {/* 위험 구역 */}
       <p className="mb-2 mt-6 text-[12px] font-extrabold tracking-wide text-[#C9AFA0]">위험 구역</p>
-      <button type="button" onClick={() => { setDelPw(''); setDelOpen(true); }}
+      <button type="button" onClick={() => setDelOpen(true)}
         className="w-full rounded-card border border-[#FECACA] bg-surface px-4 py-3.5 text-left text-[15px] font-bold text-danger transition-colors hover:bg-[#FEF2F2]">
         계정 탈퇴
       </button>
@@ -153,13 +148,11 @@ export default function MyPage() {
         </div>
       )}
 
-      <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />
-
       <Modal
         open={delOpen}
         onClose={() => setDelOpen(false)}
         title="정말 탈퇴하시겠어요?"
-        description="계정을 삭제하면 참여 중인 그룹과 일정·정산 기록이 모두 사라지며 복구할 수 없습니다. 확인을 위해 비밀번호를 입력해 주세요."
+        description="계정을 삭제하면 참여 중인 그룹과 일정·정산 기록이 모두 사라지며 복구할 수 없습니다."
         dismissable={!deleting}
         icon={
           <div className="flex size-11 items-center justify-center rounded-xl bg-[#FEE2E2]">
@@ -172,12 +165,10 @@ export default function MyPage() {
         footer={
           <>
             <Button variant="ghost" fullWidth className="border border-border" disabled={deleting} onClick={() => setDelOpen(false)}>취소</Button>
-            <Button variant="danger" fullWidth loading={deleting} disabled={delPw.length < 1} onClick={confirmDelete}>탈퇴하기</Button>
+            <Button variant="danger" fullWidth loading={deleting} onClick={confirmDelete}>탈퇴하기</Button>
           </>
         }
-      >
-        <Input type="password" label="비밀번호" value={delPw} onChange={(e) => setDelPw(e.target.value)} placeholder="••••••••" />
-      </Modal>
+      />
     </AppLayout>
   );
 }

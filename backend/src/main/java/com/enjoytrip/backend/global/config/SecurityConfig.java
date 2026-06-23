@@ -96,9 +96,9 @@ public class SecurityConfig {
 		
 		// 요청별 접근 권한 설정
 		.authorizeHttpRequests(auth -> auth
-				// 로그인 회원가입은 토큰 없이 누구나 가능하게 끔
+				// 토큰 재발급/소셜 로그인 코드 교환과 OAuth 콜백은 토큰 없이 접근 가능해야 한다.
 				.requestMatchers(
-						"/api/auth/login", "/api/auth/signup", "/api/auth/reissue", "/api/auth/oauth/exchange",
+						"/api/auth/reissue", "/api/auth/oauth/exchange",
 						"/oauth2/**", "/login/oauth2/**")
 				.permitAll()
 				// Swagger UI와 OpenAPI 명세는 개발 중 API 확인을 위해 인증 없이 접근을 허용한다.

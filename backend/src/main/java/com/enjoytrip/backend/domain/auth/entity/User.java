@@ -43,19 +43,14 @@ public class User extends BaseEntity {
 	// FR-AUTH-06: 탈퇴 시각. null이면 활성 사용자, 값이 있으면 익명화된 탈퇴 사용자(30일 후 hard delete 대상).
 	private LocalDateTime deletedAt;
 
-	// 프로필 사진의 MinIO object key. 실제 바이트는 ObjectStorageService로 key로 조회한다.
+	// 프로필 사진의 S3 object key. 실제 바이트는 ObjectStorageService로 key로 조회한다.
 	@Column(name = "avatar_key", length = 255)
 	private String avatarKey;
 
 	@Column(name = "avatar_content_type", length = 100)
 	private String avatarContentType;
 
-	// FR-AUTH-05: 새 비밀번호(BCrypt 해시)로 교체한다.
-	public void changePassword(String encodedPassword) {
-		this.password = encodedPassword;
-	}
-
-	/** 프로필 사진 설정. avatarKey는 MinIO object key. */
+	/** 프로필 사진 설정. avatarKey는 S3 object key. */
 	public void updateAvatar(String avatarKey, String contentType) {
 		this.avatarKey = avatarKey;
 		this.avatarContentType = contentType;
