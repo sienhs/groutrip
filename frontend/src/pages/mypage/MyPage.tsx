@@ -11,6 +11,16 @@ import useAuthStore from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { cn } from '../../lib/cn';
 
+/** 통계 기반 도전과제(배지). earned 가 true면 달성, 아니면 hint 로 조건 안내. */
+const BADGES: { emoji: string; label: string; hint: string; earned: (s: MyStats) => boolean }[] = [
+  { emoji: '🌱', label: '여행 입문', hint: '그룹 참여', earned: (s) => s.totalTrips >= 1 },
+  { emoji: '🧳', label: '첫 완주', hint: '여행 1회 완료', earned: (s) => s.completedTrips >= 1 },
+  { emoji: '🗺️', label: '지역 탐험가', hint: '3개 지역', earned: (s) => s.visitedRegions >= 3 },
+  { emoji: '📌', label: '장소 수집가', hint: '10곳 담기', earned: (s) => s.bookmarkCount >= 10 },
+  { emoji: '📅', label: '장기 여행자', hint: '누적 7일', earned: (s) => s.totalTripDays >= 7 },
+  { emoji: '🔥', label: '단골 여행러', hint: '5회 완료', earned: (s) => s.completedTrips >= 5 },
+];
+
 /**
  * 마이페이지 — 프로필(이름 변경), 여행 통계, 페르소나, 앱 설정(테마/알림), 계정 탈퇴.
  * 인증은 SNS 전용이라 비밀번호 변경은 없고, 탈퇴는 확인 다이얼로그로만 본인 확인한다.
@@ -249,6 +259,31 @@ export default function MyPage() {
           </div>
         </div>
       ) : null}
+
+      {/* 도전과제(배지) — 통계 기반. 통계가 정상 로드됐을 때만 노출 */}
+      {!statsLoading && !statsError && stats && (
+        <>
+          <p className="mb-2 mt-6 text-[12px] font-extrabold tracking-wide text-muted">도전과제</p>
+          <div className="grid grid-cols-3 gap-2">
+            {BADGES.map((b) => {
+              const earned = b.earned(stats);
+              return (
+                <div
+                  key={b.label}
+                  className={cn(
+                    'flex flex-col items-center gap-1 rounded-card border px-2 py-3 text-center',
+                    earned ? 'border-border bg-surface' : 'border-dashed border-border bg-surface opacity-45 grayscale',
+                  )}
+                >
+                  <span className="text-[24px]">{b.emoji}</span>
+                  <span className="text-[11px] font-extrabold text-foreground">{b.label}</span>
+                  <span className="text-[10px] leading-tight text-muted">{earned ? '달성!' : b.hint}</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* 페르소나 */}
       <button type="button" onClick={() => navigate('/survey/result')}
