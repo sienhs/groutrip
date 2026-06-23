@@ -4,14 +4,15 @@ import AppLayout from '../../components/AppLayout';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
+import Input from '../../components/Input';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getVoteSession, castVote, closeVoteSession, addCandidate } from '../../api/vote';
-import { getBookmarks } from '../../api/place';
+import { getBookmarks, addBookmark, searchPlaces } from '../../api/place';
 import { cn } from '../../lib/cn';
 import type { VoteSession, VoteCandidate } from '../../types/vote';
-import type { BookmarkResponse } from '../../types/place';
+import type { BookmarkResponse, PlaceSearchResult } from '../../types/place';
 
 /**
  * 투표 상세 — 후보(장소)별 점수 투표(1~5). 막대 그래프 + 실명 명단 + 마감.
@@ -28,11 +29,17 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  // 후보 추가(FR-VOTE-01): 그룹 보관함에서 장소를 골라 후보로 등록
+  // 후보 추가(FR-VOTE-01): 보관함 또는 검색으로 장소를 골라 후보로 등록
   const [addOpen, setAddOpen] = useState(false);
+  const [addTab, setAddTab] = useState<'bookmark' | 'search'>('bookmark');
   const [bookmarks, setBookmarks] = useState<BookmarkResponse[]>([]);
   const [bmLoading, setBmLoading] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
+  // 검색 탭
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<PlaceSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [addingGid, setAddingGid] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -76,6 +83,9 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
 
   const openAddCandidate = async () => {
     setAddOpen(true);
+    setAddTab('bookmark');
+    setSearchQuery('');
+    setSearchResults([]);
     setBmLoading(true);
     try {
       setBookmarks(await getBookmarks(groupId));
@@ -86,18 +96,63 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
     }
   };
 
+  const candidateError = (e: unknown) =>
+    toast.error(
+      '후보를 추가하지 못했어요',
+      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        '이미 등록됐거나 1인 5개 한도를 넘었을 수 있어요.',
+    );
+
+  const registerCandidate = async (placeId: number) => {
+    await addCandidate(groupId, sessionId, { placeId });
+    setSession(await getVoteSession(groupId, sessionId));
+    toast.success('후보를 추가했어요');
+    setAddOpen(false);
+  };
+
   const onAddCandidate = async (placeId: number) => {
     setAddingId(placeId);
     try {
-      await addCandidate(groupId, sessionId, { placeId });
-      setSession(await getVoteSession(groupId, sessionId));
-      toast.success('후보를 추가했어요');
-      setAddOpen(false);
+      await registerCandidate(placeId);
     } catch (e) {
-      const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
-      toast.error('후보를 추가하지 못했어요', message ?? '이미 등록됐거나 1인 5개 한도를 넘었을 수 있어요.');
+      candidateError(e);
     } finally {
       setAddingId(null);
+    }
+  };
+
+  const runCandidateSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const page = await searchPlaces(groupId, searchQuery.trim());
+      setSearchResults(page.items);
+    } catch {
+      toast.error('검색에 실패했어요', '잠시 후 다시 시도해 주세요.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // 검색 결과를 후보로: 보관함에 없으면 담아 placeId를 확보한 뒤 후보 등록.
+  const onAddSearchedPlace = async (place: PlaceSearchResult) => {
+    setAddingGid(place.googlePlaceId);
+    try {
+      let placeId: number;
+      try {
+        const bm = await addBookmark(groupId, { googlePlaceId: place.googlePlaceId, categoryTag: place.category });
+        placeId = bm.place.placeId;
+      } catch {
+        // 이미 보관함에 있으면(409 등) 기존 placeId를 찾아 사용
+        const found = (await getBookmarks(groupId)).find((b) => b.place.googlePlaceId === place.googlePlaceId);
+        if (!found) throw new Error('placeId 확보 실패');
+        placeId = found.place.placeId;
+      }
+      await registerCandidate(placeId);
+    } catch (e) {
+      candidateError(e);
+    } finally {
+      setAddingGid(null);
     }
   };
 
@@ -118,36 +173,97 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title="후보 추가"
-        description="보관함에 담긴 장소를 투표 후보로 등록해요."
+        description="보관함 장소 또는 검색해서 투표 후보로 등록해요."
       >
-        {bmLoading ? (
-          <p className="py-8 text-center text-[13px] text-muted">불러오는 중…</p>
-        ) : bookmarks.length === 0 ? (
-          <p className="py-8 text-center text-[13px] text-muted">보관함이 비어 있어요. ‘장소’ 탭에서 먼저 담아주세요.</p>
-        ) : (
-          <div className="max-h-[50vh] space-y-2 overflow-y-auto">
-            {bookmarks.map((b) => {
-              const already = candidatePlaceIds.has(b.place.placeId);
-              return (
-                <div key={b.id} className="flex items-center gap-3 rounded-card border border-border bg-surface p-2.5">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14px] font-bold text-[#3A322B]">{b.place.name}</div>
-                    {b.place.address && <div className="truncate text-[12px] text-muted">{b.place.address}</div>}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={already ? 'secondary' : 'primary'}
-                    disabled={already || addingId != null}
-                    loading={addingId === b.place.placeId}
-                    onClick={() => onAddCandidate(b.place.placeId)}
-                  >
-                    {already ? '등록됨' : '후보로'}
-                  </Button>
-                </div>
-              );
-            })}
+        <div className="space-y-3">
+          {/* 탭: 보관함 / 검색 */}
+          <div className="flex gap-1.5">
+            {([
+              { v: 'bookmark', label: '보관함' },
+              { v: 'search', label: '검색' },
+            ] as const).map((o) => (
+              <button
+                key={o.v}
+                type="button"
+                onClick={() => setAddTab(o.v)}
+                aria-pressed={addTab === o.v}
+                className={cn(
+                  'flex-1 rounded-button px-2 py-2 text-[13px] font-bold transition-colors',
+                  addTab === o.v ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-[#7A6A58]',
+                )}
+              >
+                {o.label}
+              </button>
+            ))}
           </div>
-        )}
+
+          {addTab === 'bookmark' ? (
+            bmLoading ? (
+              <p className="py-8 text-center text-[13px] text-muted">불러오는 중…</p>
+            ) : bookmarks.length === 0 ? (
+              <p className="py-8 text-center text-[13px] text-muted">보관함이 비어 있어요. ‘검색’ 탭에서 찾아 등록해 보세요.</p>
+            ) : (
+              <div className="max-h-[46vh] space-y-2 overflow-y-auto">
+                {bookmarks.map((b) => {
+                  const already = candidatePlaceIds.has(b.place.placeId);
+                  return (
+                    <div key={b.id} className="flex items-center gap-3 rounded-card border border-border bg-surface p-2.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[14px] font-bold text-[#3A322B]">{b.place.name}</div>
+                        {b.place.address && <div className="truncate text-[12px] text-muted">{b.place.address}</div>}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={already ? 'secondary' : 'primary'}
+                        disabled={already || addingId != null}
+                        loading={addingId === b.place.placeId}
+                        onClick={() => onAddCandidate(b.place.placeId)}
+                      >
+                        {already ? '등록됨' : '후보로'}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && runCandidateSearch()}
+                  placeholder="장소·키워드 검색 (예: 용인 맛집)"
+                />
+                <Button onClick={runCandidateSearch} loading={searching} disabled={!searchQuery.trim()}>
+                  검색
+                </Button>
+              </div>
+              {searchResults.length === 0 ? (
+                <p className="py-8 text-center text-[13px] text-muted">검색 결과가 여기에 표시돼요.</p>
+              ) : (
+                <div className="max-h-[40vh] space-y-2 overflow-y-auto">
+                  {searchResults.map((p) => (
+                    <div key={p.googlePlaceId} className="flex items-center gap-3 rounded-card border border-border bg-surface p-2.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[14px] font-bold text-[#3A322B]">{p.name}</div>
+                        {p.address && <div className="truncate text-[12px] text-muted">{p.address}</div>}
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={addingGid != null}
+                        loading={addingGid === p.googlePlaceId}
+                        onClick={() => onAddSearchedPlace(p)}
+                      >
+                        후보로
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </Modal>
     </AppLayout>
   );
