@@ -12,8 +12,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupOwner;
+import com.enjoytrip.backend.domain.group.service.GroupService.CoverData;
 import com.enjoytrip.backend.domain.group.dto.GroupCreateRequest;
 import com.enjoytrip.backend.domain.group.dto.GroupMemberResponse;
 import com.enjoytrip.backend.domain.group.dto.GroupResponse;
@@ -118,6 +123,28 @@ public class GroupController {
     ) {
         GroupResponse response = groupService.updateGroupInfo(groupId, request);
         return ResponseEntity.ok(ApiResponse.success("Group updated.", response));
+    }
+
+    // FR-GROUP-04: Owner가 커스텀 커버 이미지를 업로드한다.
+    @RequiredGroupOwner
+    @PostMapping(value = "/{groupId}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "그룹 커버 이미지 업로드", description = "Owner가 그룹 커버를 직접 올린다(5MB 이하). coverImageKey가 CUSTOM이 된다.")
+    public ResponseEntity<ApiResponse<GroupResponse>> uploadCover(
+            @PathVariable Long groupId,
+            @RequestParam MultipartFile cover
+    ) {
+        return ResponseEntity.ok(ApiResponse.success("커버 이미지를 등록했습니다.", groupService.uploadCover(groupId, cover)));
+    }
+
+    // 커버 이미지는 <img src>로 여러 화면에서 직접 로드되므로 조회는 공개한다.
+    @GetMapping("/{groupId}/cover")
+    @Operation(summary = "그룹 커버 이미지 조회", description = "커스텀 커버 이미지를 조회한다(없으면 404).")
+    public ResponseEntity<byte[]> cover(@PathVariable Long groupId) {
+        CoverData data = groupService.loadCover(groupId);
+        MediaType mediaType = data.contentType() == null
+                ? MediaType.IMAGE_JPEG
+                : MediaType.parseMediaType(data.contentType());
+        return ResponseEntity.ok().contentType(mediaType).body(data.data());
     }
 
     // FR-GROUP-05: 그룹 멤버가 현재 활성 멤버 목록을 조회한다.

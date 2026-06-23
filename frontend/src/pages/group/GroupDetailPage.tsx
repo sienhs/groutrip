@@ -22,6 +22,7 @@ import {
   transferOwner,
   dissolveGroup,
   regenerateInviteCode,
+  groupCoverUrl,
 } from '../../api/group';
 import { getAccommodations } from '../../api/accommodation';
 import { useGroupStream } from '../../hooks/useGroupStream';
@@ -141,7 +142,16 @@ export default function GroupDetailPage() {
   return (
     <div className="mx-auto min-h-dvh w-full max-w-md bg-background md:max-w-lg">
       {/* 배너 */}
-      <div className={cn('relative h-[150px]', group ? gradientForKey(group.coverImageKey) : 'bg-[#F0E4D6]')}>
+      <div className={cn('relative h-[150px] overflow-hidden', group ? gradientForKey(group.coverImageKey) : 'bg-[#F0E4D6]')}>
+        {group?.coverImageKey === 'CUSTOM' && (
+          <img
+            src={groupCoverUrl(group.id)}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+          />
+        )}
         <button
           type="button"
           aria-label="뒤로가기"

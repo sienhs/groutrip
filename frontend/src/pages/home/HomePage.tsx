@@ -7,7 +7,7 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import NotificationBell from '../../components/NotificationBell';
 import { getHome } from '../../api/home';
-import { gradientForKey } from '../group/groupUi';
+import GroupCover from '../group/GroupCover';
 import { cn } from '../../lib/cn';
 import type { HomeResponse, HomeGroupSummary } from '../../types/home';
 
@@ -162,10 +162,13 @@ function QuickActions({ navigate }: { navigate: (to: string) => void }) {
 function OngoingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
-      className={cn('block w-full rounded-2xl p-[18px] text-left text-white shadow-md transition-transform active:scale-[.99]', gradientForKey(g.coverImageKey))}>
-      <span className="rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-extrabold">{g.day}</span>
-      <div className="mt-2.5 text-[20px] font-extrabold tracking-tight">{g.title}</div>
-      <div className="mt-0.5 text-[13px] opacity-90">{g.destination} · {g.memberCount}명</div>
+      className="block w-full text-left text-white shadow-md transition-transform active:scale-[.99]">
+      <GroupCover groupId={g.id} coverImageKey={g.coverImageKey} className="rounded-2xl p-[18px]">
+        {g.coverImageKey === 'CUSTOM' && <span className="absolute inset-0 bg-black/25" aria-hidden />}
+        <span className="relative rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-extrabold">{g.day}</span>
+        <div className="relative mt-2.5 text-[20px] font-extrabold tracking-tight drop-shadow">{g.title}</div>
+        <div className="relative mt-0.5 text-[13px] opacity-90 drop-shadow">{g.destination} · {g.memberCount}명</div>
+      </GroupCover>
     </button>
   );
 }
@@ -177,9 +180,9 @@ function UpcomingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 text-left shadow-sm transition-transform active:scale-[.99]"
     >
-      <div className={cn('flex size-12 flex-none items-end justify-start rounded-[12px] p-1.5', gradientForKey(g.coverImageKey))}>
-        <span className="rounded-full bg-white/30 px-1.5 py-0.5 text-[9px] font-extrabold text-white">{g.day}</span>
-      </div>
+      <GroupCover groupId={g.id} coverImageKey={g.coverImageKey} className="flex size-12 flex-none items-end justify-start rounded-[12px] p-1.5">
+        <span className="relative rounded-full bg-white/30 px-1.5 py-0.5 text-[9px] font-extrabold text-white">{g.day}</span>
+      </GroupCover>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-extrabold">{g.title}</div>
         <div className="text-[12px] text-muted">{g.destination} · {g.memberCount}명</div>
@@ -194,7 +197,7 @@ function UpcomingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void
 function CompletedRow({ g, onClick }: { g: HomeGroupSummary; onClick: () => void }) {
   return (
     <Card padding="sm" interactive onClick={onClick} className="flex items-center gap-3">
-      <div className={cn('size-11 flex-none rounded-[10px]', gradientForKey(g.coverImageKey))} />
+      <GroupCover groupId={g.id} coverImageKey={g.coverImageKey} className="size-11 flex-none rounded-[10px]" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-extrabold">{g.title}</div>
         <div className="text-[12px] text-muted">{g.destination} · {g.memberCount}명</div>

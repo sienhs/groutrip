@@ -10,7 +10,8 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getMyGroups, joinGroup } from '../../api/group';
-import { gradientForKey, ddayLabel, dateRange, groupStatus } from './groupUi';
+import GroupCover from './GroupCover';
+import { ddayLabel, dateRange, groupStatus } from './groupUi';
 import { cn } from '../../lib/cn';
 import type { ApiResponse } from '../../types/auth';
 import type { GroupStatus, TravelGroup } from '../../types/group';
@@ -143,11 +144,11 @@ export default function GroupListPage() {
         {!loading && !error &&
           shown.map((g) => (
             <Card key={g.id} padding="none" interactive onClick={() => navigate(`/groups/${g.id}`)} className="overflow-hidden">
-              <div className={cn('relative h-20 p-3', gradientForKey(g.coverImageKey))}>
-                <span className="rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-extrabold text-white">
+              <GroupCover groupId={g.id} coverImageKey={g.coverImageKey} className="h-20 p-3">
+                <span className="relative rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-extrabold text-white">
                   {ddayLabel(g.startDate, g.endDate)}
                 </span>
-              </div>
+              </GroupCover>
               <div className="p-3.5">
                 <div className="text-[16px] font-extrabold">{g.title}</div>
                 <div className="mt-0.5 text-[12px] text-muted">

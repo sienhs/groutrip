@@ -108,6 +108,8 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/places/photo").permitAll()
 				// 프로필 사진도 <img src>로 여러 화면에서 직접 로드되므로 조회는 공개한다(업로드는 인증 필요).
 				.requestMatchers(HttpMethod.GET, "/api/users/*/avatar").permitAll()
+				// 그룹 커버 이미지도 홈/목록/상세에서 <img src>로 직접 로드되므로 조회는 공개한다.
+				.requestMatchers(HttpMethod.GET, "/api/groups/*/cover").permitAll()
 				// 나머지 요청은 인증이 필요하게
 				.anyRequest().authenticated())
 		.exceptionHandling(exceptions -> exceptions

@@ -44,6 +44,46 @@ public class GroupService {
     private final GroupAccessValidator groupAccessValidator;
     private final ApplicationEventPublisher eventPublisher;
 
+    private static final long MAX_COVER_BYTES = 5L * 1024 * 1024; // 5MB
+
+    /** FR-GROUP-04: Owner가 커스텀 커버 이미지를 업로드한다(coverImageKey='CUSTOM'). */
+    public GroupResponse uploadCover(Long groupId, org.springframework.web.multipart.MultipartFile file) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateOwner(groupId, user.getId());
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/") || file.getSize() > MAX_COVER_BYTES) {
+            throw new BusinessException(ErrorCode.INVALID_FILE_TYPE);
+        }
+        try {
+            group.setCustomCover(file.getBytes(), contentType);
+        } catch (java.io.IOException e) {
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+        GroupResponse response = GroupResponse.from(group);
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), response);
+        return response;
+    }
+
+    /** 커버 이미지 바이트 로드(공개 조회). 커스텀 커버가 없으면 404. */
+    @Transactional(readOnly = true)
+    public CoverData loadCover(Long groupId) {
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        if (!group.hasCustomCover()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+        return new CoverData(group.getCoverImage(), group.getCoverImageContentType());
+    }
+
+    public record CoverData(byte[] data, String contentType) {
+    }
+
     // FR-GROUP-01: 그룹을 생성하고 생성자를 자동으로 Owner 멤버로 등록한다.
     public GroupResponse create(GroupCreateRequest request) {
         validateDateRange(request.startDate(), request.endDate());

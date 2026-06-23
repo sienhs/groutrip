@@ -35,6 +35,22 @@ export const updateGroup = async (
   return res.data.data;
 };
 
+/** FR-GROUP-04: 커스텀 커버 이미지 업로드(Owner). coverImageKey가 CUSTOM이 된다. */
+export const uploadGroupCover = async (groupId: number, file: File): Promise<TravelGroup> => {
+  const form = new FormData();
+  form.append('cover', file);
+  const res = await instance.post<ApiResponse<TravelGroup>>(`/api/groups/${groupId}/cover`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data.data;
+};
+
+/** 커스텀 커버 이미지 절대 URL(공개 조회). coverImageKey === 'CUSTOM'일 때 사용. */
+export const groupCoverUrl = (groupId: number): string => {
+  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  return `${base}/api/groups/${groupId}/cover`;
+};
+
 /** 초대 코드로 참여. */
 export const joinGroup = async (inviteCode: string): Promise<TravelGroup> => {
   const res = await instance.post<ApiResponse<TravelGroup>>(`/api/groups/join/${inviteCode}`);
