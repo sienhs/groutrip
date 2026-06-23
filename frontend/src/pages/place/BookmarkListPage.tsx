@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
 import Select from '../../components/Select';
@@ -26,9 +26,17 @@ type Status = 'loading' | 'done' | 'error';
  * 그룹 보관함 화면 (그룹 허브 "장소/보관함" 탭).
  * 필터(카테고리) + 정렬(최근/평점/이름). 항목 수정/삭제는 작성자·Owner 권한(BE 검증).
  */
-export default function BookmarkListPage({ groupId: groupIdProp }: { groupId?: number }) {
+export default function BookmarkListPage({
+  groupId: groupIdProp,
+  planExists = false,
+}: {
+  groupId?: number;
+  /** 그룹에 여행 계획(숙소 선정/예약)이 있으면 true → 계획 진입을 장소 추가에 합쳐 노출한다. */
+  planExists?: boolean;
+}) {
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
+  const navigate = useNavigate();
   const toast = useToast();
 
   const [items, setItems] = useState<BookmarkResponse[]>([]);
@@ -72,6 +80,18 @@ export default function BookmarkListPage({ groupId: groupIdProp }: { groupId?: n
 
   return (
     <div className="flex flex-col">
+      {/* 장소 추가하기 — 여행 계획 플로우(숙소/맛집/명소 선정)로 진입. 계획이 있으면 '이어가기'로 합쳐 노출. */}
+      <button
+        type="button"
+        onClick={() => navigate(`/groups/${groupId}/plan`)}
+        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCBA6] bg-[#FFF7F0] py-3 text-[14px] font-bold text-[#E8742E] active:bg-[#FFEEDF]"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        {planExists ? '여행 계획 이어가기 · 장소 추가' : '장소 추가하기'}
+      </button>
+
       {/* 필터 + 정렬 */}
       <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1">
         <FilterChip active={category === null} onClick={() => setCategory(null)}>전체</FilterChip>

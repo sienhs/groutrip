@@ -20,6 +20,12 @@ interface Options {
   currentUserId: number;
   /** actorId → 표시 이름. 미지정 시 '멤버' */
   resolveActorName?: (actorId: number) => string;
+  /**
+   * 다른 멤버의 이벤트 수신 시 호출(domain 전달). 화면 데이터가 React Query가 아니라
+   * 수동 fetch라 invalidateQueries만으로는 갱신되지 않으므로, 호출부가 실제 refetch를
+   * 트리거하도록 한다. 안정적인 참조(useCallback)로 넘겨야 재연결을 막는다.
+   */
+  onEvent?: (domain: string) => void;
   enabled?: boolean;
 }
 
@@ -32,7 +38,7 @@ const DOMAINS = ['schedules', 'votes', 'bookmarks', 'expenses', 'group'] as cons
  *  - 본인(actorId === currentUserId) 이벤트는 무시
  *  - 수신 시: 토스트 + 알림 스토어 push + React Query 캐시 무효화
  */
-export function useGroupStream({ groupId, currentUserId, resolveActorName, enabled = true }: Options) {
+export function useGroupStream({ groupId, currentUserId, resolveActorName, onEvent, enabled = true }: Options) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const addNotification = useNotificationStore((s) => s.add);
@@ -90,6 +96,7 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, enabl
         read: false,
       });
       invalidate(meta.domain);
+      onEvent?.(meta.domain); // 수동 fetch 화면 실제 refetch 트리거
     };
 
     const connect = () => {
@@ -133,5 +140,5 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, enabl
       stopPolling();
       if (reconnectRef.current != null) clearTimeout(reconnectRef.current);
     };
-  }, [groupId, currentUserId, enabled, queryClient, toast, addNotification, resolveActorName]);
+  }, [groupId, currentUserId, enabled, queryClient, toast, addNotification, resolveActorName, onEvent]);
 }

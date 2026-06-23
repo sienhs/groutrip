@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Tabs, { type TabItem } from '../../components/Tabs';
 import Button from '../../components/Button';
@@ -11,6 +11,7 @@ import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
 import { getGroup, getGroupMembers } from '../../api/group';
+import { getAccommodations } from '../../api/accommodation';
 import { useGroupStream } from '../../hooks/useGroupStream';
 import useAuthStore from '../../store/authStore';
 import { gradientForKey, ddayLabel, dateRange } from './groupUi';
@@ -29,8 +30,8 @@ const TABS: TabItem[] = [
 
 /**
  * 그룹 허브(GroupDetailPage). 커버 배너 + 탭(일정/장소/투표/정산/멤버).
- * '장소' 탭은 완성된 보관함 화면(BookmarkListPage)을 그대로 임베드.
- * 일정/투표/정산은 각 Phase 진행 시 실제 화면으로 교체(현재 준비 중 안내).
+ * 일정·장소·정산은 실제 화면(ScheduleBuilderPage/BookmarkListPage/ExpensePage)을 임베드,
+ * 투표 탭만 아직 준비 중(ComingSoon). 그룹 SSE를 구독해 다른 멤버 변경을 실시간 반영한다.
  */
 export default function GroupDetailPage() {
   const params = useParams<{ id: string }>();
@@ -43,11 +44,13 @@ export default function GroupDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [tab, setTab] = useState<TabKey>('place');
+  // 그룹에 숙소 선정/예약(=여행 계획)이 하나라도 있으면 true. 진입 CTA 노출을 가른다.
+  const [planExists, setPlanExists] = useState(false);
+  // 다른 멤버의 SSE 이벤트 수신 시 증가 → 활성 탭을 remount해 실제 refetch한다.
+  const [streamTick, setStreamTick] = useState(0);
 
-  // ⚠️ 본인 이벤트 무시용 userId. 현재 User 타입엔 id 가 없음(name/email 뿐) →
-  //    백엔드가 User 에 userId 를 노출하면 그 필드로 교체. 그전엔 -1(자기무시 비활성).
-  const authUser = useAuthStore((s) => s.user);
-  const currentUserId = (authUser as { id?: number } | null)?.id ?? -1;
+  // 본인 이벤트 무시용 userId. 로그인 시 user.id = userId 로 저장됨(authStore).
+  const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
 
   useEffect(() => {
     (async () => {
@@ -55,6 +58,13 @@ export default function GroupDetailPage() {
         const [g, ms] = await Promise.all([getGroup(groupId), getGroupMembers(groupId)]);
         setGroup(g);
         setMembers(ms);
+        // 여행 계획 존재 여부는 그룹 로딩과 분리해, 실패해도 화면이 깨지지 않게 한다.
+        try {
+          const accs = await getAccommodations(groupId);
+          setPlanExists(accs.length > 0);
+        } catch {
+          /* 계획 조회 실패는 무시(없음으로 간주) */
+        }
       } catch {
         setError(true);
       } finally {
@@ -63,14 +73,35 @@ export default function GroupDetailPage() {
     })();
   }, [groupId]);
 
-  // 실시간 구독(SSE): ⚠️ /stream 은 Part B 미구현 → 지금은 비활성. Part B 완료 시 enabled: !!group 로.
-  //   그전에는 탭 진입 시 각 화면의 refetch 로 최신화한다.
+  // 실시간 구독(SSE): /api/groups/{id}/stream (Part B 구현 완료). 그룹 로딩되면 연결.
+  //   콜백/리졸버는 안정 참조(useCallback)로 넘겨 렌더마다 재연결되는 것을 막는다.
+  const resolveActorName = useCallback(
+    (actorId: number) => members.find((m) => m.userId === actorId)?.name ?? '멤버',
+    [members],
+  );
+  const handleStreamEvent = useCallback(() => setStreamTick((t) => t + 1), []);
   useGroupStream({
     groupId,
     currentUserId,
-    enabled: false,
-    resolveActorName: (actorId) => members.find((m) => m.userId === actorId)?.name ?? '멤버',
+    enabled: !!group,
+    resolveActorName,
+    onEvent: handleStreamEvent,
   });
+
+  // 초대 코드를 실제로 클립보드에 복사한다(복사 실패 시 코드 노출로 폴백).
+  const copyInvite = useCallback(async () => {
+    const code = group?.inviteCode;
+    if (!code) {
+      toast.info('초대', '초대 코드를 불러오는 중이에요.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success('초대 코드를 복사했어요', `코드 ${code}`);
+    } catch {
+      toast.info('초대 코드', `코드 ${code}`);
+    }
+  }, [group?.inviteCode, toast]);
 
   if (error) {
     return (
@@ -101,7 +132,7 @@ export default function GroupDetailPage() {
         <button
           type="button"
           aria-label="공유"
-          onClick={() => toast.info('초대 공유', group?.inviteCode ? `코드 ${group.inviteCode}` : '초대 링크를 복사했어요.')}
+          onClick={copyInvite}
           className="absolute right-14 top-3 flex size-9 items-center justify-center rounded-[10px] bg-white/25 text-white"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -127,28 +158,28 @@ export default function GroupDetailPage() {
         )}
       </div>
 
-      {/* 여행 계획 시작 — 목적지 정하기 → 숙소 선정/예약 플로우로 이동 */}
-      <button
-        type="button"
-        onClick={() => navigate(`/groups/${groupId}/plan`)}
-        className="flex w-full items-center justify-between gap-2 border-b border-border bg-[#FFF7F0] px-4 py-3 text-left active:bg-[#FFEEDF]"
-      >
-        <span className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-[9px] bg-[#FFE3CC] text-[#E8742E]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 21s-7-5.2-7-10.5A7 7 0 0 1 19 10.5C19 15.8 12 21 12 21Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-              <circle cx="12" cy="10.5" r="2.2" stroke="currentColor" strokeWidth="1.8" />
+      {/* 여행 계획이 없을 때만: 눈에 띄는 시작 CTA. 계획이 있으면 '장소' 탭의 장소 추가로 합친다. */}
+      {!loading && !planExists && (
+        <button
+          type="button"
+          onClick={() => navigate(`/groups/${groupId}/plan`)}
+          className="flex w-full items-center gap-3 border-b border-border bg-gradient-to-r from-[#FF9F66] to-[#FF8A4C] px-4 py-4 text-left text-white shadow-sm active:opacity-95"
+        >
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-white/25">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 21s-7-5.2-7-10.5A7 7 0 0 1 19 10.5C19 15.8 12 21 12 21Z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" />
+              <circle cx="12" cy="10.5" r="2.3" stroke="currentColor" strokeWidth="1.9" />
             </svg>
           </span>
-          <span>
-            <span className="block text-[14px] font-extrabold text-[#3A322B]">여행 계획 시작</span>
-            <span className="block text-[12px] text-muted">목적지 정하기 · 숙소 선정/예약</span>
+          <span className="flex-1">
+            <span className="block text-[16px] font-extrabold">여행 계획 시작하기</span>
+            <span className="block text-[12.5px] text-white/90">목적지·숙소를 정하고 함께 갈 곳을 모아요</span>
           </span>
-        </span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M9 6l6 6-6 6" stroke="#E8742E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
 
       {/* 탭 */}
       <div className="sticky top-0 z-20 bg-surface">
@@ -160,13 +191,13 @@ export default function GroupDetailPage() {
         {loading ? (
           <p className="py-10 text-center text-[13px] text-muted">불러오는 중…</p>
         ) : tab === 'schedule' ? (
-          <ScheduleBuilderPage groupId={groupId} />
+          <ScheduleBuilderPage key={streamTick} groupId={groupId} />
         ) : tab === 'place' ? (
-          <BookmarkListPage groupId={groupId} />
+          <BookmarkListPage key={streamTick} groupId={groupId} planExists={planExists} />
         ) : tab === 'settle' ? (
-          <ExpensePage groupId={groupId} members={members} />
+          <ExpensePage key={streamTick} groupId={groupId} members={members} />
         ) : tab === 'member' ? (
-          <MemberTab members={members} onInvite={() => toast.info('초대', '초대 링크·코드를 공유하세요.')} />
+          <MemberTab members={members} onInvite={copyInvite} />
         ) : (
           <ComingSoon />
         )}
