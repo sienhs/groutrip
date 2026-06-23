@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
  * 사용자가 시/군/구의 숙소(Google Places lodging)를 고르면 SELECTED로 생성되고,
  * 외부 최저가 사이트에서 예약을 마친 뒤 예약가 또는 예약완료 사진을 입력하면 BOOKED가 된다.
  *
- * 예약완료 사진 바이트는 MinIO에 저장하고 엔티티에는 object key만 보관한다.
+ * 예약완료 사진 바이트는 S3에 저장하고 엔티티에는 object key만 보관한다.
  */
 @Entity
 @Table(name = "group_accommodations")
@@ -62,7 +62,7 @@ public class Accommodation extends BaseEntity {
     // 사용자가 외부 예약 후 입력한 예약 금액(원). 사진만 올린 경우 null.
     private Long reservationPrice;
 
-    // 예약완료 사진(가격 포함 스크린샷 등)의 MinIO object key. 사진 엔드포인트로만 로드한다.
+    // 예약완료 사진(가격 포함 스크린샷 등)의 S3 object key. 사진 엔드포인트로만 로드한다.
     @Column(name = "booking_photo_key", length = 255)
     private String bookingPhotoKey;
 

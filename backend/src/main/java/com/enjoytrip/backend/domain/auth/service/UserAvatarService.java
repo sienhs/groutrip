@@ -16,7 +16,7 @@ import com.enjoytrip.backend.global.storage.ObjectStorageService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 사용자 프로필 사진 업로드/조회. 바이트는 MinIO에 저장하고 User에는 object key만 보관한다.
+ * 사용자 프로필 사진 업로드/조회. 바이트는 S3에 저장하고 User에는 object key만 보관한다.
  */
 @Service
 @RequiredArgsConstructor

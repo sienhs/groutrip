@@ -127,7 +127,7 @@ class AccommodationServiceTest {
         assertThat(res.status()).isEqualTo(BookingStatus.BOOKED);
         assertThat(res.bookingPhotoUrl()).isEqualTo("/api/groups/1/accommodations/10/photo");
         assertThat(acc.hasPhoto()).isTrue();
-        // 사진 바이트는 MinIO에 업로드되고 엔티티에는 key만 저장된다.
+        // 사진 바이트는 S3에 업로드되고 엔티티에는 key만 저장된다.
         verify(objectStorage).upload(any(), any(), eq("image/png"));
         // 사진만 있고 금액이 없으면 정산 지출은 만들지 않는다.
         verify(expenseService, never()).create(any(), any());

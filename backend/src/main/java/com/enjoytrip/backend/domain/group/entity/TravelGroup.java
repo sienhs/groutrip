@@ -47,7 +47,7 @@ public class TravelGroup {
     @Column(length = 255)
     private String coverImageKey;
 
-    // coverImageKey == "CUSTOM"이면 사용하는 커스텀 커버 이미지의 MinIO object key.
+    // coverImageKey == "CUSTOM"이면 사용하는 커스텀 커버 이미지의 S3 object key.
     // (coverImageKey는 프리셋 식별자/'CUSTOM', coverObjectKey는 실제 저장 객체 key로 역할이 다르다.)
     @Column(name = "cover_object_key", length = 255)
     private String coverObjectKey;

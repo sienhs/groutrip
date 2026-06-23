@@ -67,8 +67,10 @@ dependencies {
 	annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
 	annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
 
-	// MinIO
-	implementation 'io.minio:minio:8.5.11'
+	// AWS S3 (객체 스토리지). apache-client는 동기 S3Client용 HTTP 구현체.
+	implementation platform('software.amazon.awssdk:bom:2.31.0')
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:apache-client'
 }
 
 tasks.named('test') {

@@ -19,7 +19,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 그룹 사진 갤러리 항목. 이미지 바이트는 MinIO에 저장하고 엔티티에는 object key만 보관한다.
+ * 그룹 사진 갤러리 항목. 이미지 바이트는 S3에 저장하고 엔티티에는 object key만 보관한다.
  */
 @Entity
 @Table(name = "group_photos")
@@ -42,7 +42,7 @@ public class GroupPhoto extends BaseEntity {
     @Column(name = "content_type", nullable = false, length = 100)
     private String contentType;
 
-    // 이미지 바이트의 MinIO object key. 바이트는 이미지 엔드포인트에서 key로 조회한다.
+    // 이미지 바이트의 S3 object key. 바이트는 이미지 엔드포인트에서 key로 조회한다.
     @Column(name = "object_key", nullable = false, length = 255)
     private String objectKey;
 

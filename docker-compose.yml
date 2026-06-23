@@ -14,28 +14,12 @@ services:
     networks:
       - enjoy-trip-network
 
-  # 이미지(아바타·그룹커버·갤러리·숙소사진) 객체 스토리지.
-  # 콘솔: http://localhost:9001  (로그인 = MINIO_ACCESS_KEY / MINIO_SECRET_KEY)
-  # 버킷(enjoy-trip-files)은 백엔드가 부팅/업로드 시 자동 생성한다.
-  minio:
-    image: minio/minio:latest
-    container_name: enjoy-trip-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-enjoytrip}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-enjoytrip-secret}
-    ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # 웹 콘솔
-    volumes:
-      - minio_data:/data
-    networks:
-      - enjoy-trip-network
+  # 이미지(아바타·그룹커버·갤러리·숙소사진) 객체 스토리지는 AWS S3를 사용한다.
+  # 자격증명/리전/버킷은 backend/.env의 AWS_* 키로 주입(로컬 MinIO 컨테이너 제거됨).
 
 
 volumes:
   postgres_data:
-  minio_data:
 
 networks:
   enjoy-trip-network:
