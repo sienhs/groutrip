@@ -2,12 +2,12 @@ import instance from './instance';
 import type { ApiResponse } from '../types/auth';
 import type {
   Expense,
-  ExpenseSummary,
+  SettlementSummary,
   ExpenseCreateRequest,
   ExpenseUpdateRequest,
 } from '../types/expense';
 
-/** 정산 API (백엔드 Part A: 목록 /expenses, 요약 /settle). */
+/** 정산 API (백엔드 Part B: 목록/등록 /expenses, 정산 매트릭스 /settlements). */
 
 /** 지출 목록. */
 export const getExpenses = async (groupId: number): Promise<Expense[]> => {
@@ -15,9 +15,9 @@ export const getExpenses = async (groupId: number): Promise<Expense[]> => {
   return res.data.data;
 };
 
-/** 정산 요약(총액·1인당·송금 목록). 경로: /settle */
-export const getExpenseSummary = async (groupId: number): Promise<ExpenseSummary> => {
-  const res = await instance.get<ApiResponse<ExpenseSummary>>(`/api/groups/${groupId}/settle`);
+/** 정산 매트릭스(총액·1인당·잔액·최소 송금). 경로: GET /settlements */
+export const getSettlement = async (groupId: number): Promise<SettlementSummary> => {
+  const res = await instance.get<ApiResponse<SettlementSummary>>(`/api/groups/${groupId}/settlements`);
   return res.data.data;
 };
 

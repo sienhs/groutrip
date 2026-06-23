@@ -79,6 +79,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
       if (!stops[i].placeId || !stops[i + 1].placeId) continue;
       const pairKey = `${stops[i].id}-${stops[i + 1].id}`;
       const mode = legMode[pairKey] ?? 'CAR';
+      if (mode === 'TRANSIT') continue; // 대중교통은 네이버 지도로 핸드오프 → 레그 조회 불필요
       const key = `${pairKey}:${mode}`;
       if (legs[key] !== undefined) continue;
       setLegs((prev) => ({ ...prev, [key]: 'loading' }));
@@ -254,6 +255,8 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
               <TransportRow
                 mode={mode}
                 leg={legs[`${pairKey}:${mode}`]}
+                from={stop}
+                to={stops[i + 1]}
                 onSelect={(m) => selectMode(pairKey, m)}
               />
             )}
@@ -274,6 +277,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
         <ScheduleAddModal
           groupId={groupId}
           defaultDate={activeDate}
+          defaultStart={stops.length ? stops[stops.length - 1].endTime : undefined}
           onClose={() => setAddOpen(false)}
           onAdded={() => { setLegs({}); load(); }}
         />
@@ -290,8 +294,17 @@ const MODE_PATH: Record<TransportMode, string> = {
 
 const MODES: TransportMode[] = ['CAR', 'TRANSIT', 'WALK'];
 
-/** 이동 카드 — 자동차/대중교통/도보 3개 탭(FR-SCHEDULE-04). 선택 수단의 시간·거리·비용 표시. */
-function TransportRow({ mode, leg, onSelect }: { mode: TransportMode; leg: LegState; onSelect: (m: TransportMode) => void }) {
+// 대중교통은 카카오 공개 API 미지원 → 네이버 지도 대중교통 길찾기로 핸드오프한다.
+function naverTransitUrl(from: Schedule, to: Schedule): string {
+  const s = `${from.placeLng},${from.placeLat},${encodeURIComponent(from.placeName ?? '출발')}`;
+  const e = `${to.placeLng},${to.placeLat},${encodeURIComponent(to.placeName ?? '도착')}`;
+  return `https://map.naver.com/p/directions/${s}/${e}/-/transit`;
+}
+
+/** 이동 카드 — 자동차/대중교통/도보 3개 탭(FR-SCHEDULE-04). 대중교통은 네이버 지도로 이동. */
+function TransportRow({ mode, leg, from, to, onSelect }: {
+  mode: TransportMode; leg: LegState; from: Schedule; to: Schedule; onSelect: (m: TransportMode) => void;
+}) {
   return (
     <div className="my-1 ml-[44px]">
       <div className="flex gap-1">
@@ -313,7 +326,17 @@ function TransportRow({ mode, leg, onSelect }: { mode: TransportMode; leg: LegSt
           </button>
         ))}
       </div>
-      <TransportInfo leg={leg} />
+      {mode === 'TRANSIT' ? (
+        <button
+          type="button"
+          onClick={() => window.open(naverTransitUrl(from, to), '_blank', 'noopener,noreferrer')}
+          className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-[#03C75A]"
+        >
+          네이버 지도에서 대중교통 길찾기 ↗
+        </button>
+      ) : (
+        <TransportInfo leg={leg} />
+      )}
     </div>
   );
 }

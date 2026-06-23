@@ -16,7 +16,7 @@ import type {
 // FE Schedule(평탄화 placeName/placeId, "HH:mm")로 매핑한다.
 interface ScheduleApiResponse {
   id: number;
-  place: { placeId: number; name: string; types?: string[] } | null; // 빈 일정이면 null
+  place: { placeId: number; name: string; latitude: number; longitude: number; types?: string[] } | null; // 빈 일정이면 null
   title: string | null;
   scheduleDate: string;
   orderIndex: number;
@@ -34,6 +34,8 @@ const toSchedule = (r: ScheduleApiResponse): Schedule => ({
   id: r.id,
   placeId: r.place ? r.place.placeId : null,
   placeName: r.place ? r.place.name : null,
+  placeLat: r.place ? r.place.latitude : null,
+  placeLng: r.place ? r.place.longitude : null,
   title: r.title,
   category: null,
   scheduleDate: r.scheduleDate,

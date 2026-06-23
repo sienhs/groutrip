@@ -6,7 +6,7 @@ import MultiSelect from '../../components/MultiSelect';
 import Button from '../../components/Button';
 import { useToast } from '../../components/Toast';
 import { addExpense, updateExpense } from '../../api/expense';
-import { EXPENSE_CATEGORIES, type Expense } from '../../types/expense';
+import { EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from '../../types/expense';
 import type { GroupMember } from '../../types/group';
 
 interface Props {
@@ -27,16 +27,16 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
   const [amount, setAmount] = useState('');
   const [payerId, setPayerId] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
-  const [category, setCategory] = useState<string>(EXPENSE_CATEGORIES[0]);
+  const [category, setCategory] = useState<ExpenseCategory>('MEAL');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setTitle(expense?.title ?? '');
+    setTitle(expense?.description ?? '');
     setAmount(expense ? String(expense.amount) : '');
     setPayerId(expense ? String(expense.payerId) : String(members[0]?.userId ?? ''));
-    setParticipants((expense?.participantIds ?? members.map((m) => m.userId)).map(String));
-    setCategory(expense?.category ?? EXPENSE_CATEGORIES[0]);
+    setParticipants((expense?.splits.map((s) => s.userId) ?? members.map((m) => m.userId)).map(String));
+    setCategory(expense?.category ?? 'MEAL');
   }, [open, expense, members]);
 
   const amountNum = Number(amount);
@@ -45,18 +45,21 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
   const handleSubmit = async () => {
     if (!valid) return;
     setSubmitting(true);
+    // 백엔드 ExpenseCreateRequest: EQUAL 분담(participantIds), description, paidAt(결제일).
     const body = {
-      title: title.trim(),
       amount: amountNum,
       payerId: Number(payerId),
-      participantIds: participants.map(Number),
       category,
+      splitType: 'EQUAL' as const,
+      description: title.trim(),
+      paidAt: expense?.paidAt ?? new Date().toISOString().slice(0, 10),
+      participantIds: participants.map(Number),
     };
     try {
       const saved = editing
         ? await updateExpense(groupId, expense!.id, body)
         : await addExpense(groupId, body);
-      toast.success(editing ? '지출을 수정했어요' : '지출을 추가했어요', saved.title);
+      toast.success(editing ? '지출을 수정했어요' : '지출을 추가했어요', saved.description);
       onSaved(saved);
       onClose();
     } catch {
@@ -103,8 +106,8 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
         <Select
           label="카테고리"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          options={EXPENSE_CATEGORIES.map((c) => ({ value: c, label: c }))}
+          onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+          options={EXPENSE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
         />
         <MultiSelect
           label="분담 대상"

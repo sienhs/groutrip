@@ -14,15 +14,30 @@ interface Props {
   groupId: number;
   /** 기본 선택 일자(현재 보고 있는 일차). 없으면 그룹 시작일. */
   defaultDate?: string;
+  /** 직전 일정의 종료 시각("HH:mm"). 있으면 그 이후 1시간 단위로 자동 세팅. */
+  defaultStart?: string;
   onClose: () => void;
   onAdded: () => void;
 }
+
+// "HH:mm"을 다음 정시로 올림(분이 0이면 그대로). 예: 13:30→14:00, 14:00→14:00
+const ceilHour = (t: string): string => {
+  const [h, m] = t.split(':').map(Number);
+  const hh = (m > 0 ? h + 1 : h) % 24;
+  return `${String(hh).padStart(2, '0')}:00`;
+};
+const addHour = (t: string): string => {
+  const [h] = t.split(':').map(Number);
+  return `${String((h + 1) % 24).padStart(2, '0')}:00`;
+};
 
 /**
  * FR-SCHEDULE-01: 일정 추가. 보관함 장소 + 일자 + 시작/종료 시각(+메모/예상비용).
  * 일자는 그룹 여행 기간 내로 제한(백엔드도 SCHEDULE_OUT_OF_PERIOD 검증).
  */
-export default function ScheduleAddModal({ groupId, defaultDate, onClose, onAdded }: Props) {
+export default function ScheduleAddModal({ groupId, defaultDate, defaultStart, onClose, onAdded }: Props) {
+  // 직전 일정 종료 이후 정시로 시작, 1시간 일정 기본.
+  const initialStart = defaultStart ? ceilHour(defaultStart) : '10:00';
   const toast = useToast();
   const [bookmarks, setBookmarks] = useState<BookmarkResponse[]>([]);
   const [period, setPeriod] = useState<{ start: string; end: string } | null>(null);
@@ -33,8 +48,8 @@ export default function ScheduleAddModal({ groupId, defaultDate, onClose, onAdde
   const [placeId, setPlaceId] = useState('');
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(defaultDate ?? '');
-  const [start, setStart] = useState('10:00');
-  const [end, setEnd] = useState('12:00');
+  const [start, setStart] = useState(initialStart);
+  const [end, setEnd] = useState(addHour(initialStart));
   const [memo, setMemo] = useState('');
   const [cost, setCost] = useState('');
   const [saving, setSaving] = useState(false);

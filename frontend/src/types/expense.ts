@@ -1,53 +1,96 @@
 /**
- * ⚠️ PLACEHOLDER — 정산(B 도메인) DTO 미확정. 백엔드 확정 시 필드 교체.
+ * 정산(FR-EXPENSE) — 백엔드 Part B 계약에 맞춤.
+ *  - 지출: ExpenseResponse (amount Long, category enum, splitType, description, paidAt, splits[])
+ *  - 정산 매트릭스: SettlementSummaryResponse (balances[], transfers[]) — GET /settlements
  */
 
+export type ExpenseCategory = 'MEAL' | 'LODGING' | 'TRANSPORT' | 'TICKET' | 'OTHER';
+export type SplitType = 'EQUAL' | 'RATIO' | 'AMOUNT';
+
+export interface ExpenseSplit {
+  userId: number;
+  name: string;
+  owedAmount: number;
+}
+
+/** ExpenseResponse. */
 export interface Expense {
   id: number;
-  title: string;
-  /** 원 단위 금액 */
-  amount: number;
+  groupId: number;
   payerId: number;
   payerName: string;
-  /** 분담 대상 userId 목록 */
-  participantIds: number[];
-  /** 항목 카테고리(식비/교통/숙박/기타 등) */
-  category: string;
-  createdAt: string; // ISO
-}
-
-/** 정산 송금 1건(누가 → 누구에게). */
-export interface Settlement {
-  fromId: number;
-  fromName: string;
-  toId: number;
-  toName: string;
+  createdByUserId: number;
   amount: number;
+  category: ExpenseCategory;
+  splitType: SplitType;
+  description: string;
+  paidAt: string; // YYYY-MM-DD
+  sourceScheduleId: number | null;
+  splits: ExpenseSplit[];
 }
 
-export interface ExpenseSummary {
-  total: number;
-  perPerson: number;
-  memberCount: number;
-  settlements: Settlement[];
-}
-
+/** ExpenseCreateRequest (EQUAL 분담 기준). */
 export interface ExpenseCreateRequest {
-  title: string;
   amount: number;
   payerId: number;
+  category: ExpenseCategory;
+  splitType: SplitType;
+  description: string;
+  paidAt: string;
   participantIds: number[];
-  category: string;
 }
 
 export type ExpenseUpdateRequest = ExpenseCreateRequest;
 
-export const EXPENSE_CATEGORIES = ['식비', '교통', '숙박', '관광', '쇼핑', '기타'] as const;
-export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+/* ── 정산 매트릭스 (GET /settlements = SettlementSummaryResponse) ── */
+export interface SettlementBalance {
+  userId: number;
+  name: string;
+  paidAmount: number;
+  owedAmount: number;
+  balanceAmount: number; // +면 받을 돈, -면 줄 돈
+}
 
-const ICON: Record<string, string> = {
-  식비: '🍽️', 교통: '🚗', 숙박: '🏨', 관광: '🎟️', 쇼핑: '🛍️', 기타: '💳',
+export interface SettlementTransfer {
+  fromUserId: number;
+  fromName: string;
+  toUserId: number;
+  toName: string;
+  amount: number;
+}
+
+export interface SettlementSummary {
+  groupId: number;
+  totalExpenseAmount: number;
+  averagePerMemberAmount: number;
+  balances: SettlementBalance[];
+  transfers: SettlementTransfer[];
+}
+
+/* ── 표시 상수 ── */
+export const EXPENSE_CATEGORIES: ReadonlyArray<{ value: ExpenseCategory; label: string }> = [
+  { value: 'MEAL', label: '식비' },
+  { value: 'LODGING', label: '숙박' },
+  { value: 'TRANSPORT', label: '교통' },
+  { value: 'TICKET', label: '입장료' },
+  { value: 'OTHER', label: '기타' },
+];
+
+export const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
+  MEAL: '식비',
+  LODGING: '숙박',
+  TRANSPORT: '교통',
+  TICKET: '입장료',
+  OTHER: '기타',
 };
-export const expenseIcon = (category: string): string => ICON[category] ?? '💳';
+
+const ICON: Record<ExpenseCategory, string> = {
+  MEAL: '🍽️',
+  LODGING: '🏨',
+  TRANSPORT: '🚗',
+  TICKET: '🎟️',
+  OTHER: '💳',
+};
+export const expenseIcon = (category: ExpenseCategory): string => ICON[category] ?? '💳';
 
 export const formatWon = (n: number): string => `₩ ${n.toLocaleString('ko-KR')}`;

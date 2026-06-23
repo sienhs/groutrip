@@ -33,19 +33,26 @@ export default function Modal({
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // 포커스 이동 + 바디 스크롤 잠금은 '열림' 전환 시에만. (onClose 의존성에 묶으면
+  //  부모 리렌더마다 재실행돼 입력 중 패널로 포커스를 뺏어가 '연속 입력 불가'가 됨)
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    panelRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  // ESC 닫기는 최신 onClose를 써야 하므로 별도 effect(재구독은 무해, 포커스는 안 건드림).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && dismissable) onClose();
     };
     document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    panelRef.current?.focus();
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [open, dismissable, onClose]);
 
   if (!open) return null;

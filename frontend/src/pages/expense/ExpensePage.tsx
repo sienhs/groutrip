@@ -7,8 +7,8 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import ExpenseFormModal from './ExpenseFormModal';
 import SettlementPanel from './SettlementPanel';
-import { getExpenses, getExpenseSummary, deleteExpense } from '../../api/expense';
-import { expenseIcon, formatWon, type Expense, type ExpenseSummary } from '../../types/expense';
+import { getExpenses, getSettlement, deleteExpense } from '../../api/expense';
+import { expenseIcon, formatWon, type Expense, type SettlementSummary } from '../../types/expense';
 import type { GroupMember } from '../../types/group';
 import useAuthStore from '../../store/authStore';
 
@@ -23,7 +23,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
   const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [summary, setSummary] = useState<ExpenseSummary | null>(null);
+  const [summary, setSummary] = useState<SettlementSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -36,7 +36,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
     setLoading(true);
     setError(false);
     try {
-      const [e, s] = await Promise.all([getExpenses(groupId), getExpenseSummary(groupId)]);
+      const [e, s] = await Promise.all([getExpenses(groupId), getSettlement(groupId)]);
       setExpenses(e);
       setSummary(s);
     } catch {
@@ -55,7 +55,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
     setDeleteLoading(true);
     try {
       await deleteExpense(groupId, deleting.id);
-      toast.success('삭제했어요', deleting.title);
+      toast.success('삭제했어요', deleting.description);
       setDeleting(null);
       load();
     } catch {
@@ -87,10 +87,10 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
           {/* 총 지출 */}
           <div className="rounded-card bg-gradient-to-br from-[#FF9F66] to-[#FF8A47] p-4 text-white">
             <p className="text-[12px] opacity-90">총 지출</p>
-            <p className="mt-0.5 text-[25px] font-extrabold">{formatWon(summary?.total ?? 0)}</p>
+            <p className="mt-0.5 text-[25px] font-extrabold">{formatWon(summary?.totalExpenseAmount ?? 0)}</p>
             {summary && (
               <p className="mt-0.5 text-[12px] opacity-90">
-                1인당 약 {formatWon(summary.perPerson)} · {summary.memberCount}명
+                1인당 약 {formatWon(summary.averagePerMemberAmount)} · {summary.balances.length}명
               </p>
             )}
           </div>
@@ -106,8 +106,8 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
                   <div key={e.id} className="flex items-center gap-3 rounded-card border border-border bg-surface px-3.5 py-3">
                     <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#FFF1E6] text-[17px]">{expenseIcon(e.category)}</span>
                     <button type="button" onClick={() => { setEditing(e); setFormOpen(true); }} className="min-w-0 flex-1 text-left">
-                      <div className="truncate text-[15px] font-bold">{e.title}</div>
-                      <div className="text-[12px] text-muted">{e.payerName} 결제 · {e.participantIds.length}명 분담</div>
+                      <div className="truncate text-[15px] font-bold">{e.description}</div>
+                      <div className="text-[12px] text-muted">{e.payerName} 결제 · {e.splits.length}명 분담</div>
                     </button>
                     <span className="text-[15px] font-extrabold">{formatWon(e.amount)}</span>
                     <button
@@ -130,7 +130,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
           <SettlementPanel
             groupId={groupId}
             currentUserId={currentUserId}
-            fallback={summary?.settlements ?? []}
+            fallback={(summary?.transfers ?? []).map((t) => ({ fromName: t.fromName, toName: t.toName, amount: t.amount }))}
           />
         </div>
       )}
@@ -163,7 +163,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
         loading={deleteLoading}
         danger
         title="지출을 삭제할까요?"
-        description={deleting ? `'${deleting.title}'을(를) 삭제합니다.` : undefined}
+        description={deleting ? `'${deleting.description}'을(를) 삭제합니다.` : undefined}
         confirmText="삭제"
       />
     </div>

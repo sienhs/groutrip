@@ -14,6 +14,8 @@ export interface Schedule {
   /** 빈 일정(투표로 정할 일정)이면 null */
   placeId: number | null;
   placeName: string | null;
+  placeLat: number | null;
+  placeLng: number | null;
   /** 빈 일정의 사용자 제목 */
   title: string | null;
   category?: string | null;
