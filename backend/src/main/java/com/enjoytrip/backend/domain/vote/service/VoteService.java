@@ -198,12 +198,10 @@ public class VoteService {
         return session;
     }
 
-    // FR-VOTE-03: Owner이거나 세션 생성자 또는 후보 등록자만 마감/채택할 수 있다.
+    // FR-VOTE-03: 투표를 연 사람(세션 생성자)만 마감/채택할 수 있다. Owner는 관리 차원의 예외로 허용.
     private void validateCloser(VoteSession session, GroupMember member,
                                 List<VoteCandidate> candidates, Long userId) {
-        boolean allowed = member.isOwner()
-                || session.getCreatedBy().getId().equals(userId)
-                || candidates.stream().anyMatch(c -> c.getRegisteredBy().getId().equals(userId));
+        boolean allowed = session.getCreatedBy().getId().equals(userId) || member.isOwner();
         if (!allowed) {
             throw new BusinessException(ErrorCode.GROUP_OWNER_REQUIRED);
         }

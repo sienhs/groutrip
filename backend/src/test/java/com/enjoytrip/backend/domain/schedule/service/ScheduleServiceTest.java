@@ -81,7 +81,7 @@ class ScheduleServiceTest {
         });
 
         ScheduleResponse response = scheduleService.create(1L, new ScheduleCreateRequest(
-                5L, date, LocalTime.of(10, 0), LocalTime.of(12, 0), "메모", 30000L, TransportMode.CAR));
+                5L, null, date, LocalTime.of(10, 0), LocalTime.of(12, 0), "메모", 30000L, TransportMode.CAR));
 
         assertThat(response.id()).isEqualTo(100L);
         assertThat(response.orderIndex()).isEqualTo(3);
@@ -97,7 +97,7 @@ class ScheduleServiceTest {
         when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group));
 
         assertThatThrownBy(() -> scheduleService.create(1L, new ScheduleCreateRequest(
-                5L, LocalDate.of(2026, 7, 1), LocalTime.of(12, 0), LocalTime.of(10, 0), null, null, null)))
+                5L, null, LocalDate.of(2026, 7, 1), LocalTime.of(12, 0), LocalTime.of(10, 0), null, null, null)))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.SCHEDULE_TIME_INVALID);
@@ -111,7 +111,7 @@ class ScheduleServiceTest {
         when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group));
 
         assertThatThrownBy(() -> scheduleService.create(1L, new ScheduleCreateRequest(
-                5L, LocalDate.of(2026, 7, 10), LocalTime.of(10, 0), LocalTime.of(12, 0), null, null, null)))
+                5L, null, LocalDate.of(2026, 7, 10), LocalTime.of(10, 0), LocalTime.of(12, 0), null, null, null)))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.SCHEDULE_OUT_OF_PERIOD);

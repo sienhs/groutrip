@@ -15,8 +15,12 @@ import jakarta.validation.constraints.Size;
  */
 public record ScheduleCreateRequest(
 
-        @NotNull
+        // 보관함 장소 id. 빈 일정(투표로 정할 일정)이면 null이고 title을 받는다.
         Long placeId,
+
+        // 빈 일정 제목. placeId가 없으면 필수(서비스에서 검증).
+        @Size(max = 100)
+        String title,
 
         @NotNull
         LocalDate scheduleDate,

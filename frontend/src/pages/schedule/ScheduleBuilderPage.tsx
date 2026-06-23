@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
@@ -8,6 +8,7 @@ import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import ScheduleAddModal from './ScheduleAddModal';
 import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg } from '../../api/schedule';
+import { createVoteSession, getVoteSessions } from '../../api/vote';
 import {
   TRANSPORT_META,
   formatKm,
@@ -30,6 +31,7 @@ type LegState = TransportLeg | 'loading' | 'error' | undefined;
 export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?: number }) {
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
+  const navigate = useNavigate();
   const toast = useToast();
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -73,6 +75,8 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
   useEffect(() => {
     let cancelled = false;
     for (let i = 0; i < stops.length - 1; i += 1) {
+      // 빈 일정(장소 미정)은 좌표가 없어 이동 계산 불가 → 건너뛴다.
+      if (!stops[i].placeId || !stops[i + 1].placeId) continue;
       const pairKey = `${stops[i].id}-${stops[i + 1].id}`;
       const mode = legMode[pairKey] ?? 'CAR';
       const key = `${pairKey}:${mode}`;
@@ -88,6 +92,25 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
 
   const selectMode = (pairKey: string, mode: TransportMode) =>
     setLegMode((prev) => ({ ...prev, [pairKey]: mode }));
+
+  // 빈 일정의 장소를 투표로 정한다. 진행 중이면 그 투표로, 아니면 새로 만들어 이동.
+  const goVote = async (stop: Schedule) => {
+    try {
+      if (stop.status === 'VOTING') {
+        const sessions = await getVoteSessions(groupId, stop.id);
+        const open = sessions.find((s) => s.status === 'OPEN') ?? sessions[0];
+        if (open) {
+          navigate(`/groups/${groupId}/votes/${open.id}`);
+          return;
+        }
+      }
+      const session = await createVoteSession(groupId, stop.id, {});
+      navigate(`/groups/${groupId}/votes/${session.id}`);
+    } catch (e) {
+      const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
+      toast.error('투표로 이동하지 못했어요', message ?? '잠시 후 다시 시도해 주세요.');
+    }
+  };
 
   const setStops = (next: Schedule[]) => {
     const others = schedules.filter((s) => s.scheduleDate !== activeDate);
@@ -125,7 +148,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
     setDelLoading(true);
     try {
       await deleteSchedule(groupId, deleting.id);
-      toast.success('일정을 삭제했어요', deleting.placeName);
+      toast.success('일정을 삭제했어요', deleting.placeName ?? deleting.title ?? undefined);
       setDeleting(null);
       setLegs({}); setLegMode({});
       load();
@@ -176,6 +199,8 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
       <div className="mt-4">
         {stops.map((stop, i) => {
           const hasNext = i < stops.length - 1;
+          // 양쪽 모두 장소가 있어야 이동 정보를 표시한다(빈 일정 제외).
+          const showTransport = hasNext && !!stop.placeId && !!stops[i + 1].placeId;
           const pairKey = hasNext ? `${stop.id}-${stops[i + 1].id}` : '';
           const mode = legMode[pairKey] ?? 'CAR';
           return (
@@ -189,11 +214,31 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="truncate text-[15px] font-extrabold">{stop.placeName}</span>
+                      <span className={cn('truncate text-[15px] font-extrabold', !stop.placeId && 'text-[#A6907B]')}>
+                        {stop.placeName ?? stop.title ?? '미정'}
+                      </span>
                       {stop.category && <Badge tone="neutral">{stop.category}</Badge>}
+                      {!stop.placeId && (
+                        <Badge tone={stop.status === 'VOTING' ? 'warning' : 'neutral'}>
+                          {stop.status === 'VOTING' ? '투표 중' : '장소 미정'}
+                        </Badge>
+                      )}
                     </div>
                     <div className="mt-0.5 text-[12px] text-muted">{stop.startTime}–{stop.endTime}</div>
                     {stop.memo && <div className="mt-1 text-[12px] text-[#5C5044]">{stop.memo}</div>}
+                    {/* 빈 일정: 투표로 장소 정하기 */}
+                    {!stop.placeId && (
+                      <button
+                        type="button"
+                        onClick={() => goVote(stop)}
+                        className="mt-2 inline-flex items-center gap-1 rounded-button bg-[#FFF1E6] px-2.5 py-1 text-[12px] font-bold text-[#E8742E]"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        {stop.status === 'VOTING' ? '투표 보기' : '투표로 장소 정하기'}
+                      </button>
+                    )}
                   </div>
                   <span className="cursor-grab text-[#C0AE9B] active:cursor-grabbing" aria-hidden>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 7h.01M8 12h.01M8 17h.01M15 7h.01M15 12h.01M15 17h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
@@ -205,7 +250,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
                 </div>
               </div>
             </article>
-            {hasNext && (
+            {showTransport && (
               <TransportRow
                 mode={mode}
                 leg={legs[`${pairKey}:${mode}`]}
@@ -223,7 +268,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp }: { groupId?
       <p className="mt-3 text-center text-[12px] text-[#BCA48C]">⌁ 카드를 드래그해 순서를 바꿀 수 있어요 · 이동시간은 카카오 모빌리티(자차 기준)</p>
 
       <ConfirmModal open={!!deleting} onClose={() => setDeleting(null)} onConfirm={confirmDelete} loading={delLoading} danger
-        title="일정에서 삭제할까요?" description={deleting ? `'${deleting.placeName}'을(를) 일정에서 제거합니다.` : undefined} confirmText="삭제" />
+        title="일정에서 삭제할까요?" description={deleting ? `'${deleting.placeName ?? deleting.title ?? '미정'}'을(를) 일정에서 제거합니다.` : undefined} confirmText="삭제" />
 
       {addOpen && (
         <ScheduleAddModal

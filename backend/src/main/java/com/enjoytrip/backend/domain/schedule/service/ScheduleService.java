@@ -57,13 +57,20 @@ public class ScheduleService {
         validateWithinPeriod(group, request.scheduleDate());
         validateTimeRange(request.startTime(), request.endTime());
 
-        Place place = placeRepository.findById(request.placeId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
+        // 빈 일정(투표로 정할 일정)은 placeId 없이 title로 만든다. 장소·제목 둘 다 없으면 거부.
+        Place place = null;
+        if (request.placeId() != null) {
+            place = placeRepository.findById(request.placeId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
+        } else if (request.title() == null || request.title().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
 
         int nextOrderIndex = nextOrderIndex(groupId, request.scheduleDate());
         Schedule schedule = scheduleRepository.save(Schedule.builder()
                 .travelGroup(group)
                 .place(place)
+                .title(request.title())
                 .scheduleDate(request.scheduleDate())
                 .orderIndex(nextOrderIndex)
                 .startTime(request.startTime())
@@ -172,7 +179,8 @@ public class ScheduleService {
     }
 
     private ScheduleResponse toResponse(Schedule schedule) {
-        String photoName = schedule.getPlace().getPhotoName();
+        // 빈 일정은 place가 null이라 사진도 없다.
+        String photoName = schedule.getPlace() == null ? null : schedule.getPlace().getPhotoName();
         String photoUrl = photoName == null ? null : PlacePhotoController.proxyUrl(photoName);
         return ScheduleResponse.from(schedule, photoUrl);
     }

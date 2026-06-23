@@ -43,9 +43,14 @@ public class Schedule extends BaseEntity {
     @JoinColumn(name = "group_id", nullable = false)
     private TravelGroup travelGroup;
 
+    // 빈 일정(투표로 장소를 정할 일정)은 place가 null이며 title로 식별한다.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "place_id", nullable = false)
+    @JoinColumn(name = "place_id")
     private Place place;
+
+    // 빈 일정의 사용자 입력 제목(장소가 정해지기 전 식별용). 장소 기반 일정에선 선택값.
+    @Column(length = 100)
+    private String title;
 
     // 방문 일자. 그룹 여행 기간(start~end) 안이어야 한다.
     @Column(nullable = false)
@@ -85,11 +90,12 @@ public class Schedule extends BaseEntity {
     private User updatedBy;
 
     @Builder
-    private Schedule(TravelGroup travelGroup, Place place, LocalDate scheduleDate, int orderIndex,
+    private Schedule(TravelGroup travelGroup, Place place, String title, LocalDate scheduleDate, int orderIndex,
                      LocalTime startTime, LocalTime endTime, String memo, Long estimatedCost,
                      TransportMode transportMode, ScheduleStatus status, User createdBy, User updatedBy) {
         this.travelGroup = travelGroup;
         this.place = place;
+        this.title = title;
         this.scheduleDate = scheduleDate;
         this.orderIndex = orderIndex;
         this.startTime = startTime;

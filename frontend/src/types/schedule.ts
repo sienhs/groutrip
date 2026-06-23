@@ -11,8 +11,11 @@ export type TransportCostType = 'DRIVING' | 'TAXI' | 'TRANSIT';
 
 export interface Schedule {
   id: number;
-  placeId: number;
-  placeName: string;
+  /** 빈 일정(투표로 정할 일정)이면 null */
+  placeId: number | null;
+  placeName: string | null;
+  /** 빈 일정의 사용자 제목 */
+  title: string | null;
   category?: string | null;
   scheduleDate: string; // YYYY-MM-DD
   startTime: string; // HH:mm
@@ -25,7 +28,10 @@ export interface Schedule {
 }
 
 export interface ScheduleCreateRequest {
-  placeId: number;
+  /** 보관함 장소 id. 빈 일정이면 생략하고 title을 보낸다. */
+  placeId?: number;
+  /** 빈 일정 제목(placeId 없을 때 필수) */
+  title?: string;
   scheduleDate: string;
   startTime: string;
   endTime: string;

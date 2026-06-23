@@ -14,7 +14,8 @@ import com.enjoytrip.backend.domain.schedule.entity.TransportMode;
  */
 public record ScheduleResponse(
         Long id,
-        PlaceResponse place,
+        PlaceResponse place,   // 빈 일정이면 null
+        String title,          // 빈 일정의 사용자 제목(장소 기반 일정에선 null일 수 있음)
         LocalDate scheduleDate,
         int orderIndex,
         LocalTime startTime,
@@ -34,7 +35,8 @@ public record ScheduleResponse(
     public static ScheduleResponse from(Schedule schedule, String photoUrl) {
         return new ScheduleResponse(
                 schedule.getId(),
-                PlaceResponse.from(schedule.getPlace(), photoUrl),
+                schedule.getPlace() == null ? null : PlaceResponse.from(schedule.getPlace(), photoUrl),
+                schedule.getTitle(),
                 schedule.getScheduleDate(),
                 schedule.getOrderIndex(),
                 schedule.getStartTime(),
