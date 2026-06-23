@@ -13,6 +13,7 @@ import SurveyResultPage from './pages/survey/SurveyResultPage';
 import GroupListPage from './pages/group/GroupListPage';
 import GroupCreatePage from './pages/group/GroupCreatePage';
 import GroupDetailPage from './pages/group/GroupDetailPage';
+import JoinGroupPage from './pages/group/JoinGroupPage';
 import TripPlanPage from './pages/group/TripPlanPage';
 import RecommendPage from './pages/recommend/RecommendPage';
 import RecommendLandingPage from './pages/recommend/RecommendLandingPage';
@@ -68,6 +69,7 @@ function App() {
 
         {/* 그룹 (B 도메인 placeholder) */}
         <Route path="/groups" element={<ProtectedRoute><GroupListPage /></ProtectedRoute>} />
+        <Route path="/join/:code" element={<ProtectedRoute><JoinGroupPage /></ProtectedRoute>} />
         <Route path="/groups/new" element={<ProtectedRoute><GroupCreatePage /></ProtectedRoute>} />
         <Route path="/groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
         <Route path="/groups/:id/plan" element={<ProtectedRoute><TripPlanPage /></ProtectedRoute>} />

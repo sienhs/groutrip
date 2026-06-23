@@ -116,11 +116,13 @@ export default function GroupDetailPage() {
       toast.info('초대', '초대 코드를 불러오는 중이에요.');
       return;
     }
+    // 코드 대신 바로 합류할 수 있는 초대 링크를 복사한다(/join/:code).
+    const link = `${window.location.origin}/join/${code}`;
     try {
-      await navigator.clipboard.writeText(code);
-      toast.success('초대 코드를 복사했어요', `코드 ${code}`);
+      await navigator.clipboard.writeText(link);
+      toast.success('초대 링크를 복사했어요', '링크를 공유하면 바로 참여할 수 있어요.');
     } catch {
-      toast.info('초대 코드', `코드 ${code}`);
+      toast.info('초대 링크', link);
     }
   }, [group?.inviteCode, toast]);
 
