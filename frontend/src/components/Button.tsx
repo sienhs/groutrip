@@ -19,7 +19,7 @@ const VARIANT: Record<Variant, string> = {
   danger:
     'bg-danger text-white shadow-sm hover:bg-[#DC2626] active:bg-[#B91C1C]',
   ghost:
-    'bg-transparent text-[#7A6A58] hover:bg-black/5 active:bg-black/10',
+    'bg-transparent text-muted hover:bg-black/5 active:bg-black/10',
 };
 
 const SIZE: Record<Size, string> = {

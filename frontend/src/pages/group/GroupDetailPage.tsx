@@ -358,7 +358,7 @@ function MemberTab({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[12px] text-muted">초대 코드</div>
-            <div className="text-[18px] font-extrabold tracking-[0.15em] text-[#3A322B]">{inviteCode || '------'}</div>
+            <div className="text-[18px] font-extrabold tracking-[0.15em] text-foreground">{inviteCode || '------'}</div>
           </div>
           <Button size="sm" variant="secondary" onClick={onCopyInvite}>코드 복사</Button>
         </div>

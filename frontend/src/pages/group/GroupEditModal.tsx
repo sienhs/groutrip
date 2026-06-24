@@ -123,7 +123,7 @@ export default function GroupEditModal({ group, onClose, onSaved, onDeleted }: P
         />
 
         <div>
-          <span className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">여행 기간</span>
+          <span className="mb-1.5 block text-[13px] font-bold text-foreground">여행 기간</span>
           <div className="flex items-center gap-2">
             <Input type="date" value={start} disabled={started} onChange={(e) => setStart(e.target.value)} />
             <span className="text-[#C0AE9B]">–</span>
@@ -141,7 +141,7 @@ export default function GroupEditModal({ group, onClose, onSaved, onDeleted }: P
         </div>
 
         <div>
-          <span className="mb-2 block text-[13px] font-bold text-[#3A322B]">커버</span>
+          <span className="mb-2 block text-[13px] font-bold text-foreground">커버</span>
           <div className="grid grid-cols-4 gap-2">
             {COVER_PRESETS.map((c) => (
               <button

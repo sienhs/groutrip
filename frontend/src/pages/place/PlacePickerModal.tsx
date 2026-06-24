@@ -104,7 +104,7 @@ export default function PlacePickerModal({ groupId, title = '장소 선택', des
               aria-pressed={tab === o.v}
               className={cn(
                 'flex-1 rounded-button px-2 py-2 text-[13px] font-bold transition-colors',
-                tab === o.v ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-[#7A6A58]',
+                tab === o.v ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-muted',
               )}
             >
               {o.label}
@@ -122,7 +122,7 @@ export default function PlacePickerModal({ groupId, title = '장소 선택', des
               {bookmarks.map((b) => (
                 <div key={b.id} className="flex items-center gap-3 rounded-card border border-border bg-surface p-2.5">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14px] font-bold text-[#3A322B]">{b.place.name}</div>
+                    <div className="truncate text-[14px] font-bold text-foreground">{b.place.name}</div>
                     {b.place.address && <div className="truncate text-[12px] text-muted">{b.place.address}</div>}
                   </div>
                   <Button size="sm" disabled={busyKey != null} loading={busyKey === `bm-${b.id}`} onClick={() => pickBookmark(b.place.placeId, `bm-${b.id}`)}>
@@ -150,7 +150,7 @@ export default function PlacePickerModal({ groupId, title = '장소 선택', des
                 {results.map((p) => (
                   <div key={p.googlePlaceId} className="flex items-center gap-3 rounded-card border border-border bg-surface p-2.5">
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[14px] font-bold text-[#3A322B]">{p.name}</div>
+                      <div className="truncate text-[14px] font-bold text-foreground">{p.name}</div>
                       {p.address && <div className="truncate text-[12px] text-muted">{p.address}</div>}
                     </div>
                     <Button size="sm" disabled={busyKey != null} loading={busyKey === p.googlePlaceId} onClick={() => pickSearched(p)}>

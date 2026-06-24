@@ -152,7 +152,7 @@ function QuickActions({ navigate }: { navigate: (to: string) => void }) {
           <span className={cn('flex size-10 items-center justify-center rounded-[12px]', a.bg, a.fg)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>{a.icon}</svg>
           </span>
-          <span className="text-[11px] font-bold text-[#5C5044]">{a.label}</span>
+          <span className="text-[11px] font-bold text-muted">{a.label}</span>
         </button>
       ))}
     </div>

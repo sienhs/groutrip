@@ -267,7 +267,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
         {dates.map((d, i) => (
           <button key={d} type="button" aria-pressed={activeIdx === i} onClick={() => setActiveIdx(i)}
             className={cn('shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors',
-              activeIdx === i ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-surface text-[#7A6A58]')}>
+              activeIdx === i ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-surface text-muted')}>
             {i + 1}일차 <span className="opacity-70">{d.slice(5).replace('-', '.')}</span>
           </button>
         ))}
@@ -307,7 +307,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                       )}
                     </div>
                     <div className="mt-0.5 text-[12px] text-muted">{stop.startTime}–{stop.endTime}</div>
-                    {stop.memo && <div className="mt-1 text-[12px] text-[#5C5044]">{stop.memo}</div>}
+                    {stop.memo && <div className="mt-1 text-[12px] text-muted">{stop.memo}</div>}
                     {/* 빈 일정: 투표로 정하기 / (Owner) 직접 정하기 */}
                     {!stop.placeId && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -325,7 +325,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                           <button
                             type="button"
                             onClick={() => setPickFor(stop)}
-                            className="inline-flex items-center gap-1 rounded-button border border-border bg-surface px-2.5 py-1 text-[12px] font-bold text-[#7A6A58]"
+                            className="inline-flex items-center gap-1 rounded-button border border-border bg-surface px-2.5 py-1 text-[12px] font-bold text-muted"
                           >
                             직접 정하기
                           </button>
@@ -429,7 +429,7 @@ function TransportRow({ mode, leg, from, to, onSelect }: {
             onClick={() => onSelect(m)}
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors',
-              mode === m ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-[#7A6A58]',
+              mode === m ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-muted',
             )}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>

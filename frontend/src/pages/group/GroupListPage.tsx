@@ -101,7 +101,7 @@ export default function GroupListPage() {
                 'shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors',
                 active
                   ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-surface text-[#7A6A58]',
+                  : 'border-border bg-surface text-muted',
               )}
             >
               {f.label} {n}

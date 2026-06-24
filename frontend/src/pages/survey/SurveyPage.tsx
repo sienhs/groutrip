@@ -94,7 +94,7 @@ export default function SurveyPage() {
   if (loadError || total === 0) {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-        <p className="text-[15px] font-bold text-[#3A322B]">설문을 불러오지 못했어요</p>
+        <p className="text-[15px] font-bold text-foreground">설문을 불러오지 못했어요</p>
         <Button variant="secondary" onClick={load}>다시 시도</Button>
       </div>
     );
@@ -137,7 +137,7 @@ export default function SurveyPage() {
           type="button"
           aria-label="이전"
           onClick={handleBack}
-          className="-ml-1.5 flex size-8 items-center justify-center text-[#5C5044]"
+          className="-ml-1.5 flex size-8 items-center justify-center text-muted"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

@@ -114,7 +114,7 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
                   type="button"
                   aria-label="알림 닫기"
                   onClick={() => remove(t.id)}
-                  className="ml-auto shrink-0 self-start text-[#C0AE9B] hover:text-[#7A6A58]"
+                  className="ml-auto shrink-0 self-start text-[#C0AE9B] hover:text-muted"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />

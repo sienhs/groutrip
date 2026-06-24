@@ -333,7 +333,7 @@ export default function TripPlanPage() {
       {step === 'start' && (
         <div className="space-y-4">
           <div>
-            <p className="text-[13px] font-bold text-[#3A322B]">목적지 · {destination}</p>
+            <p className="text-[13px] font-bold text-foreground">목적지 · {destination}</p>
             <p className="mt-1 text-[13px] text-muted">어떻게 장소를 정해볼까요?</p>
           </div>
           <ChoiceCard
@@ -353,7 +353,7 @@ export default function TripPlanPage() {
         <div className="space-y-4">
           <StepBack onClick={() => setStep('start')} label="다른 방법으로 시작" />
           <p className="text-[13px] text-muted">
-            <b className="text-[#3A322B]">{destination}</b> 안에서 여행할 시·군·구를 골라주세요.
+            <b className="text-foreground">{destination}</b> 안에서 여행할 시·군·구를 골라주세요.
           </p>
           <div className="grid grid-cols-2 gap-2">
             {sigunguOptions.map((s) => (
@@ -361,7 +361,7 @@ export default function TripPlanPage() {
                 key={s}
                 type="button"
                 onClick={() => pickSigungu(s)}
-                className="rounded-card border border-border bg-surface px-3 py-3 text-[14px] font-semibold text-[#3A322B] active:scale-[0.98]"
+                className="rounded-card border border-border bg-surface px-3 py-3 text-[14px] font-semibold text-foreground active:scale-[0.98]"
               >
                 {s}
               </button>
@@ -411,7 +411,7 @@ export default function TripPlanPage() {
                   className="size-[68px] rounded-[10px]"
                 />
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="truncate text-[15px] font-extrabold text-[#3A322B]">{p.name}</div>
+                  <div className="truncate text-[15px] font-extrabold text-foreground">{p.name}</div>
                   <div className="truncate text-[12px] text-muted">{p.address ?? '주소 정보 없음'}</div>
                   <div className="mt-1">
                     <StarRating value={p.rating} count={p.ratingCount} />
@@ -453,7 +453,7 @@ export default function TripPlanPage() {
               className="size-[72px] rounded-[10px]"
             />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[16px] font-extrabold text-[#3A322B]">{current.place.name}</div>
+              <div className="truncate text-[16px] font-extrabold text-foreground">{current.place.name}</div>
               <div className="truncate text-[12px] text-muted">{current.place.address ?? ''}</div>
               <div className="mt-1">
                 <StarRating value={current.place.rating} count={current.place.ratingCount} />
@@ -463,7 +463,7 @@ export default function TripPlanPage() {
 
           {/* 1) 가격 비교 핸드오프 — 구글 지도(정확한 그 숙소의 OTA 최저가 비교)를 우선, 네이버 검색은 보조 */}
           <div className="rounded-card border border-border bg-surface p-3.5">
-            <p className="text-[14px] font-bold text-[#3A322B]">① 가격 비교하고 예약하기</p>
+            <p className="text-[14px] font-bold text-foreground">① 가격 비교하고 예약하기</p>
             <p className="mt-1 text-[13px] text-muted">
               <b>{current.place.name}</b>의 예약 사이트별 가격을 비교하고 예약을 진행하세요.
             </p>
@@ -484,7 +484,7 @@ export default function TripPlanPage() {
 
           {/* 2) 예약 완료 확인 */}
           <div className="rounded-card border border-border bg-surface p-3.5">
-            <p className="text-[14px] font-bold text-[#3A322B]">② 숙소 예약을 완료했나요?</p>
+            <p className="text-[14px] font-bold text-foreground">② 숙소 예약을 완료했나요?</p>
             {!showBookingForm ? (
               <div className="mt-3 flex gap-2">
                 <Button variant="ghost" fullWidth onClick={() => toast.info('괜찮아요', '예약을 마치면 다시 눌러주세요.')}>
@@ -507,7 +507,7 @@ export default function TripPlanPage() {
                 />
 
                 <div>
-                  <span className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">예약완료 사진 (선택)</span>
+                  <span className="mb-1.5 block text-[13px] font-bold text-foreground">예약완료 사진 (선택)</span>
                   <label
                     className={cn(
                       'flex cursor-pointer items-center justify-center rounded-button border border-dashed border-[#FFCBA6] bg-[#FFF7F0]',
@@ -549,7 +549,7 @@ export default function TripPlanPage() {
       {step === 'hub' && current && (
         <div className="space-y-4">
           <div className="rounded-card border border-[#CDE9C7] bg-[#F2FBF0] p-4">
-            <div className="text-[14px] font-extrabold text-[#3A322B]">숙소 예약 완료 ✓</div>
+            <div className="text-[14px] font-extrabold text-foreground">숙소 예약 완료 ✓</div>
             <div className="mt-1 text-[13px] text-[#5A6B54]">
               {current.place.name}
               {current.reservationPrice != null && ` · ${current.reservationPrice.toLocaleString()}원`}
@@ -563,7 +563,7 @@ export default function TripPlanPage() {
           </div>
 
           <div>
-            <p className="mb-2 text-[13px] font-bold text-[#3A322B]">다음으로 무엇을 해볼까요?</p>
+            <p className="mb-2 text-[13px] font-bold text-foreground">다음으로 무엇을 해볼까요?</p>
             <div className="space-y-2.5">
               <ChoiceCard
                 title="갈 만한 곳 추천받기"
@@ -630,7 +630,7 @@ export default function TripPlanPage() {
                     <span className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-[5px] bg-[#03C75A] text-[10px] font-black leading-none text-white shadow">N</span>
                   </a>
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="line-clamp-2 text-[14px] font-bold text-[#3A322B]">{r.title}</div>
+                    <div className="line-clamp-2 text-[14px] font-bold text-foreground">{r.title}</div>
                     <div className="mt-0.5 text-[12px] text-muted">{contentTypeLabel(r.contentTypeId)}</div>
                     <div className="mt-auto flex items-center justify-between gap-2 pt-1.5">
                       {r.matchScore != null ? (
@@ -678,7 +678,7 @@ export default function TripPlanPage() {
                     'rounded-full px-3 py-1.5 text-[13px] font-bold transition-colors',
                     pickCategory === c.value
                       ? 'bg-primary text-primary-foreground'
-                      : 'border border-border bg-surface text-[#7A6A58]',
+                      : 'border border-border bg-surface text-muted',
                   )}
                 >
                   {c.label}
@@ -714,7 +714,7 @@ export default function TripPlanPage() {
                     className="size-[68px] rounded-[10px]"
                   />
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="truncate text-[15px] font-extrabold text-[#3A322B]">{p.name}</div>
+                    <div className="truncate text-[15px] font-extrabold text-foreground">{p.name}</div>
                     <div className="truncate text-[12px] text-muted">{p.address ?? '주소 정보 없음'}</div>
                     <div className="mt-1">
                       <StarRating value={p.rating} count={p.ratingCount} />
@@ -760,7 +760,7 @@ function ChoiceCard({ title, desc, onClick }: { title: string; desc: string; onC
       className="w-full rounded-card border border-border bg-surface p-4 text-left transition-transform active:scale-[0.99]"
     >
       <div className="flex items-center justify-between">
-        <span className="text-[16px] font-extrabold text-[#3A322B]">{title}</span>
+        <span className="text-[16px] font-extrabold text-foreground">{title}</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M9 6l6 6-6 6" stroke="#E8742E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

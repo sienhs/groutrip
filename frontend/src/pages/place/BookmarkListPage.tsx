@@ -45,6 +45,17 @@ export default function BookmarkListPage({
 
   const [category, setCategory] = useState<PlaceCategory | null>(null);
   const [sort, setSort] = useState<BookmarkSort>('RECENT');
+  // 보관 장소가 많을 때 클라이언트 페이징(더보기). 필터/정렬 변경 시 처음으로 되돌린다.
+  const PAGE_SIZE = 8;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const changeCategory = (c: PlaceCategory | null) => {
+    setCategory(c);
+    setVisibleCount(PAGE_SIZE);
+  };
+  const changeSort = (s: BookmarkSort) => {
+    setSort(s);
+    setVisibleCount(PAGE_SIZE);
+  };
 
   const [editing, setEditing] = useState<BookmarkResponse | null>(null);
   const [deleting, setDeleting] = useState<BookmarkResponse | null>(null);
@@ -93,9 +104,9 @@ export default function BookmarkListPage({
 
       {/* 필터 + 정렬 */}
       <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1">
-        <FilterChip active={category === null} onClick={() => setCategory(null)}>전체</FilterChip>
+        <FilterChip active={category === null} onClick={() => changeCategory(null)}>전체</FilterChip>
         {PLACE_CATEGORIES.map((c) => (
-          <FilterChip key={c.value} active={category === c.value} onClick={() => setCategory(c.value)}>
+          <FilterChip key={c.value} active={category === c.value} onClick={() => changeCategory(c.value)}>
             {c.label}
           </FilterChip>
         ))}
@@ -109,7 +120,7 @@ export default function BookmarkListPage({
           <Select
             aria-label="정렬"
             value={sort}
-            onChange={(e) => setSort(e.target.value as BookmarkSort)}
+            onChange={(e) => changeSort(e.target.value as BookmarkSort)}
             options={BOOKMARK_SORTS.map((s) => ({ value: s.value, label: s.label }))}
           />
         </div>
@@ -135,7 +146,7 @@ export default function BookmarkListPage({
         )}
 
         {status === 'done' &&
-          items.map((b) => (
+          items.slice(0, visibleCount).map((b) => (
             <BookmarkCard
               key={b.id}
               bookmark={b}
@@ -143,6 +154,17 @@ export default function BookmarkListPage({
               onDelete={() => setDeleting(b)}
             />
           ))}
+
+        {status === 'done' && items.length > visibleCount && (
+          <Button
+            variant="ghost"
+            fullWidth
+            className="border border-border"
+            onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+          >
+            더보기 ({items.length - visibleCount}개 더)
+          </Button>
+        )}
       </div>
 
       {editing && (
@@ -189,7 +211,7 @@ function FilterChip({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
         active
           ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border bg-surface text-[#7A6A58] hover:border-[#FFCBA6]',
+          : 'border-border bg-surface text-muted hover:border-[#FFCBA6]',
       )}
     >
       {children}
@@ -225,7 +247,7 @@ function BookmarkCard({
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-start gap-2">
-            <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-[#3A322B]">
+            <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-foreground">
               {place.name}
             </h3>
             <Badge tone="primary">{CATEGORY_LABEL[bookmark.categoryTag]}</Badge>
@@ -239,7 +261,7 @@ function BookmarkCard({
           {place.address && <p className="mt-1 line-clamp-1 text-[12px] text-muted">{place.address}</p>}
 
           {bookmark.personalRating != null && (
-            <div className="mt-1.5 flex items-center gap-1 text-[12px] font-bold text-[#5C5044]">
+            <div className="mt-1.5 flex items-center gap-1 text-[12px] font-bold text-muted">
               <span className="text-[#A6907B]">내 평점</span>
               {'★'.repeat(bookmark.personalRating)}
               <span className="text-[#E0D2C2]">{'★'.repeat(5 - bookmark.personalRating)}</span>
@@ -249,7 +271,7 @@ function BookmarkCard({
       </div>
 
       {bookmark.memo && (
-        <p className="mt-2.5 rounded-button bg-background px-3 py-2 text-[13px] leading-relaxed text-[#5C5044]">
+        <p className="mt-2.5 rounded-button bg-background px-3 py-2 text-[13px] leading-relaxed text-muted">
           {bookmark.memo}
         </p>
       )}

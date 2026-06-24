@@ -99,7 +99,7 @@ export function StarRating({ value, count, className }: StarRatingProps) {
     return <span className={cn('text-[12px] text-[#C0AE9B]', className)}>평점 없음</span>;
   }
   return (
-    <span className={cn('inline-flex items-center gap-1 text-[12px] font-bold text-[#5C5044]', className)}>
+    <span className={cn('inline-flex items-center gap-1 text-[12px] font-bold text-muted', className)}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="#F2B85A" aria-hidden>
         <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.6 1-5.8L3.5 9.7l5.9-.9L12 3.5Z" />
       </svg>
@@ -150,7 +150,7 @@ export function StarInput({ value, onChange }: StarInputProps) {
         <button
           type="button"
           onClick={() => onChange(0)}
-          className="ml-1 text-[12px] font-medium text-[#A6907B] hover:text-[#5C5044]"
+          className="ml-1 text-[12px] font-medium text-[#A6907B] hover:text-muted"
         >
           지우기
         </button>

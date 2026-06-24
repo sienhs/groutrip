@@ -40,7 +40,7 @@ export default function Tabs({ items, value, onChange, className }: TabsProps) {
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
               active
                 ? 'border-primary text-[#E8742E]'
-                : 'border-transparent text-muted hover:text-[#5C5044]',
+                : 'border-transparent text-muted hover:text-muted',
             )}
           >
             {t.label}

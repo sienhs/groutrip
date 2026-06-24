@@ -195,7 +195,7 @@ function CategoryChip({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
         active
           ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border bg-surface text-[#7A6A58] hover:border-[#FFCBA6] hover:text-[#E8742E]',
+          : 'border-border bg-surface text-muted hover:border-[#FFCBA6] hover:text-[#E8742E]',
       )}
     >
       {children}
@@ -223,7 +223,7 @@ function ResultCard({
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start gap-2">
-          <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-[#3A322B]">
+          <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-foreground">
             {place.name}
           </h3>
           <Badge tone="neutral">{CATEGORY_LABEL[place.category]}</Badge>

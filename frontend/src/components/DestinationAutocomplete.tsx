@@ -98,7 +98,7 @@ export default function DestinationAutocomplete({
   return (
     <div className="w-full" ref={wrapRef}>
       {label && (
-        <label htmlFor={inputId} className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">
+        <label htmlFor={inputId} className="mb-1.5 block text-[13px] font-bold text-foreground">
           {label}
         </label>
       )}
@@ -119,7 +119,7 @@ export default function DestinationAutocomplete({
           onFocus={() => query && setOpen(true)}
           onKeyDown={handleKeyDown}
           className={cn(
-            'w-full rounded-button border bg-surface px-3.5 pr-10 text-[15px] leading-none text-[#3A322B]',
+            'w-full rounded-button border bg-surface px-3.5 pr-10 text-[15px] leading-none text-foreground',
             'h-11 outline-none transition-colors placeholder:text-[#C0AE9B]',
             'focus:border-primary focus:ring-2 focus:ring-primary/20',
             error ? 'border-danger bg-[#FFF5F5] focus:ring-danger/20' : 'border-border',
@@ -157,7 +157,7 @@ export default function DestinationAutocomplete({
                 }}
                 className={cn(
                   'flex cursor-pointer items-center justify-between gap-2 px-3.5 py-2.5 text-[14px]',
-                  i === active ? 'bg-[#FFF1E6] text-[#3A322B]' : 'text-[#5A4E43]',
+                  i === active ? 'bg-[#FFF1E6] text-foreground' : 'text-[#5A4E43]',
                 )}
               >
                 <span className="font-semibold">{r.label}</span>

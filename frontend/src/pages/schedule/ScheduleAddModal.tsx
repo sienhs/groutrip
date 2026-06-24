@@ -138,7 +138,7 @@ export default function ScheduleAddModal({ groupId, defaultDate, defaultStart, o
                 aria-pressed={kind === o.v}
                 className={cn(
                   'flex-1 rounded-button px-2 py-2 text-[12px] font-bold transition-colors',
-                  kind === o.v ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-[#7A6A58]',
+                  kind === o.v ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-muted',
                 )}
               >
                 {o.label}
@@ -177,7 +177,7 @@ export default function ScheduleAddModal({ groupId, defaultDate, defaultStart, o
             onChange={(e) => setDate(e.target.value)}
           />
           <div>
-            <span className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">시간</span>
+            <span className="mb-1.5 block text-[13px] font-bold text-foreground">시간</span>
             <div className="flex items-center gap-2">
               <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
               <span className="text-[#C0AE9B]">–</span>

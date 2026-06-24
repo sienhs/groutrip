@@ -126,7 +126,7 @@ export default function VoteTab({ groupId }: { groupId: number; isOwner?: boolea
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-[15px] font-extrabold text-[#3A322B]">
+                    <span className="truncate text-[15px] font-extrabold text-foreground">
                       {session.title ?? '장소 투표'}
                     </span>
                   </div>

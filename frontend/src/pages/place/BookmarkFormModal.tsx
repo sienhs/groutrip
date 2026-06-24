@@ -96,7 +96,7 @@ export default function BookmarkFormModal(props: Props) {
       }
     >
       <div className="space-y-4">
-        <p className="truncate rounded-button bg-background px-3 py-2.5 text-[14px] font-bold text-[#3A322B]">
+        <p className="truncate rounded-button bg-background px-3 py-2.5 text-[14px] font-bold text-foreground">
           {placeName}
         </p>
 
@@ -108,12 +108,12 @@ export default function BookmarkFormModal(props: Props) {
         />
 
         <div>
-          <span className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">개인 평점</span>
+          <span className="mb-1.5 block text-[13px] font-bold text-foreground">개인 평점</span>
           <StarInput value={rating} onChange={setRating} />
         </div>
 
         <div>
-          <label htmlFor="bookmark-memo" className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">
+          <label htmlFor="bookmark-memo" className="mb-1.5 block text-[13px] font-bold text-foreground">
             메모
           </label>
           <textarea
@@ -123,7 +123,7 @@ export default function BookmarkFormModal(props: Props) {
             onChange={(e) => setMemo(e.target.value)}
             placeholder="예: 오션뷰 자리 미리 예약하기"
             rows={3}
-            className="w-full resize-none rounded-button border border-border bg-surface px-3.5 py-2.5 text-[14px] leading-relaxed text-[#3A322B] outline-none transition-colors placeholder:text-[#C0AE9B] focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full resize-none rounded-button border border-border bg-surface px-3.5 py-2.5 text-[14px] leading-relaxed text-foreground outline-none transition-colors placeholder:text-[#C0AE9B] focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
           <p className="mt-1 text-right text-[11px] text-muted">
             {memo.length}/{MEMO_MAX}

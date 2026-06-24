@@ -99,7 +99,7 @@ export default function GroupCreatePage() {
           />
 
           <div>
-            <span className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">여행 기간</span>
+            <span className="mb-1.5 block text-[13px] font-bold text-foreground">여행 기간</span>
             <div className="flex items-center gap-2">
               <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
               <span className="text-[#C0AE9B]">–</span>
@@ -111,7 +111,7 @@ export default function GroupCreatePage() {
           </div>
 
           <div>
-            <span className="mb-2 block text-[13px] font-bold text-[#3A322B]">
+            <span className="mb-2 block text-[13px] font-bold text-foreground">
               커버 <span className="font-medium text-[#BCA48C]">(프리셋 또는 직접 올리기)</span>
             </span>
             <div className="grid grid-cols-4 gap-2">

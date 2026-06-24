@@ -21,7 +21,7 @@ export default function AuthBrand({ subtitle }: AuthBrandProps) {
           <circle cx="12" cy="10.5" r="2.2" fill="#fff" />
         </svg>
       </span>
-      <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-[#3A322B]">enjoy-trip</h1>
+      <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">enjoy-trip</h1>
       <p className="mt-1 text-sm text-muted">{subtitle}</p>
     </div>
   );
@@ -39,7 +39,7 @@ export function PasswordToggle({ shown, onToggle }: PasswordToggleProps) {
       type="button"
       onClick={onToggle}
       aria-label={shown ? '비밀번호 숨기기' : '비밀번호 표시'}
-      className="flex items-center justify-center text-[#A6907B] hover:text-[#7A6A58]"
+      className="flex items-center justify-center text-[#A6907B] hover:text-muted"
     >
       {shown ? (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
