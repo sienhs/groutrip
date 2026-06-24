@@ -549,7 +549,8 @@ export default function TripPlanPage() {
       {step === 'hub' && current && (
         <div className="space-y-4">
           <div className="rounded-card border border-[#CDE9C7] bg-[#F2FBF0] p-4">
-            <div className="text-[14px] font-extrabold text-foreground">숙소 예약 완료 ✓</div>
+            {/* 고정 라이트 배경이라 다크모드에서도 읽히도록 고정 다크색 사용(토큰 X) */}
+            <div className="text-[14px] font-extrabold text-[#2E3A28]">숙소 예약 완료 ✓</div>
             <div className="mt-1 text-[13px] text-[#5A6B54]">
               {current.place.name}
               {current.reservationPrice != null && ` · ${current.reservationPrice.toLocaleString()}원`}

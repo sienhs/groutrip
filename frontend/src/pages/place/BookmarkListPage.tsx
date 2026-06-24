@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
+import Input from '../../components/Input';
 import Select from '../../components/Select';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
@@ -56,6 +57,12 @@ export default function BookmarkListPage({
     setSort(s);
     setVisibleCount(PAGE_SIZE);
   };
+  // 보관함 내 검색(이름/주소). 입력 시 페이징도 처음으로.
+  const [query, setQuery] = useState('');
+  const changeQuery = (q: string) => {
+    setQuery(q);
+    setVisibleCount(PAGE_SIZE);
+  };
 
   const [editing, setEditing] = useState<BookmarkResponse | null>(null);
   const [deleting, setDeleting] = useState<BookmarkResponse | null>(null);
@@ -69,6 +76,16 @@ export default function BookmarkListPage({
   });
   const items = bookmarksQuery.data ?? [];
   const status: Status = bookmarksQuery.isLoading ? 'loading' : bookmarksQuery.isError ? 'error' : 'done';
+
+  // 검색어로 이름/주소 필터(클라이언트). 페이징은 이 결과 기준.
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? items.filter(
+        (b) =>
+          b.place.name.toLowerCase().includes(q) ||
+          (b.place.address ?? '').toLowerCase().includes(q),
+      )
+    : items;
 
   const invalidateBookmarks = () =>
     queryClient.invalidateQueries({ queryKey: groupQueryKeys.bookmarks(groupId) });
@@ -102,6 +119,15 @@ export default function BookmarkListPage({
         {planExists ? '여행 계획 이어가기 · 장소 추가' : '장소 추가하기'}
       </button>
 
+      {/* 검색 */}
+      <div className="mb-2">
+        <Input
+          value={query}
+          onChange={(e) => changeQuery(e.target.value)}
+          placeholder="보관함에서 검색 (이름·주소)"
+        />
+      </div>
+
       {/* 필터 + 정렬 */}
       <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1">
         <FilterChip active={category === null} onClick={() => changeCategory(null)}>전체</FilterChip>
@@ -114,7 +140,7 @@ export default function BookmarkListPage({
 
       <div className="mt-3 flex items-center justify-between">
         <span className="text-[13px] text-muted">
-          {status === 'done' ? `${items.length}개 장소` : '보관함'}
+          {status === 'done' ? `${filtered.length}개 장소` : '보관함'}
         </span>
         <div className="w-36">
           <Select
@@ -145,8 +171,12 @@ export default function BookmarkListPage({
           />
         )}
 
+        {status === 'done' && items.length > 0 && filtered.length === 0 && (
+          <EmptyState title="검색 결과가 없어요" description="다른 키워드로 검색해 보세요." />
+        )}
+
         {status === 'done' &&
-          items.slice(0, visibleCount).map((b) => (
+          filtered.slice(0, visibleCount).map((b) => (
             <BookmarkCard
               key={b.id}
               bookmark={b}
@@ -155,14 +185,14 @@ export default function BookmarkListPage({
             />
           ))}
 
-        {status === 'done' && items.length > visibleCount && (
+        {status === 'done' && filtered.length > visibleCount && (
           <Button
             variant="ghost"
             fullWidth
             className="border border-border"
             onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
           >
-            더보기 ({items.length - visibleCount}개 더)
+            더보기 ({filtered.length - visibleCount}개 더)
           </Button>
         )}
       </div>

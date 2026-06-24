@@ -157,7 +157,7 @@ export default function DestinationAutocomplete({
                 }}
                 className={cn(
                   'flex cursor-pointer items-center justify-between gap-2 px-3.5 py-2.5 text-[14px]',
-                  i === active ? 'bg-[#FFF1E6] text-foreground' : 'text-[#5A4E43]',
+                  i === active ? 'bg-[#FFF1E6] text-[#3A322B]' : 'text-[#5A4E43]',
                 )}
               >
                 <span className="font-semibold">{r.label}</span>
