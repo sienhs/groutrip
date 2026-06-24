@@ -131,7 +131,9 @@ export default function VoteTab({ groupId }: { groupId: number; isOwner?: boolea
                     </span>
                   </div>
                   <div className="mt-0.5 truncate text-[12px] text-muted">
-                    {schedule ? `${schedule.scheduleDate.slice(5).replace('-', '.')} · ${schedule.placeName}` : '일정'}
+                    {schedule
+                      ? `${schedule.scheduleDate.slice(5).replace('-', '.')} · ${schedule.placeName ?? schedule.title ?? '장소 미정'}`
+                      : '일정'}
                     {` · 후보 ${session.candidates.length}`}
                   </div>
                 </div>

@@ -12,6 +12,7 @@ import { useToast } from '../../components/Toast';
 import { NaverThumb, StarRating, PriceTag } from './PlaceBits';
 import BookmarkFormModal from './BookmarkFormModal';
 import { getBookmarks, deleteBookmark } from '../../api/place';
+import useAuthStore from '../../store/authStore';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
 import { naverPlaceUrl } from '../../lib/naver';
@@ -43,6 +44,7 @@ export default function BookmarkListPage({
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
 
   const [category, setCategory] = useState<PlaceCategory | null>(null);
   const [sort, setSort] = useState<BookmarkSort>('RECENT');
@@ -180,6 +182,7 @@ export default function BookmarkListPage({
             <BookmarkCard
               key={b.id}
               bookmark={b}
+              isMine={b.createdById === currentUserId}
               onEdit={() => setEditing(b)}
               onDelete={() => setDeleting(b)}
             />
@@ -257,10 +260,12 @@ function formatDate(iso: string): string {
 
 function BookmarkCard({
   bookmark,
+  isMine,
   onEdit,
   onDelete,
 }: {
   bookmark: BookmarkResponse;
+  isMine: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -292,9 +297,10 @@ function BookmarkCard({
 
           {bookmark.personalRating != null && (
             <div className="mt-1.5 flex items-center gap-1 text-[12px] font-bold text-muted">
-              <span className="text-[#A6907B]">내 평점</span>
-              {'★'.repeat(bookmark.personalRating)}
-              <span className="text-[#E0D2C2]">{'★'.repeat(5 - bookmark.personalRating)}</span>
+              <span className="text-[#A6907B]">{isMine ? '내 평점' : `${bookmark.createdByName} 평점`}</span>
+              <span className="text-[#F5A623]">★</span>
+              <span className="text-foreground">{bookmark.personalRating}</span>
+              <span className="text-[#C0AE9B]">/ 5</span>
             </div>
           )}
         </div>

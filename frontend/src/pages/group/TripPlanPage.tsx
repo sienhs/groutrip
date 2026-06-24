@@ -279,6 +279,28 @@ export default function TripPlanPage() {
     }
   };
 
+  // 다른 날(또는 추가) 숙소 잡기 — 숙소 선정 단계로 되돌아가 아직 비어있는 첫 박을 기본 선택한다.
+  const addAnotherAccommodation = () => {
+    const covered = new Set<string>();
+    for (const a of accommodations) {
+      if (a.stayDate) for (const d of datesInclusive(a.stayDate, a.stayEndDate ?? a.stayDate)) covered.add(d);
+    }
+    const firstFree = nights.find((n) => !covered.has(n));
+    if (!firstFree) {
+      toast.info('모든 날짜에 숙소가 있어요', '이미 전체 일정의 숙소를 정했어요.');
+      return;
+    }
+    setSelectedNights([firstFree]);
+    setCurrent(null);
+    setShowBookingForm(false);
+    setPrice('');
+    setPhoto(null);
+    setQuery('');
+    setResults([]);
+    setNextToken(null);
+    setStep('accommodation');
+  };
+
   // 갈 만한 곳 추천(위저드 내). 그룹 목적지·성향 기반 TourAPI 추천을 그대로 보여준다.
   const loadRecommendations = async () => {
     setStep('recommend');
@@ -669,6 +691,13 @@ export default function TripPlanPage() {
           <div>
             <p className="mb-2 text-[13px] font-bold text-foreground">다음으로 무엇을 해볼까요?</p>
             <div className="space-y-2.5">
+              {nights.some((n) => !coveredByDate.has(n)) && (
+                <ChoiceCard
+                  title="다른 날 숙소 추가하기"
+                  desc={`아직 숙소가 없는 날: ${nights.filter((n) => !coveredByDate.has(n)).map(shortDate).join(', ')}`}
+                  onClick={addAnotherAccommodation}
+                />
+              )}
               <ChoiceCard
                 title="갈 만한 곳 추천받기"
                 desc="목적지와 그룹 성향에 맞는 관광지를 추천해 드려요."

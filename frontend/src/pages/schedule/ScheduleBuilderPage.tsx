@@ -88,6 +88,10 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
   const [deleting, setDeleting] = useState<Schedule | null>(null);
   const [delLoading, setDelLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  // 예상 비용 인라인 편집(어떤 일정의 비용을 고치는 중인지 + 입력값).
+  const [costEditId, setCostEditId] = useState<number | null>(null);
+  const [costDraft, setCostDraft] = useState('');
+  const [costSaving, setCostSaving] = useState(false);
 
   const dragFrom = useRef<number | null>(null);
   const dirty = useRef(false);
@@ -220,6 +224,33 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
     }
   };
 
+  // 일정의 예상 비용 저장(백엔드 update는 전체 교체이므로 나머지 필드를 보존해 보낸다).
+  const saveCost = async (stop: Schedule) => {
+    const raw = costDraft.trim();
+    const value = raw === '' ? undefined : Number(raw);
+    if (value != null && (Number.isNaN(value) || value < 0)) {
+      toast.warning('금액을 확인해주세요', '0 이상의 숫자를 입력해 주세요.');
+      return;
+    }
+    setCostSaving(true);
+    try {
+      await updateSchedule(groupId, stop.id, {
+        startTime: stop.startTime,
+        endTime: stop.endTime,
+        memo: stop.memo ?? undefined,
+        estimatedCost: value,
+        transportMode: stop.transportMode ?? undefined,
+        status: stop.status ?? undefined,
+      });
+      setCostEditId(null);
+      load();
+    } catch {
+      toast.error('비용 저장에 실패했어요', '잠시 후 다시 시도해 주세요.');
+    } finally {
+      setCostSaving(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleting) return;
     setDelLoading(true);
@@ -308,6 +339,39 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                     </div>
                     <div className="mt-0.5 text-[12px] text-muted">{stop.startTime}–{stop.endTime}</div>
                     {stop.memo && <div className="mt-1 text-[12px] text-muted">{stop.memo}</div>}
+                    {/* 예상 비용 — 장소가 정해진 일정에서 인라인으로 수정 가능 */}
+                    {stop.placeId && (
+                      costEditId === stop.id ? (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            autoFocus
+                            value={costDraft}
+                            onChange={(e) => setCostDraft(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') void saveCost(stop); if (e.key === 'Escape') setCostEditId(null); }}
+                            placeholder="예상 비용(원)"
+                            className="w-32 rounded-button border border-border bg-background px-2 py-1 text-[12px] text-foreground"
+                          />
+                          <button type="button" disabled={costSaving} onClick={() => saveCost(stop)}
+                            className="rounded-button bg-primary px-2.5 py-1 text-[12px] font-bold text-primary-foreground disabled:opacity-60">저장</button>
+                          <button type="button" onClick={() => setCostEditId(null)}
+                            className="rounded-button border border-border px-2.5 py-1 text-[12px] font-bold text-muted">취소</button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setCostEditId(stop.id); setCostDraft(stop.estimatedCost != null ? String(stop.estimatedCost) : ''); }}
+                          className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-[#E8742E]"
+                        >
+                          <span className="text-[#A6907B]">예상 비용</span>
+                          <span className="text-foreground">{stop.estimatedCost != null ? formatCost(stop.estimatedCost) : '추가'}</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L4 18v2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      )
+                    )}
                     {/* 빈 일정: 투표로 정하기 / (Owner) 직접 정하기 */}
                     {!stop.placeId && (
                       <div className="mt-2 flex flex-wrap gap-1.5">

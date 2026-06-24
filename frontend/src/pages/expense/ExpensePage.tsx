@@ -110,6 +110,16 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
                     <span className="text-[15px] font-extrabold">{formatWon(e.amount)}</span>
                     <button
                       type="button"
+                      aria-label="수정"
+                      onClick={() => { setEditing(e); setFormOpen(true); }}
+                      className="flex size-8 items-center justify-center rounded-button text-[#8A7B6B] hover:bg-[#FFF1E6] hover:text-[#E8742E]"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M4 20h4L18 10l-4-4L4 16v4ZM14 6l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
                       aria-label="삭제"
                       onClick={() => setDeleting(e)}
                       className="flex size-8 items-center justify-center rounded-button text-[#8A7B6B] hover:bg-[#FEE2E2] hover:text-danger"

@@ -29,8 +29,11 @@ export default function GroupCreatePage() {
     if (customPreview) URL.revokeObjectURL(customPreview);
   }, [customPreview]);
 
+  // 오늘(로컬) YYYY-MM-DD. 과거 날짜 선택 방지용.
+  const todayStr = new Date().toLocaleDateString('sv-SE');
   const valid =
-    title.trim().length > 0 && destination.trim().length > 0 && !!start && !!end && start <= end;
+    title.trim().length > 0 && destination.trim().length > 0 && !!start && !!end
+    && start <= end && start >= todayStr;
 
   const onPickCover = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,10 +104,13 @@ export default function GroupCreatePage() {
           <div>
             <span className="mb-1.5 block text-[13px] font-bold text-foreground">여행 기간</span>
             <div className="flex items-center gap-2">
-              <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+              <Input type="date" value={start} min={todayStr} onChange={(e) => setStart(e.target.value)} />
               <span className="text-[#C0AE9B]">–</span>
-              <Input type="date" value={end} min={start || undefined} onChange={(e) => setEnd(e.target.value)} />
+              <Input type="date" value={end} min={start || todayStr} onChange={(e) => setEnd(e.target.value)} />
             </div>
+            {start && start < todayStr && (
+              <p className="mt-1.5 text-[12px] text-danger">지난 날짜는 선택할 수 없어요.</p>
+            )}
             {start && end && start > end && (
               <p className="mt-1.5 text-[12px] text-danger">종료일이 시작일보다 빠를 수 없어요.</p>
             )}
