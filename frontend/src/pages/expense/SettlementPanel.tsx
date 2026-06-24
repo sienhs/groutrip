@@ -9,13 +9,76 @@ import {
   confirmReceived,
 } from '../../api/settlement';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
-import { formatWon } from '../../types/expense';
+import { CATEGORY_LABEL, EXPENSE_CATEGORIES, expenseIcon, formatWon, type Expense, type ExpenseCategory } from '../../types/expense';
 import type { SettlementProgress, SettlementRecord, SettlementStatus } from '../../types/settlement';
 
 interface FallbackTransfer {
   fromName: string;
   toName: string;
   amount: number;
+}
+
+/**
+ * '어떤 지출에 대한 정산인지' 보여주는 내역 블록 — 간단(카테고리별 합계)/자세히(항목 목록) 토글.
+ */
+function ExpenseBreakdown({ expenses }: { expenses: Expense[] }) {
+  const [view, setView] = useState<'simple' | 'detail'>('simple');
+  if (expenses.length === 0) return null;
+
+  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const byCategory = EXPENSE_CATEGORIES
+    .map((c) => ({
+      category: c.value as ExpenseCategory,
+      label: c.label,
+      amount: expenses.filter((e) => e.category === c.value).reduce((s, e) => s + e.amount, 0),
+    }))
+    .filter((c) => c.amount > 0);
+
+  return (
+    <div className="mb-3 rounded-card border border-border bg-surface p-3.5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[13px] font-extrabold text-foreground">정산 대상 지출 <span className="text-muted">· {formatWon(total)}</span></h3>
+        <div className="flex rounded-full border border-border p-0.5">
+          {(['simple', 'detail'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={view === v}
+              onClick={() => setView(v)}
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold transition-colors ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted'}`}
+            >
+              {v === 'simple' ? '간단히' : '자세히'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === 'simple' ? (
+        <ul className="mt-2.5 space-y-1.5">
+          {byCategory.map((c) => (
+            <li key={c.category} className="flex items-center gap-2 text-[13px]">
+              <span>{expenseIcon(c.category)}</span>
+              <span className="text-muted">{c.label}</span>
+              <span className="ml-auto font-bold text-foreground">{formatWon(c.amount)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="mt-2.5 space-y-2">
+          {expenses.map((e) => (
+            <li key={e.id} className="flex items-center gap-2 text-[13px]">
+              <span className="flex size-7 items-center justify-center rounded-[8px] bg-[#FFF1E6] text-[13px]">{expenseIcon(e.category)}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-bold text-foreground">{e.description}</div>
+                <div className="text-[11px] text-muted">{e.payerName} 결제 · {CATEGORY_LABEL[e.category]} · {e.paidAt.slice(5).replace('-', '.')}</div>
+              </div>
+              <span className="font-bold text-foreground">{formatWon(e.amount)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function apiMessage(err: unknown): string {
@@ -50,11 +113,14 @@ function FromTo({ from, to, amount }: { from: string; to: string; amount: number
 export default function SettlementPanel({
   groupId,
   currentUserId,
+  expenses = [],
   fallback,
   onChanged,
 }: {
   groupId: number;
   currentUserId: number;
+  /** 정산 대상 지출 내역(간단/자세히 표시용) */
+  expenses?: Expense[];
   fallback: FallbackTransfer[];
   /** 정산 상태 변화 시 부모(지출 요약) 갱신용 */
   onChanged?: () => void;
@@ -119,6 +185,7 @@ export default function SettlementPanel({
     return (
       <section>
         <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-muted">정산 요약</h2>
+        <ExpenseBreakdown expenses={expenses} />
         <div className="space-y-2.5">
           {fallback.map((s, i) => (
             <div key={i} className="rounded-card border border-border bg-surface p-3.5">
@@ -143,6 +210,7 @@ export default function SettlementPanel({
           <span className="rounded-full bg-[#EAF9EF] px-2.5 py-1 text-[12px] font-extrabold text-success">정산 완료 🎉</span>
         )}
       </div>
+      <ExpenseBreakdown expenses={expenses} />
       <div className="space-y-2.5">
         {transfers.map((t: SettlementRecord) => {
           const iAmSender = t.fromUserId === currentUserId;

@@ -9,9 +9,13 @@ import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import ScheduleAddModal from './ScheduleAddModal';
 import PlacePickerModal from '../place/PlacePickerModal';
-import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg, updateSchedule, setSchedulePlace } from '../../api/schedule';
+import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg, updateSchedule, setSchedulePlace, setScheduleCost } from '../../api/schedule';
 import { createVoteSession, getVoteSessions } from '../../api/vote';
-import { getGroup } from '../../api/group';
+import { getGroup, getGroupMembers } from '../../api/group';
+import { getAccommodations } from '../../api/accommodation';
+import { placePhotoSrc } from '../../api/place';
+import useAuthStore from '../../store/authStore';
+import type { Accommodation } from '../../types/accommodation';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import {
   TRANSPORT_META,
@@ -88,10 +92,20 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
   const [deleting, setDeleting] = useState<Schedule | null>(null);
   const [delLoading, setDelLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  // 예상 비용 인라인 편집(어떤 일정의 비용을 고치는 중인지 + 입력값).
+  // 예상 비용 인라인 편집(어떤 일정의 비용을 고치는 중인지 + 입력값 + 결제자).
   const [costEditId, setCostEditId] = useState<number | null>(null);
   const [costDraft, setCostDraft] = useState('');
+  const [costPayerId, setCostPayerId] = useState<number | null>(null);
   const [costSaving, setCostSaving] = useState(false);
+  const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
+
+  // 결제자 선택용 멤버 목록(예상 비용을 정산 지출로 등록할 때 필요).
+  const membersQuery = useQuery({
+    queryKey: groupQueryKeys.members(groupId),
+    queryFn: () => getGroupMembers(groupId),
+    enabled: Number.isFinite(groupId),
+  });
+  const members = membersQuery.data ?? [];
 
   const dragFrom = useRef<number | null>(null);
   const dirty = useRef(false);
@@ -100,20 +114,25 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
   const scheduleQuery = useQuery({
     queryKey: groupQueryKeys.schedules(groupId),
     queryFn: async () => {
-      const [sch, g] = await Promise.all([getSchedules(groupId), getGroup(groupId)]);
-      return { schedules: sch, tripDates: enumerateDates(g.startDate, g.endDate) };
+      const [sch, g, accs] = await Promise.all([
+        getSchedules(groupId),
+        getGroup(groupId),
+        getAccommodations(groupId).catch(() => [] as Accommodation[]),
+      ]);
+      return { schedules: sch, tripDates: enumerateDates(g.startDate, g.endDate), accommodations: accs };
     },
     enabled: Number.isFinite(groupId),
   });
   const schedules = scheduleQuery.data?.schedules ?? [];
   const tripDates = scheduleQuery.data?.tripDates ?? [];
+  const accommodations = scheduleQuery.data?.accommodations ?? [];
   const loading = scheduleQuery.isLoading;
   const error = scheduleQuery.isError;
   const load = () => scheduleQuery.refetch();
 
   // 드래그 등 낙관적 변경은 캐시(schedules)를 직접 갱신한다. tripDates는 보존.
   const setSchedulesData = (next: Schedule[]) =>
-    queryClient.setQueryData<{ schedules: Schedule[]; tripDates: string[] }>(
+    queryClient.setQueryData<{ schedules: Schedule[]; tripDates: string[]; accommodations: Accommodation[] }>(
       groupQueryKeys.schedules(groupId),
       (old) => (old ? { ...old, schedules: next } : old),
     );
@@ -126,6 +145,10 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
   const stops = schedules
     .filter((s) => s.scheduleDate === activeDate)
     .sort((a, b) => a.orderIndex - b.orderIndex);
+  // 이 날(activeDate) 묵는 숙소 — stayDate~stayEndDate 범위에 포함되면 상단에 따로 표시.
+  const stayHere = accommodations.find(
+    (a) => a.stayDate != null && activeDate >= a.stayDate && activeDate <= (a.stayEndDate ?? a.stayDate),
+  );
 
   // 인접 일정쌍 이동 카드 조회 — 각 쌍의 선택된 수단(기본 CAR)을 조회한다.
   // legMode가 바뀌면(탭 클릭) 재실행돼 해당 수단을 가져온다.
@@ -224,25 +247,32 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
     }
   };
 
-  // 일정의 예상 비용 저장(백엔드 update는 전체 교체이므로 나머지 필드를 보존해 보낸다).
+  // 예상 비용 편집 시작 — 기존 값/결제자(기본: 나)를 채운다.
+  const openCostEdit = (stop: Schedule) => {
+    setCostEditId(stop.id);
+    setCostDraft(stop.estimatedCost != null ? String(stop.estimatedCost) : '');
+    const me = members.find((m) => m.userId === currentUserId);
+    setCostPayerId(me ? me.userId : (members[0]?.userId ?? null));
+  };
+
+  // 일정의 예상 비용 저장 — 결제자를 지정해 균등 분담 지출로 등록(정산 반영). 비우면 연동 지출 제거.
   const saveCost = async (stop: Schedule) => {
     const raw = costDraft.trim();
-    const value = raw === '' ? undefined : Number(raw);
+    const value = raw === '' ? null : Number(raw);
     if (value != null && (Number.isNaN(value) || value < 0)) {
       toast.warning('금액을 확인해주세요', '0 이상의 숫자를 입력해 주세요.');
       return;
     }
+    if (value != null && value > 0 && costPayerId == null) {
+      toast.warning('결제자를 선택해주세요', '예상 비용을 정산에 반영하려면 결제한 사람을 골라주세요.');
+      return;
+    }
     setCostSaving(true);
     try {
-      await updateSchedule(groupId, stop.id, {
-        startTime: stop.startTime,
-        endTime: stop.endTime,
-        memo: stop.memo ?? undefined,
-        estimatedCost: value,
-        transportMode: stop.transportMode ?? undefined,
-        status: stop.status ?? undefined,
-      });
+      await setScheduleCost(groupId, stop.id, { estimatedCost: value, payerId: costPayerId });
       setCostEditId(null);
+      // 연동 지출이 생겼으니 정산/지출 요약도 갱신.
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.expenses(groupId) });
       load();
     } catch {
       toast.error('비용 저장에 실패했어요', '잠시 후 다시 시도해 주세요.');
@@ -304,6 +334,25 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
         ))}
       </div>
 
+      {/* 이 날 묵는 숙소 — 일정 목록과 별개로 상단에 고정 표시 */}
+      {stayHere && (
+        <div className="mt-4 flex items-center gap-3 rounded-card border border-[#FFCBA6] bg-surface p-3 shadow-sm">
+          <div className="size-11 shrink-0 overflow-hidden rounded-[8px] bg-skeleton">
+            {placePhotoSrc(stayHere.place.photoUrl)
+              ? <img src={placePhotoSrc(stayHere.place.photoUrl)!} alt="" loading="lazy" className="h-full w-full object-cover" />
+              : <span className="flex h-full w-full items-center justify-center text-[18px]">🏨</span>}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-extrabold text-[#E8742E]">이 날 숙소</div>
+            <div className="truncate text-[14px] font-extrabold text-foreground">{stayHere.place.name}</div>
+            <div className="text-[11px] text-muted">
+              {stayHere.status === 'BOOKED' ? '예약 완료' : '선정됨'}
+              {stayHere.reservationPrice != null && ` · ${stayHere.reservationPrice.toLocaleString()}원`}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mt-4">
         {stops.length === 0 && (
           <p className="rounded-card border border-dashed border-border py-8 text-center text-[13px] text-muted">
@@ -342,26 +391,43 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                     {/* 예상 비용 — 장소가 정해진 일정에서 인라인으로 수정 가능 */}
                     {stop.placeId && (
                       costEditId === stop.id ? (
-                        <div className="mt-1.5 flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            autoFocus
-                            value={costDraft}
-                            onChange={(e) => setCostDraft(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') void saveCost(stop); if (e.key === 'Escape') setCostEditId(null); }}
-                            placeholder="예상 비용(원)"
-                            className="w-32 rounded-button border border-border bg-background px-2 py-1 text-[12px] text-foreground"
-                          />
-                          <button type="button" disabled={costSaving} onClick={() => saveCost(stop)}
-                            className="rounded-button bg-primary px-2.5 py-1 text-[12px] font-bold text-primary-foreground disabled:opacity-60">저장</button>
-                          <button type="button" onClick={() => setCostEditId(null)}
-                            className="rounded-button border border-border px-2.5 py-1 text-[12px] font-bold text-muted">취소</button>
+                        <div className="mt-1.5 space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              autoFocus
+                              value={costDraft}
+                              onChange={(e) => setCostDraft(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') void saveCost(stop); if (e.key === 'Escape') setCostEditId(null); }}
+                              placeholder="예상 비용(원)"
+                              className="w-32 rounded-button border border-border bg-background px-2 py-1 text-[12px] text-foreground"
+                            />
+                            <select
+                              value={costPayerId ?? ''}
+                              onChange={(e) => setCostPayerId(e.target.value ? Number(e.target.value) : null)}
+                              className="max-w-[7rem] rounded-button border border-border bg-background px-2 py-1 text-[12px] text-foreground"
+                              aria-label="결제자"
+                            >
+                              {members.map((m) => (
+                                <option key={m.userId} value={m.userId}>
+                                  {m.userId === currentUserId ? '내가 결제' : `${m.name} 결제`}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button type="button" disabled={costSaving} onClick={() => saveCost(stop)}
+                              className="rounded-button bg-primary px-2.5 py-1 text-[12px] font-bold text-primary-foreground disabled:opacity-60">저장</button>
+                            <button type="button" onClick={() => setCostEditId(null)}
+                              className="rounded-button border border-border px-2.5 py-1 text-[12px] font-bold text-muted">취소</button>
+                            <span className="text-[11px] text-muted">균등 분담으로 정산에 반영돼요</span>
+                          </div>
                         </div>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => { setCostEditId(stop.id); setCostDraft(stop.estimatedCost != null ? String(stop.estimatedCost) : ''); }}
+                          onClick={() => openCostEdit(stop)}
                           className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-[#E8742E]"
                         >
                           <span className="text-[#A6907B]">예상 비용</span>

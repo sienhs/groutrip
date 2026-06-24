@@ -39,7 +39,8 @@ export function invalidationKeysForEvent(
     case 'SCHEDULE_REORDERED':
       return [groupQueryKeys.schedules(groupId)];
     case 'VOTE_CAST':
-      return [groupQueryKeys.votes(groupId)];
+      // 투표 개설/후보 추가/점수 반영 — 일정 탭의 VOTING 배지도 함께 갱신.
+      return [groupQueryKeys.votes(groupId), groupQueryKeys.schedules(groupId)];
     case 'VOTE_CLOSED':
       // 마감 시 채택 장소가 빈 일정에 반영될 수 있어 일정도 함께 갱신.
       return [groupQueryKeys.votes(groupId), groupQueryKeys.schedules(groupId)];

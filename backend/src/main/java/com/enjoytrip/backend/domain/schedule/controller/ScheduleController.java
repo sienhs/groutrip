@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupOwner;
+import com.enjoytrip.backend.domain.schedule.dto.ScheduleCostRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleSetPlaceRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleCreateRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleReorderRequest;
@@ -88,6 +89,23 @@ public class ScheduleController {
     ) {
         ScheduleResponse response = scheduleService.update(groupId, scheduleId, request);
         return ResponseEntity.ok(ApiResponse.success("일정이 수정되었습니다.", response));
+    }
+
+    @RequiredGroupMember
+    @PatchMapping("/{scheduleId}/cost")
+    @Operation(
+            summary = "일정 예상 비용 설정(정산 연동)",
+            description = "예상 비용을 결제자 지정과 함께 균등 분담 지출로 등록/수정한다. 비용을 비우면 연동 지출을 제거한다."
+    )
+    public ResponseEntity<ApiResponse<ScheduleResponse>> setCost(
+            @Parameter(description = "그룹 ID", example = "1")
+            @PathVariable Long groupId,
+            @Parameter(description = "일정 ID", example = "10")
+            @PathVariable Long scheduleId,
+            @RequestBody @Valid ScheduleCostRequest request
+    ) {
+        ScheduleResponse response = scheduleService.setEstimatedCost(groupId, scheduleId, request);
+        return ResponseEntity.ok(ApiResponse.success("예상 비용이 반영되었습니다.", response));
     }
 
     // FR-VOTE-03 대안: 빈 일정 장소를 Owner가 직접 확정(투표 대신).

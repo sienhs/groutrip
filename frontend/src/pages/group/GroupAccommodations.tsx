@@ -84,7 +84,7 @@ export default function GroupAccommodations({
   return (
     <div className="border-b border-border bg-surface px-4 py-3">
       <p className="mb-2 text-[12px] font-extrabold text-muted">우리 숙소</p>
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4">
+      <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4">
         {items.map((a) => {
           const src = placePhotoSrc(a.place.photoUrl);
           return (

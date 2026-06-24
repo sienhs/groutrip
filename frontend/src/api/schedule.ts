@@ -75,6 +75,22 @@ export const updateSchedule = async (
   return toSchedule(res.data.data);
 };
 
+/**
+ * 일정 예상 비용 설정(정산 연동). 결제자를 지정하면 균등 분담 지출로 등록/수정,
+ * estimatedCost를 null/0으로 보내면 연동 지출을 제거한다.
+ */
+export const setScheduleCost = async (
+  groupId: number,
+  scheduleId: number,
+  body: { estimatedCost: number | null; payerId: number | null },
+): Promise<Schedule> => {
+  const res = await instance.patch<ApiResponse<ScheduleApiResponse>>(
+    `/api/groups/${groupId}/schedules/${scheduleId}/cost`,
+    body,
+  );
+  return toSchedule(res.data.data);
+};
+
 /** 일정 삭제. */
 export const deleteSchedule = async (groupId: number, scheduleId: number): Promise<void> => {
   await instance.delete<ApiResponse<unknown>>(`/api/groups/${groupId}/schedules/${scheduleId}`);

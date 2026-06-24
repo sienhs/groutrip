@@ -80,7 +80,10 @@ public class VoteService {
                 .build());
         schedule.markVoting(user);
 
-        return buildResponse(session, user.getId());
+        VoteSessionResponse response = buildResponse(session, user.getId());
+        // 새 투표 개설을 다른 멤버에게 실시간 반영(투표 목록/일정 VOTING 배지 갱신).
+        eventPublisher.publishEvent(DomainEvent.of(EventType.VOTE_CAST, groupId, user.getId(), response));
+        return response;
     }
 
     /**
@@ -104,7 +107,10 @@ public class VoteService {
                 .memo(request.memo())
                 .build());
 
-        return buildResponse(session, user.getId());
+        VoteSessionResponse response = buildResponse(session, user.getId());
+        // 후보 추가를 다른 멤버에게 실시간 반영(상세/목록의 후보 수 갱신).
+        eventPublisher.publishEvent(DomainEvent.of(EventType.VOTE_CAST, groupId, user.getId(), response));
+        return response;
     }
 
     /**

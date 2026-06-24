@@ -15,6 +15,8 @@ import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.domain.place.controller.PlacePhotoController;
 import com.enjoytrip.backend.domain.place.entity.Place;
 import com.enjoytrip.backend.domain.place.repository.PlaceRepository;
+import com.enjoytrip.backend.domain.expense.service.ExpenseService;
+import com.enjoytrip.backend.domain.schedule.dto.ScheduleCostRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleCreateRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleReorderRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleSetPlaceRequest;
@@ -45,6 +47,7 @@ public class ScheduleService {
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
     private final ApplicationEventPublisher eventPublisher;
+    private final ExpenseService expenseService;
 
     /**
      * FR-SCHEDULE-01: 일정 추가. 새 항목은 해당 일자의 마지막 순서로 배치한다.
@@ -121,6 +124,30 @@ public class ScheduleService {
     }
 
     /**
+     * 일정 예상 비용 설정 — 정산 연동 지출(균등 분담)로 등록/수정/제거하고 일정의 estimatedCost도 동기화한다.
+     */
+    public ScheduleResponse setEstimatedCost(Long groupId, Long scheduleId, ScheduleCostRequest request) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, user.getId());
+        Schedule schedule = findSchedule(groupId, scheduleId);
+
+        Long amount = request.estimatedCost();
+        boolean hasCost = amount != null && amount > 0;
+        schedule.updateEstimatedCost(hasCost ? amount : null, user);
+
+        String name = schedule.getPlace() != null
+                ? schedule.getPlace().getName()
+                : (schedule.getTitle() != null && !schedule.getTitle().isBlank() ? schedule.getTitle() : "일정");
+        expenseService.syncScheduleCostExpense(
+                groupId, scheduleId, "[일정] " + name, schedule.getScheduleDate(),
+                hasCost ? amount : null, request.payerId());
+
+        ScheduleResponse response = toResponse(schedule);
+        eventPublisher.publishEvent(DomainEvent.of(EventType.SCHEDULE_UPDATED, groupId, user.getId(), response));
+        return response;
+    }
+
+    /**
      * FR-SCHEDULE-02: 일정 삭제.
      */
     public void delete(Long groupId, Long scheduleId) {
@@ -128,6 +155,8 @@ public class ScheduleService {
         groupAccessValidator.validateMember(groupId, user.getId());
         Schedule schedule = findSchedule(groupId, scheduleId);
 
+        // 일정에 연동된 예상 비용 지출도 함께 정리(고아 지출 방지).
+        expenseService.syncScheduleCostExpense(groupId, scheduleId, null, null, null, null);
         scheduleRepository.delete(schedule);
         eventPublisher.publishEvent(DomainEvent.of(EventType.SCHEDULE_DELETED, groupId, user.getId(), scheduleId));
     }

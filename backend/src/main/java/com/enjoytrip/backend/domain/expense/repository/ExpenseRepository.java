@@ -43,6 +43,11 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     @EntityGraph(attributePaths = {"travelGroup", "payer", "createdBy"})
     Optional<Expense> findByIdAndTravelGroupIdAndDeletedAtIsNull(Long id, Long groupId);
 
+    // 일정 예상 비용 연동 지출(일정당 1건)을 찾는다 — 일정↔지출 멱등 upsert/삭제에 사용.
+    @EntityGraph(attributePaths = {"travelGroup", "payer", "createdBy"})
+    Optional<Expense> findFirstByTravelGroupIdAndSourceScheduleIdAndCategoryAndDeletedAtIsNull(
+            Long groupId, Long sourceScheduleId, ExpenseCategory category);
+
     void deleteByTravelGroupId(Long groupId);
 
     // FR-MYPAGE: 내가 결제한 지출 총액(여행 통계). 삭제된 지출은 제외한다.

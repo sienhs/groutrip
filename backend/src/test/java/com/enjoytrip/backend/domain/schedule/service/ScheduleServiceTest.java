@@ -57,7 +57,8 @@ class ScheduleServiceTest {
         eventPublisher = mock(ApplicationEventPublisher.class);
         scheduleService = new ScheduleService(
                 scheduleRepository, placeRepository, travelGroupRepository,
-                currentUserResolver, groupAccessValidator, eventPublisher);
+                currentUserResolver, groupAccessValidator, eventPublisher,
+                mock(com.enjoytrip.backend.domain.expense.service.ExpenseService.class));
     }
 
     @Test

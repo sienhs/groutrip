@@ -122,6 +122,12 @@ public class Schedule extends BaseEntity {
         this.updatedBy = editor;
     }
 
+    // 예상 비용만 단독으로 갱신한다(정산 연동 지출 등록 플로우에서 사용).
+    public void updateEstimatedCost(Long estimatedCost, User editor) {
+        this.estimatedCost = estimatedCost;
+        this.updatedBy = editor;
+    }
+
     // FR-SCHEDULE-03: 드래그로 일자/순서를 변경한다.
     public void moveTo(LocalDate scheduleDate, int orderIndex, User editor) {
         this.scheduleDate = scheduleDate;

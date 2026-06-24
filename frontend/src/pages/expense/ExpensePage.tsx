@@ -138,6 +138,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
           <SettlementPanel
             groupId={groupId}
             currentUserId={currentUserId}
+            expenses={expenses}
             fallback={(summary?.transfers ?? []).map((t) => ({ fromName: t.fromName, toName: t.toName, amount: t.amount }))}
             onChanged={invalidateExpenses}
           />

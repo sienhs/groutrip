@@ -228,6 +228,11 @@ export default function TripPlanPage() {
     const sorted = [...selectedNights].sort();
     const stayStart = sorted[0];
     const stayEnd = sorted[sorted.length - 1];
+    // 여행 기간이 있는데 묵을 날짜를 안 고르면 날짜 없는 숙소가 생기므로 차단.
+    if (nights.length > 0 && sorted.length === 0) {
+      toast.warning('묵을 날짜를 선택해주세요', '이 숙소가 어느 날 묵는 곳인지 위에서 골라주세요.');
+      return;
+    }
     if (sorted.length > 0) {
       const span = datesInclusive(stayStart, stayEnd);
       const contiguousFree = span.length === sorted.length && span.every((d) => !coveredByDate.has(d));

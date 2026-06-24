@@ -95,6 +95,66 @@ public class ExpenseService {
     }
 
     /**
+     * 일정 예상 비용을 정산 연동 지출(카테고리 OTHER, 균등 분담, sourceScheduleId 연결)로 동기화한다.
+     * - 금액이 있으면 일정당 1건을 멱등하게 생성/수정(결제자 지정 필수)
+     * - 금액이 비면 연동 지출을 삭제(soft delete)
+     * 일정 수정/삭제 흐름에서 호출하므로 작성자/Owner 권한 대신 시스템 관리로 처리한다.
+     */
+    public void syncScheduleCostExpense(
+            Long groupId, Long scheduleId, String description, LocalDate paidAt, Long amount, Long payerId) {
+        User actor = currentUserResolver.getCurrentUser();
+        var existing = expenseRepository
+                .findFirstByTravelGroupIdAndSourceScheduleIdAndCategoryAndDeletedAtIsNull(
+                        groupId, scheduleId, ExpenseCategory.OTHER);
+
+        // 비용 없음 → 연동 지출 제거
+        if (amount == null || amount <= 0) {
+            existing.ifPresent(expense -> {
+                expense.softDelete();
+                publish(EventType.EXPENSE_DELETED, groupId, actor.getId(), Map.of("expenseId", expense.getId()));
+            });
+            return;
+        }
+        if (payerId == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        GroupMember payerMember = groupAccessValidator.validateMember(groupId, payerId);
+        List<Long> participantIds = groupMemberRepository.findByTravelGroupIdAndLeftAtIsNull(groupId).stream()
+                .map(member -> member.getUser().getId())
+                .toList();
+        List<ResolvedSplit> resolvedSplits = resolveSplits(groupId, amount, SplitType.EQUAL, participantIds, null);
+
+        if (existing.isPresent()) {
+            Expense expense = existing.get();
+            expense.update(payerMember.getUser(), amount, ExpenseCategory.OTHER, SplitType.EQUAL,
+                    description, expense.getMemo(), paidAt, scheduleId);
+            expenseSplitRepository.deleteByExpenseId(expense.getId());
+            List<ExpenseSplit> splits = createSplits(expense, resolvedSplits);
+            expenseSplitRepository.saveAll(splits);
+            publish(EventType.EXPENSE_UPDATED, groupId, actor.getId(), ExpenseResponse.from(expense, splits));
+            return;
+        }
+
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        Expense expense = expenseRepository.save(Expense.builder()
+                .travelGroup(group)
+                .payer(payerMember.getUser())
+                .createdBy(actor)
+                .amount(amount)
+                .category(ExpenseCategory.OTHER)
+                .splitType(SplitType.EQUAL)
+                .description(description)
+                .paidAt(paidAt)
+                .sourceScheduleId(scheduleId)
+                .build());
+        List<ExpenseSplit> splits = createSplits(expense, resolvedSplits);
+        expenseSplitRepository.saveAll(splits);
+        publish(EventType.EXPENSE_ADDED, groupId, actor.getId(), ExpenseResponse.from(expense, splits));
+    }
+
+    /**
      * FR-EXPENSE-02: 지출 목록 조회.
      * 그룹 멤버만 삭제되지 않은 지출을 결제일 최신순으로 확인할 수 있다.
      */
