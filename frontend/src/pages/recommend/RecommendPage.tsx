@@ -7,6 +7,7 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getRecommendations } from '../../api/recommend';
+import { getGroupPersona, type GroupPersona } from '../../api/survey';
 import { searchPlaces, addBookmark } from '../../api/place';
 import { contentTypeLabel, type RecommendItem } from '../../types/recommend';
 import { cn } from '../../lib/cn';
@@ -16,6 +17,16 @@ import { naverPlaceUrl } from '../../lib/naver';
  * 맞춤 추천(TourAPI). thumbnailUrl 은 절대 URL → 그대로 사용.
  * "보관함 담기"는 전용 API 가 없어 추천 장소명으로 검색→보관함추가 플로우를 태운다(Google 단일 소스).
  */
+/** 그룹 평균 성향에서 가장 두드러진 축을 한 줄 수식어로(백엔드 추천 이유와 동일한 기준). */
+function personaTrait(a: NonNullable<GroupPersona['average']>): string {
+  const dA = Math.abs(a.activity - 0.5);
+  const dF = Math.abs(a.food - 0.5);
+  const dU = Math.abs(a.urbanNature - 0.5);
+  if (dF >= dA && dF >= dU) return a.food >= 0.5 ? '먹거리를 즐기는' : '관광에 집중하는';
+  if (dA >= dU) return a.activity >= 0.5 ? '활동적인' : '여유로운';
+  return a.urbanNature >= 0.5 ? '도심을 즐기는' : '자연을 즐기는';
+}
+
 export default function RecommendPage({ groupId: groupIdProp }: { groupId?: number }) {
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
@@ -27,6 +38,14 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
   const [error, setError] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
   const [saved, setSaved] = useState<Set<number>>(new Set());
+  const [persona, setPersona] = useState<GroupPersona | null>(null);
+
+  // 추천이 어떤 그룹 성향에 맞춘 것인지 보여주기 위해 그룹 평균 성향을 함께 불러온다.
+  useEffect(() => {
+    let active = true;
+    getGroupPersona(groupId).then((p) => active && setPersona(p)).catch(() => {});
+    return () => { active = false; };
+  }, [groupId]);
 
   // 재시도 버튼용(이벤트 핸들러).
   const load = useCallback(() => {
@@ -68,15 +87,21 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
   };
 
   return (
-    <AppLayout title="맞춤 추천">
+    <AppLayout title="맞춤 추천" showBack>
       <div className="flex items-center gap-3 rounded-card bg-gradient-to-br from-[#FFEAD9] to-[#FFD9BF] px-4 py-3.5">
         <span className="text-[30px]">🧭</span>
-        <div>
-          <p className="text-[12px] font-bold text-[#B5763E]">내 취향 기반</p>
+        <div className="min-w-0">
+          <p className="text-[12px] font-bold text-[#B5763E]">그룹 성향 기반</p>
           <p className="text-[16px] font-extrabold text-[#8A4B1E]">성향순 추천 코스</p>
+          {/* 어떤 성향에 맞춘 추천인지 표시(2/11) */}
+          <p className="mt-0.5 text-[12px] font-semibold text-[#A8662F]">
+            {persona?.average
+              ? `${personaTrait(persona.average)} 그룹 성향에 맞췄어요${persona.matchRate != null ? ` · 일치율 ${persona.matchRate}%` : ''}`
+              : '설문을 완료하면 그룹 성향 맞춤 추천을 받아요'}
+          </p>
         </div>
       </div>
-      <p className="mt-4 text-[12px] font-bold text-[#BCA48C]">TourAPI · 성향 미응답 시 기본순</p>
+      <p className="mt-4 text-[12px] font-bold text-muted">TourAPI · 성향 미응답 시 기본순</p>
 
       {/* 추천 → 계획 연결: 담은 장소를 그룹 보관함/일정에서 바로 이어서 짠다. */}
       <button

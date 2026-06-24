@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import AppLayout from '../../components/AppLayout';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
@@ -45,21 +46,23 @@ export default function SurveyResultPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto min-h-dvh w-full max-w-md bg-background px-6 py-8">
+      <AppLayout title="내 성향" showBack>
         <SkeletonCard />
-      </div>
+      </AppLayout>
     );
   }
 
   if (!preference) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-md items-center justify-center bg-background px-6">
-        <EmptyState
-          title="아직 분석 결과가 없어요"
-          description="취향 설문을 먼저 진행해 주세요."
-          action={<Button onClick={() => navigate('/survey')}>설문 시작하기</Button>}
-        />
-      </div>
+      <AppLayout title="내 성향" showBack>
+        <div className="mt-10">
+          <EmptyState
+            title="아직 분석 결과가 없어요"
+            description="취향 설문을 먼저 진행해 주세요."
+            action={<Button onClick={() => navigate('/survey')}>설문 시작하기</Button>}
+          />
+        </div>
+      </AppLayout>
     );
   }
 
@@ -70,10 +73,10 @@ export default function SurveyResultPage() {
   }));
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-md bg-background">
-      <div className="px-6 py-8">
+    <AppLayout title="내 성향" showBack>
+      <div className="py-2">
         <div className="text-center">
-          <p className="text-[12px] font-extrabold tracking-wider text-[#BCA48C]">나의 여행 페르소나</p>
+          <p className="text-[12px] font-extrabold tracking-wider text-muted">나의 여행 페르소나</p>
           <h1 className="mt-2 text-[26px] font-extrabold tracking-tight">
             {persona.emoji} {persona.name}
           </h1>
@@ -94,7 +97,7 @@ export default function SurveyResultPage() {
                   <span>{meta.label}</span>
                   <span className="text-[#E8742E]">{pct}%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#F0E4D6]">
+                <div className="h-2 overflow-hidden rounded-full bg-skeleton">
                   {/* 동적 값 — 인라인 style 사용 */}
                   <div className="h-full rounded-full bg-gradient-to-r from-[#FFB585] to-[#FF8A47]" style={{ width: `${pct}%` }} />
                 </div>
@@ -115,6 +118,6 @@ export default function SurveyResultPage() {
           설문 다시하기
         </Button>
       </div>
-    </div>
+    </AppLayout>
   );
 }
