@@ -9,7 +9,7 @@ COPY settings.gradle .
 COPY src src
 
 RUN chmod +x ./gradlew
-RUN ./gradlew clean bootJar -x test
+RUN ./gradlew --no-daemon bootJar -x test
 
 FROM eclipse-temurin:21-jre
 
