@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
 import { useToast } from '../../components/Toast';
 import {
   getSettlementProgress,
   startSettlement,
-  getPaymentLinks,
   confirmSent,
   confirmReceived,
 } from '../../api/settlement';
@@ -49,32 +48,34 @@ export default function SettlementPanel({
   groupId,
   currentUserId,
   fallback,
+  onChanged,
 }: {
   groupId: number;
   currentUserId: number;
   fallback: FallbackTransfer[];
+  /** 정산 상태 변화 시 부모(지출 요약) 갱신용 */
+  onChanged?: () => void;
 }) {
   const toast = useToast();
   const [progress, setProgress] = useState<SettlementProgress | null>(null);
   const [started, setStarted] = useState<boolean | null>(null); // null=로딩
   const [busyId, setBusyId] = useState<number | 'start' | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setProgress(await getSettlementProgress(groupId));
-      setStarted(true);
-    } catch {
-      setStarted(false); // 404 = 미시작
-    }
+  // 진행 상태 로드(없으면 404 → 미시작). effect 본문 동기 setState를 피해 async 콜백에서만 상태를 바꾼다.
+  useEffect(() => {
+    let active = true;
+    getSettlementProgress(groupId)
+      .then((p) => { if (active) { setProgress(p); setStarted(true); } })
+      .catch(() => { if (active) setStarted(false); });
+    return () => { active = false; };
   }, [groupId]);
-
-  useEffect(() => { load(); }, [load]);
 
   const handleStart = async () => {
     setBusyId('start');
     try {
       setProgress(await startSettlement(groupId));
       setStarted(true);
+      onChanged?.();
       toast.success('정산을 시작했어요', '각자 송금 후 완료를 체크하세요.');
     } catch (err) {
       toast.error('정산을 시작할 수 없어요', apiMessage(err) || '정산할 금액이 없을 수 있어요.');
@@ -87,20 +88,12 @@ export default function SettlementPanel({
     setBusyId(id);
     try {
       setProgress(await fn());
+      onChanged?.();
       toast.success(okMsg);
     } catch (err) {
       toast.error('처리에 실패했어요', apiMessage(err));
     } finally {
       setBusyId(null);
-    }
-  };
-
-  const pay = async (id: number, kind: 'toss' | 'kakao') => {
-    try {
-      const links = await getPaymentLinks(groupId, id);
-      window.location.href = kind === 'toss' ? links.tossDeepLink : links.kakaoPayDeepLink;
-    } catch (err) {
-      toast.error('송금 링크를 만들 수 없어요', apiMessage(err));
     }
   };
 
@@ -111,7 +104,7 @@ export default function SettlementPanel({
     if (fallback.length === 0) return null; // 정산 불필요(잔액 0)
     return (
       <section>
-        <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-[#BCA48C]">정산 요약</h2>
+        <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-muted">정산 요약</h2>
         <div className="space-y-2.5">
           {fallback.map((s, i) => (
             <div key={i} className="rounded-card border border-border bg-surface p-3.5">
@@ -131,7 +124,7 @@ export default function SettlementPanel({
   return (
     <section>
       <div className="mb-2.5 flex items-center justify-between">
-        <h2 className="text-[13px] font-extrabold tracking-wide text-[#BCA48C]">정산 진행</h2>
+        <h2 className="text-[13px] font-extrabold tracking-wide text-muted">정산 진행</h2>
         {progress?.completed && (
           <span className="rounded-full bg-[#EAF9EF] px-2.5 py-1 text-[12px] font-extrabold text-success">정산 완료 🎉</span>
         )}
@@ -150,12 +143,10 @@ export default function SettlementPanel({
                   {STATUS[t.status].label}
                 </span>
 
-                {/* 내가 보낼 송금(PENDING) */}
+                {/* 내가 보낼 송금(PENDING) — 외부 결제 딥링크 없이 정산 완료 표시만 */}
                 {iAmSender && t.status === 'PENDING' && (
-                  <div className="ml-auto flex gap-2">
-                    <button type="button" onClick={() => pay(t.id, 'toss')} className="rounded-button bg-[#3182F6] px-3 py-1.5 text-[12px] font-extrabold text-white">토스</button>
-                    <button type="button" onClick={() => pay(t.id, 'kakao')} className="rounded-button bg-[#FEE500] px-3 py-1.5 text-[12px] font-extrabold text-[#3C1E1E]">카카오페이</button>
-                    <Button size="sm" variant="secondary" loading={busyId === t.id} onClick={() => act(t.id, () => confirmSent(groupId, t.id), '송금 완료로 표시했어요')}>송금 완료</Button>
+                  <div className="ml-auto">
+                    <Button size="sm" loading={busyId === t.id} onClick={() => act(t.id, () => confirmSent(groupId, t.id), '송금 완료로 표시했어요')}>송금 완료</Button>
                   </div>
                 )}
 

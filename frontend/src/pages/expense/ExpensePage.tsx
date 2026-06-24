@@ -94,7 +94,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
 
           {/* 내역 */}
           <section>
-            <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-[#BCA48C]">지출 내역</h2>
+            <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-muted">지출 내역</h2>
             {expenses.length === 0 ? (
               <EmptyState title="아직 지출이 없어요" description="+ 버튼으로 첫 지출을 추가해 보세요." />
             ) : (
@@ -129,6 +129,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
             groupId={groupId}
             currentUserId={currentUserId}
             fallback={(summary?.transfers ?? []).map((t) => ({ fromName: t.fromName, toName: t.toName, amount: t.amount }))}
+            onChanged={invalidateExpenses}
           />
         </div>
       )}
@@ -138,7 +139,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
         type="button"
         aria-label="지출 추가"
         onClick={() => { setEditing(null); setFormOpen(true); }}
-        className="fixed bottom-6 right-6 z-30 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-colors hover:bg-primary-hover"
+        className="fixed bottom-24 right-6 z-30 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-colors hover:bg-primary-hover"
       >
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />

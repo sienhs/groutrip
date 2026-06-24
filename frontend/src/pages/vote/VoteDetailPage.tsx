@@ -44,6 +44,7 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pickOpen, setPickOpen] = useState(false); // 동점 시 owner 후보 선택 모달
 
   // 후보 추가(FR-VOTE-01): 보관함 또는 검색으로 장소를 골라 후보로 등록
   const [addOpen, setAddOpen] = useState(false);
@@ -84,9 +85,14 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   useGroupStream({
     groupId,
     currentUserId,
+    // 토스트에 실제 닉네임이 보이도록 actorId→이름 매핑 제공("멤버" 대신).
+    resolveActorName: (actorId) =>
+      (membersQuery.data ?? []).find((m) => m.userId === actorId)?.name ?? '멤버',
     enabled: Number.isFinite(groupId),
     onEvent: (e) => {
-      // 스켈레톤 깜빡임 없이 조용히 갱신.
+      // 본인 행동은 이미 응답으로 반영됨 → 중복 조회/처리 방지.
+      if (e.actorId === currentUserId) return;
+      // 다른 멤버의 투표/마감을 스켈레톤 깜빡임 없이 조용히 갱신.
       if (e.type === 'VOTE_CAST' || e.type === 'VOTE_CLOSED') {
         getVoteSession(groupId, sessionId).then(setSession).catch(() => {});
       }
@@ -105,16 +111,31 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
     }
   };
 
-  const onClose = async () => {
+  // 실제 마감 호출(candidateId 지정 시 해당 후보를 당선으로).
+  const doClose = async (candidateId?: number) => {
     setBusy(true);
     try {
-      setSession(await closeVoteSession(groupId, sessionId));
+      setSession(await closeVoteSession(groupId, sessionId, candidateId ? { candidateId } : {}));
+      setPickOpen(false);
       toast.success('투표를 마감했어요');
-    } catch {
-      toast.error('마감하지 못했어요', '동점이면 Owner가 후보를 지정해 마감해야 해요.');
+    } catch (e) {
+      const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error('마감하지 못했어요', message ?? '잠시 후 다시 시도해 주세요.');
     } finally {
       setBusy(false);
     }
+  };
+
+  // 마감 요청: 동점(최고점 후보가 2개 이상)이면 owner가 직접 후보를 고르도록 모달을 띄운다.
+  const onClose = () => {
+    if (!session) return;
+    const top = Math.max(0, ...session.candidates.map((c) => c.totalScore));
+    const tied = session.candidates.filter((c) => c.totalScore === top);
+    if (tied.length > 1) {
+      setPickOpen(true);
+      return;
+    }
+    doClose();
   };
 
   const openAddCandidate = async () => {
@@ -320,6 +341,39 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
               )}
             </>
           )}
+        </div>
+      </Modal>
+
+      {/* 동점 시 owner가 당선 후보를 직접 선택 */}
+      <Modal
+        open={pickOpen}
+        onClose={() => !busy && setPickOpen(false)}
+        title="동점이에요 — 당선 후보 선택"
+        description="최고 득점 후보가 여러 곳이에요. 최종 장소를 골라 마감합니다."
+      >
+        <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+          {session?.candidates.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              disabled={busy}
+              onClick={() => doClose(c.id)}
+              className="flex w-full items-center gap-3 rounded-card border border-border bg-surface p-2.5 text-left active:scale-[.99] disabled:opacity-60"
+            >
+              <NaverThumb
+                photoUrl={c.place.photoUrl ?? null}
+                category="ETC"
+                name={c.place.name}
+                naverHref={naverPlaceUrl(c.place.name, c.place.address ?? null)}
+                className="size-12 shrink-0 rounded-[9px]"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-bold text-foreground">{c.place.name}</div>
+                <div className="text-[12px] text-muted">{c.totalScore}점 · {c.voteCount}명</div>
+              </div>
+              <span className="shrink-0 text-[12px] font-extrabold text-primary">이 곳으로</span>
+            </button>
+          ))}
         </div>
       </Modal>
     </AppLayout>

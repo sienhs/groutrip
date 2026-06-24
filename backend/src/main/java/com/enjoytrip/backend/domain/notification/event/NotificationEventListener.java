@@ -77,7 +77,7 @@ public class NotificationEventListener {
             case SCHEDULE_UPDATED, SCHEDULE_REORDERED -> actorName + "님이 일정을 변경했습니다.";
             case SCHEDULE_DELETED -> actorName + "님이 일정을 삭제했습니다.";
             case VOTE_CAST -> actorName + "님이 투표했습니다.";
-            case VOTE_CLOSED -> "그룹 투표가 마감되었습니다.";
+            case VOTE_CLOSED -> actorName + "님이 투표를 마감했습니다.";
             case PLACE_BOOKMARKED -> actorName + "님이 장소를 추가했습니다.";
             case PLACE_REMOVED -> actorName + "님이 장소를 삭제했습니다.";
             case EXPENSE_ADDED -> actorName + "님이 지출을 등록했습니다.";

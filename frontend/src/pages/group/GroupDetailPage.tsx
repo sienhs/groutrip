@@ -10,6 +10,7 @@ import Badge from '../../components/Badge';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/Modal';
 import NotificationBell from '../../components/NotificationBell';
+import BottomNav from '../../components/BottomNav';
 import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
@@ -150,7 +151,7 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-md bg-background md:max-w-lg">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background md:max-w-lg">
       {/* 배너 */}
       <div className={cn('relative h-[150px] overflow-hidden', group ? gradientForKey(group.coverImageKey) : 'bg-[#F0E4D6]')}>
         {group?.coverImageKey === 'CUSTOM' && (
@@ -244,7 +245,7 @@ export default function GroupDetailPage() {
       </div>
 
       {/* 탭 콘텐츠 */}
-      <div className="px-4 py-4">
+      <div className="flex-1 px-4 pb-24 pt-4">
         {loading ? (
           <div className="space-y-3"><SkeletonCard /><SkeletonCard /></div>
         ) : tab === 'schedule' ? (
@@ -279,6 +280,8 @@ export default function GroupDetailPage() {
           onDeleted={() => navigate('/groups')}
         />
       )}
+
+      <BottomNav />
     </div>
   );
 }
