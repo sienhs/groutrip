@@ -1,0 +1,20 @@
+{
+  "name": "enjoy-trip",
+  "short_name": "enjoy-trip",
+  "description": "함께 만드는 우리의 여행 — 그룹 여행 협업 플랫폼",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "ko",
+  "background_color": "#FFF8F0",
+  "theme_color": "#FF9F66",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

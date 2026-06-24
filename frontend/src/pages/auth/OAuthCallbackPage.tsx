@@ -31,6 +31,13 @@ export default function OAuthCallbackPage() {
           name: response.name,
           email: response.email,
         });
+        // 초대 링크 등으로 진입했다면 원래 경로로 복귀(설문 분기보다 우선).
+        const redirect = sessionStorage.getItem('post_login_redirect');
+        if (redirect) {
+          sessionStorage.removeItem('post_login_redirect');
+          navigate(redirect, { replace: true });
+          return;
+        }
         try {
           await getMyPreference();
           navigate('/', { replace: true });

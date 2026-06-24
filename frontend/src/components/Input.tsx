@@ -28,7 +28,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={inputId} className="mb-1.5 block text-[13px] font-bold text-[#3A322B]">
+        <label htmlFor={inputId} className="mb-1.5 block text-[13px] font-bold text-foreground">
           {label}
         </label>
       )}
@@ -41,7 +41,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            'w-full rounded-button border bg-surface px-3.5 text-[15px] leading-none text-[#3A322B]',
+            'w-full rounded-button border bg-surface px-3.5 text-[15px] leading-none text-foreground',
             'h-11 outline-none transition-colors placeholder:text-[#C0AE9B]',
             'focus:border-primary focus:ring-2 focus:ring-primary/20',
             'disabled:cursor-not-allowed disabled:bg-[#F7EFE5] disabled:text-[#A6907B]',

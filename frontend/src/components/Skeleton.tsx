@@ -15,7 +15,7 @@ export default function Skeleton({ className, variant = 'line' }: SkeletonProps)
     <div
       aria-hidden
       className={cn(
-        'animate-pulse bg-[#F0E4D6]',
+        'animate-pulse bg-skeleton',
         variant === 'line' && 'h-3 w-full rounded-md',
         variant === 'circle' && 'size-10 rounded-full',
         variant === 'rect' && 'h-12 w-full rounded-card',

@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Tabs, { type TabItem } from '../../components/Tabs';
 import Button from '../../components/Button';
+import { SkeletonCard } from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
 import Avatar from '../../components/Avatar';
 import Badge from '../../components/Badge';
@@ -15,6 +16,7 @@ import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
 import VoteTab from '../vote/VoteTab';
 import GroupGalleryPage from '../gallery/GroupGalleryPage';
 import GroupEditModal from './GroupEditModal';
+import GroupPersonaCard from './GroupPersonaCard';
 import {
   getGroup,
   getGroupMembers,
@@ -44,6 +46,8 @@ const TABS: TabItem[] = [
   { key: 'member', label: '멤버' },
 ];
 
+const TAB_KEYS = TABS.map((t) => t.key) as TabKey[];
+
 /**
  * 그룹 허브(GroupDetailPage). 커버 배너 + 탭(일정/장소/투표/정산/멤버).
  * 일정·장소·정산은 실제 화면(ScheduleBuilderPage/BookmarkListPage/ExpensePage)을 임베드,
@@ -56,7 +60,11 @@ export default function GroupDetailPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  const [tab, setTab] = useState<TabKey>('place');
+  // 탭은 URL(?tab=)로 관리한다 → 알림 딥링크가 바로 해당 탭을 열 수 있고, 뒤로가기/공유에도 자연스럽다.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: TabKey = (TAB_KEYS as string[]).includes(tabParam ?? '') ? (tabParam as TabKey) : 'place';
+  const setTab = (k: TabKey) => setSearchParams({ tab: k }, { replace: true });
   const [editOpen, setEditOpen] = useState(false);
 
   // 본인 이벤트 무시용 userId. 로그인 시 user.id = userId 로 저장됨(authStore).
@@ -109,11 +117,13 @@ export default function GroupDetailPage() {
       toast.info('초대', '초대 코드를 불러오는 중이에요.');
       return;
     }
+    // 코드 대신 바로 합류할 수 있는 초대 링크를 복사한다(/join/:code).
+    const link = `${window.location.origin}/join/${code}`;
     try {
-      await navigator.clipboard.writeText(code);
-      toast.success('초대 코드를 복사했어요', `코드 ${code}`);
+      await navigator.clipboard.writeText(link);
+      toast.success('초대 링크를 복사했어요', '링크를 공유하면 바로 참여할 수 있어요.');
     } catch {
-      toast.info('초대 코드', `코드 ${code}`);
+      toast.info('초대 링크', link);
     }
   }, [group?.inviteCode, toast]);
 
@@ -236,7 +246,7 @@ export default function GroupDetailPage() {
       {/* 탭 콘텐츠 */}
       <div className="px-4 py-4">
         {loading ? (
-          <p className="py-10 text-center text-[13px] text-muted">불러오는 중…</p>
+          <div className="space-y-3"><SkeletonCard /><SkeletonCard /></div>
         ) : tab === 'schedule' ? (
           <ScheduleBuilderPage groupId={groupId} isOwner={isOwner} />
         ) : tab === 'place' ? (
@@ -340,6 +350,9 @@ function MemberTab({
 
   return (
     <div>
+      {/* 그룹 여행 성향(일치율/충돌 차원 절충 안내) */}
+      <GroupPersonaCard groupId={groupId} />
+
       {/* 초대 코드 */}
       <div className="mb-3.5 rounded-card border border-border bg-surface p-3.5">
         <div className="flex items-center justify-between">

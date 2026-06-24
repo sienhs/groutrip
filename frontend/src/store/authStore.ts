@@ -10,6 +10,7 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   setAuth: (accessToken: string, user: User) => void;
+  updateUserName: (name: string) => void;
   clearAuth: () => void;
 }
 
@@ -23,6 +24,14 @@ const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
     set({ accessToken, user, isAuthenticated: true });
   },
+
+  updateUserName: (name) =>
+    set((s) => {
+      if (!s.user) return s;
+      const user = { ...s.user, name };
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      return { user };
+    }),
 
   clearAuth: () => {
     setAccessToken(null);

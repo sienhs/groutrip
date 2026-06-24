@@ -10,6 +10,7 @@ import { useNotificationStore } from '../store/notificationStore';
 import { EVENT_META, type GroupEvent, type GroupEventType } from '../types/sse';
 import { allGroupQueryKeys, invalidationKeysForEvent } from '../queryKeys/groupQueryKeys';
 import { getAccessToken } from '../api/instance';
+import { useSettingsStore } from '../store/settingsStore';
 
 const MAX_RETRIES = 3; // 3회 연속 실패 시 폴링 폴백
 const POLL_INTERVAL = 5_000;
@@ -100,6 +101,12 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, enabl
 
       const meta = EVENT_META[evt.type];
       if (!meta) return;
+
+      // 개인설정에서 알림 표시를 끄면 토스트/알림은 생략하고 캐시만 갱신한다(기기 단위 설정).
+      if (!useSettingsStore.getState().notificationsEnabled) {
+        invalidateForEvent(evt.type);
+        return;
+      }
 
       const actor = resolveActorNameRef.current?.(evt.actorId) ?? '멤버';
       const message = `${actor}님이 ${meta.text}`;

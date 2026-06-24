@@ -71,7 +71,7 @@ export default function Modal({
         className="animate-modal-in w-full max-w-sm rounded-2xl bg-surface p-6 shadow-2xl outline-none"
       >
         {icon && <div className="mb-3.5">{icon}</div>}
-        {title && <h2 className="text-lg font-extrabold text-[#3A322B]">{title}</h2>}
+        {title && <h2 className="text-lg font-extrabold text-foreground">{title}</h2>}
         {description && (
           <p className="mt-2 text-[14px] leading-relaxed text-muted">{description}</p>
         )}

@@ -45,7 +45,7 @@ export default function MultiSelect({
   return (
     <div className="w-full" role="group" aria-labelledby={label ? `${groupId}-label` : undefined}>
       {label && (
-        <div id={`${groupId}-label`} className="mb-2.5 text-[13px] font-bold text-[#3A322B]">
+        <div id={`${groupId}-label`} className="mb-2.5 text-[13px] font-bold text-foreground">
           {label}
         </div>
       )}
@@ -66,7 +66,7 @@ export default function MultiSelect({
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
                 selected
                   ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-surface text-[#7A6A58] hover:border-[#FFCBA6] hover:text-[#E8742E]',
+                  : 'border-border bg-surface text-muted hover:border-[#FFCBA6] hover:text-[#E8742E]',
                 reachedMax && 'cursor-not-allowed opacity-40',
               )}
             >

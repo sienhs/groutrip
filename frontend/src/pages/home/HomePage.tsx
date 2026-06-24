@@ -98,7 +98,7 @@ export default function HomePage() {
             <section>
               <SectionTitle>완료된 여행</SectionTitle>
               <div className="space-y-2.5">
-                {home.completed.map((g) => <CompletedRow key={g.id} g={g} onClick={() => navigate(`/groups/${g.id}`)} />)}
+                {home.completed.map((g) => <CompletedRow key={g.id} g={g} onClick={() => navigate(`/groups/${g.id}/recap`)} />)}
               </div>
             </section>
           )}

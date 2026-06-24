@@ -29,7 +29,7 @@ export default function Header({ title, showBack = false, actions, sticky = true
           type="button"
           aria-label="뒤로가기"
           onClick={() => navigate(-1)}
-          className="-ml-1.5 flex size-9 items-center justify-center rounded-button text-[#5C5044] hover:bg-black/5"
+          className="-ml-1.5 flex size-9 items-center justify-center rounded-button text-foreground hover:bg-black/5"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -38,7 +38,7 @@ export default function Header({ title, showBack = false, actions, sticky = true
       )}
 
       {title ? (
-        <h1 className="truncate text-[16px] font-extrabold tracking-tight text-[#3A322B]">{title}</h1>
+        <h1 className="truncate text-[16px] font-extrabold tracking-tight text-foreground">{title}</h1>
       ) : (
         <div className="flex items-center gap-2.5">
           <span className="flex size-7 items-center justify-center rounded-lg bg-primary">

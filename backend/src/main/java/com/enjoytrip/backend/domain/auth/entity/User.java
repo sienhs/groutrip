@@ -50,6 +50,11 @@ public class User extends BaseEntity {
 	@Column(name = "avatar_content_type", length = 100)
 	private String avatarContentType;
 
+	// FR-MYPAGE: 표시 이름을 변경한다.
+	public void updateName(String name) {
+		this.name = name;
+	}
+
 	/** 프로필 사진 설정. avatarKey는 S3 object key. */
 	public void updateAvatar(String avatarKey, String contentType) {
 		this.avatarKey = avatarKey;

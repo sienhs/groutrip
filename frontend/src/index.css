@@ -14,6 +14,8 @@
   --color-surface: #FFFFFF;            /* 카드 배경 */
   --color-border: #F2E6D8;             /* 카드/구분선 */
   --color-muted: #8A7B6B;              /* 보조 텍스트 */
+  --color-foreground: #3A322B;         /* 기본 본문 텍스트 */
+  --color-skeleton: #F0E4D6;           /* 로딩 스켈레톤 배경 */
   --color-danger: #EF4444;
   --color-success: #22C55E;
   --color-info: #3B82F6;
@@ -27,11 +29,22 @@
   --font-sans: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
 }
 
+/* 다크 테마: 핵심 토큰만 덮어쓴다. bg-background/bg-surface/text-muted/border-border 등
+   토큰 기반 유틸은 자동으로 따라오며, 일부 하드코딩 hex는 라이트 톤이 남을 수 있다(점진 개선). */
+html.dark {
+  --color-background: #1A1714;
+  --color-surface: #241F1B;
+  --color-border: #3A322B;
+  --color-muted: #B0A292;
+  --color-foreground: #F2EAE0;
+  --color-skeleton: #2E2823;
+}
+
 /* 전역 기본값: 배경/폰트/안티앨리어싱 */
 html,
 body {
   background-color: var(--color-background);
-  color: #3A322B;
+  color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
