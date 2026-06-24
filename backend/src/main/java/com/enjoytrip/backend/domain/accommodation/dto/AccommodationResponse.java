@@ -1,5 +1,6 @@
 package com.enjoytrip.backend.domain.accommodation.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.enjoytrip.backend.domain.accommodation.entity.Accommodation;
@@ -15,6 +16,7 @@ public record AccommodationResponse(
         Long id,
         PlaceResponse place,
         String sigungu,
+        LocalDate stayDate,
         BookingStatus status,
         Long reservationPrice,
         String bookingPhotoUrl,
@@ -28,6 +30,7 @@ public record AccommodationResponse(
                 acc.getId(),
                 place,
                 acc.getSigungu(),
+                acc.getStayDate(),
                 acc.getStatus(),
                 acc.getReservationPrice(),
                 bookingPhotoUrl,

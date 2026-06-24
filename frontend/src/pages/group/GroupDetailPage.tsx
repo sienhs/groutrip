@@ -18,6 +18,7 @@ import VoteTab from '../vote/VoteTab';
 import GroupGalleryPage from '../gallery/GroupGalleryPage';
 import GroupEditModal from './GroupEditModal';
 import GroupPersonaCard from './GroupPersonaCard';
+import GroupAccommodations from './GroupAccommodations';
 import {
   getGroup,
   getGroupMembers,
@@ -238,6 +239,9 @@ export default function GroupDetailPage() {
           </svg>
         </button>
       )}
+
+      {/* 우리 숙소(날짜별 선정/예약) */}
+      <GroupAccommodations groupId={groupId} />
 
       {/* 탭 */}
       <div className="sticky top-0 z-20 bg-surface">

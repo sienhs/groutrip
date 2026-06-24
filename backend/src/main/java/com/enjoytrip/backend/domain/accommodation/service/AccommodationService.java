@@ -72,6 +72,7 @@ public class AccommodationService {
                 .place(place)
                 .createdBy(user)
                 .sigungu(request.sigungu())
+                .stayDate(request.stayDate())
                 .status(BookingStatus.SELECTED)
                 .build());
         // 선정한 숙소를 그룹 보관함(LODGING)에도 등록해 '장소' 탭에 바로 보이게 한다.

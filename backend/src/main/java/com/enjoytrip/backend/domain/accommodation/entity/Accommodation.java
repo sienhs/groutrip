@@ -1,5 +1,7 @@
 package com.enjoytrip.backend.domain.accommodation.entity;
 
+import java.time.LocalDate;
+
 import com.enjoytrip.backend.domain.auth.entity.User;
 import com.enjoytrip.backend.domain.group.entity.TravelGroup;
 import com.enjoytrip.backend.domain.place.entity.Place;
@@ -55,6 +57,10 @@ public class Accommodation extends BaseEntity {
     @Column(length = 100)
     private String sigungu;
 
+    // 날짜별 숙소 선택용 숙박일. null이면 날짜 미지정(하위 호환).
+    @Column(name = "stay_date")
+    private LocalDate stayDate;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BookingStatus status;
@@ -71,11 +77,12 @@ public class Accommodation extends BaseEntity {
 
     @Builder
     private Accommodation(TravelGroup travelGroup, Place place, User createdBy,
-                          String sigungu, BookingStatus status) {
+                          String sigungu, LocalDate stayDate, BookingStatus status) {
         this.travelGroup = travelGroup;
         this.place = place;
         this.createdBy = createdBy;
         this.sigungu = sigungu;
+        this.stayDate = stayDate;
         this.status = status;
     }
 

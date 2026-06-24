@@ -43,6 +43,23 @@ const PICK_CATEGORIES: { value: PlaceCategory; label: string; keyword: string }[
  *  지역 경로: 시군구 선택 → 숙소 선정(Google lodging) → 네이버 최저가 핸드오프 → 예약가/사진 기록.
  * 숙소 예약 기록까지가 이번 단계. 이후(갈 만한 곳 추천 등)는 별도로 이어붙인다.
  */
+// 여행 기간의 숙박일 목록(체크인~체크아웃 전날). 당일치기 등은 시작일 1개.
+function nightsBetween(start: string, end: string): string[] {
+  const res: string[] = [];
+  const s = new Date(start + 'T00:00:00');
+  const e = new Date(end + 'T00:00:00');
+  for (let d = new Date(s); d < e; d.setDate(d.getDate() + 1)) {
+    res.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  }
+  return res.length ? res : [start];
+}
+
+/** 'YYYY-MM-DD' → 'M/D' 짧은 라벨. */
+function shortDate(date: string): string {
+  const [, m, d] = date.split('-');
+  return `${Number(m)}/${Number(d)}`;
+}
+
 export default function TripPlanPage() {
   const params = useParams<{ id: string }>();
   const groupId = Number(params.id);
@@ -54,6 +71,9 @@ export default function TripPlanPage() {
   const [destination, setDestination] = useState('');
   const [sigunguOptions, setSigunguOptions] = useState<string[]>([]);
   const [sigungu, setSigungu] = useState('');
+  // 날짜별 숙소 선택용: 숙박일 목록 + 현재 선택한 숙박일.
+  const [nights, setNights] = useState<string[]>([]);
+  const [stayDate, setStayDate] = useState('');
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlaceSearchResult[]>([]);
@@ -97,6 +117,9 @@ export default function TripPlanPage() {
         const [g, accs] = await Promise.all([getGroup(groupId), getAccommodations(groupId)]);
         setDestination(g.destination);
         setSigunguOptions(sigunguOptionsFor(g.destination));
+        const ns = nightsBetween(g.startDate, g.endDate);
+        setNights(ns);
+        setStayDate(ns[0] ?? '');
         const selected = accs.find((a) => a.status === 'SELECTED');
         const booked = accs.find((a) => a.status === 'BOOKED');
         if (selected) {
@@ -174,6 +197,7 @@ export default function TripPlanPage() {
       const acc = await selectAccommodation(groupId, {
         googlePlaceId: place.googlePlaceId,
         sigungu: sigungu || undefined,
+        stayDate: stayDate || undefined,
       });
       setCurrent(acc);
       setShowBookingForm(false);
@@ -381,6 +405,31 @@ export default function TripPlanPage() {
               ? '숙소명이나 지역·주소로 검색해 숙소를 선정하세요.'
               : '숙소를 골라 선정하세요.'}
           </p>
+
+          {/* 날짜별 숙소 선택: 어느 날 묵을 숙소인지 먼저 고른다. */}
+          {nights.length > 1 && (
+            <div>
+              <p className="mb-1.5 text-[12px] font-bold text-muted">어느 날 숙소인가요?</p>
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+                {nights.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setStayDate(n)}
+                    className={cn(
+                      'shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors',
+                      stayDate === n
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-surface text-muted',
+                    )}
+                  >
+                    {shortDate(n)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Input
               value={query}

@@ -77,7 +77,7 @@ class AccommodationServiceTest {
             return a;
         });
 
-        AccommodationResponse res = service.select(1L, new AccommodationSelectRequest("g1", "용인시"));
+        AccommodationResponse res = service.select(1L, new AccommodationSelectRequest("g1", "용인시", null));
 
         assertThat(res.id()).isEqualTo(10L);
         assertThat(res.status()).isEqualTo(BookingStatus.SELECTED);
