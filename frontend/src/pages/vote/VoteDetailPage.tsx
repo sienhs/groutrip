@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import AppLayout from '../../components/AppLayout';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
@@ -10,6 +11,10 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getVoteSession, castVote, closeVoteSession, addCandidate } from '../../api/vote';
 import { getBookmarks, addBookmark, searchPlaces } from '../../api/place';
+import { getGroupMembers } from '../../api/group';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
+import { useGroupStream } from '../../hooks/useGroupStream';
+import useAuthStore from '../../store/authStore';
 import { NaverThumb } from '../place/PlaceBits';
 import { naverPlaceUrl } from '../../lib/naver';
 import { cn } from '../../lib/cn';
@@ -25,6 +30,15 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   const groupId = props.groupId ?? Number(params.id);
   const sessionId = props.sessionId ?? Number(params.voteId);
   const toast = useToast();
+
+  const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
+  // 마감 권한(작성자 또는 Owner) 판단용 — 멤버 캐시 재사용(없으면 조회).
+  const membersQuery = useQuery({
+    queryKey: groupQueryKeys.members(groupId),
+    queryFn: () => getGroupMembers(groupId),
+    enabled: Number.isFinite(groupId),
+  });
+  const isOwner = (membersQuery.data ?? []).find((m) => m.userId === currentUserId)?.role === 'OWNER';
 
   const [session, setSession] = useState<VoteSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,9 +69,29 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
     }
   };
 
+  // 최초/파라미터 변경 시 로드. effect 본문 동기 setState를 피해 async 콜백에서만 상태를 바꾼다.
   useEffect(() => {
-    load();
+    let active = true;
+    getVoteSession(groupId, sessionId)
+      .then((s) => { if (active) { setSession(s); setError(false); } })
+      .catch(() => { if (active) setError(true); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [groupId, sessionId]);
+
+  // 이 라우트에선 GroupDetailPage SSE가 꺼져 있으므로 여기서 구독해
+  // 다른 멤버의 투표/마감을 실시간 반영(+토스트/알림). 본인 행동은 응답으로 이미 반영됨.
+  useGroupStream({
+    groupId,
+    currentUserId,
+    enabled: Number.isFinite(groupId),
+    onEvent: (e) => {
+      // 스켈레톤 깜빡임 없이 조용히 갱신.
+      if (e.type === 'VOTE_CAST' || e.type === 'VOTE_CLOSED') {
+        getVoteSession(groupId, sessionId).then(setSession).catch(() => {});
+      }
+    },
+  });
 
   const onScore = async (candidateId: number, score: number) => {
     setBusy(true);
@@ -168,7 +202,14 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
           action={<Button variant="secondary" onClick={load}>다시 시도</Button>} />
       )}
       {!loading && session && (
-        <SessionBody session={session} busy={busy} onScore={onScore} onClose={onClose} onAddCandidate={openAddCandidate} />
+        <SessionBody
+          session={session}
+          busy={busy}
+          canClose={session.createdById === currentUserId || isOwner}
+          onScore={onScore}
+          onClose={onClose}
+          onAddCandidate={openAddCandidate}
+        />
       )}
 
       <Modal
@@ -191,7 +232,7 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
                 aria-pressed={addTab === o.v}
                 className={cn(
                   'flex-1 rounded-button px-2 py-2 text-[13px] font-bold transition-colors',
-                  addTab === o.v ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-[#7A6A58]',
+                  addTab === o.v ? 'bg-primary text-primary-foreground' : 'border border-border bg-surface text-muted',
                 )}
               >
                 {o.label}
@@ -218,7 +259,7 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
                         className="size-[52px] rounded-[9px]"
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14px] font-bold text-[#3A322B]">{b.place.name}</div>
+                        <div className="truncate text-[14px] font-bold text-foreground">{b.place.name}</div>
                         {b.place.address && <div className="truncate text-[12px] text-muted">{b.place.address}</div>}
                       </div>
                       <Button
@@ -262,7 +303,7 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
                         className="size-[52px] rounded-[9px]"
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14px] font-bold text-[#3A322B]">{p.name}</div>
+                        <div className="truncate text-[14px] font-bold text-foreground">{p.name}</div>
                         {p.address && <div className="truncate text-[12px] text-muted">{p.address}</div>}
                       </div>
                       <Button
@@ -285,7 +326,7 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   );
 }
 
-function SessionBody({ session, busy, onScore, onClose, onAddCandidate }: { session: VoteSession; busy: boolean; onScore: (c: number, s: number) => void; onClose: () => void; onAddCandidate: () => void }) {
+function SessionBody({ session, busy, canClose, onScore, onClose, onAddCandidate }: { session: VoteSession; busy: boolean; canClose: boolean; onScore: (c: number, s: number) => void; onClose: () => void; onAddCandidate: () => void }) {
   const closed = session.status === 'CLOSED';
   const maxScore = Math.max(1, ...session.candidates.map((c) => c.totalScore));
 
@@ -318,9 +359,12 @@ function SessionBody({ session, busy, onScore, onClose, onAddCandidate }: { sess
           <Button variant="secondary" fullWidth className="mt-3" onClick={onAddCandidate}>
             + 후보 추가
           </Button>
-          <Button fullWidth className="mt-2" loading={busy} disabled={session.candidates.length === 0} onClick={onClose}>
-            투표 마감
-          </Button>
+          {/* 투표 마감은 작성자 또는 Owner만(FR-VOTE). 일반 멤버에겐 버튼을 숨긴다. */}
+          {canClose && (
+            <Button fullWidth className="mt-2" loading={busy} disabled={session.candidates.length === 0} onClick={onClose}>
+              투표 마감
+            </Button>
+          )}
         </>
       )}
     </div>
@@ -333,22 +377,33 @@ function CandidateCard({ candidate, maxScore, winner, closed, busy, onScore }: {
   const pct = Math.round((candidate.totalScore / maxScore) * 100);
   return (
     <div className={cn('rounded-card border bg-surface p-3.5', winner ? 'border-primary' : 'border-border')}>
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-3">
+        {/* 후보 장소 사진/정보(탭하면 네이버 지도) */}
+        <NaverThumb
+          photoUrl={candidate.place.photoUrl ?? null}
+          category="ETC"
+          name={candidate.place.name}
+          naverHref={naverPlaceUrl(candidate.place.name, candidate.place.address ?? null)}
+          className="size-14 shrink-0 rounded-[10px]"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-[15px] font-extrabold">{candidate.place.name}</span>
             {winner && <Badge tone="primary">당선</Badge>}
           </div>
-          <div className="mt-0.5 text-[12px] text-muted">{candidate.registeredByName} 등록{candidate.memo ? ` · ${candidate.memo}` : ''}</div>
+          {candidate.place.address && (
+            <div className="truncate text-[12px] text-muted">{candidate.place.address}</div>
+          )}
+          <div className="mt-0.5 text-[11px] text-muted">{candidate.registeredByName} 등록{candidate.memo ? ` · ${candidate.memo}` : ''}</div>
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           <div className="text-[15px] font-extrabold text-[#E8742E]">{candidate.totalScore}점</div>
           <div className="text-[11px] text-muted">{candidate.voteCount}명</div>
         </div>
       </div>
 
       {/* 득점 막대 — 동적 width 인라인 style */}
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#F0E4D6]">
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-skeleton">
         <div className={cn('h-full rounded-full', winner ? 'bg-primary' : 'bg-gradient-to-r from-[#FFB585] to-[#FF8A47]')} style={{ width: `${pct}%` }} />
       </div>
 
@@ -358,21 +413,29 @@ function CandidateCard({ candidate, maxScore, winner, closed, busy, onScore }: {
           <span className="mr-1 text-[12px] font-bold text-muted">내 점수</span>
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} type="button" disabled={busy} aria-label={`${n}점`} onClick={() => onScore(candidate.id, n)}
-              className="flex size-8 items-center justify-center rounded-full border-2 border-[#E7D7C5] text-[13px] font-extrabold text-[#7A6A58] transition-colors hover:border-primary hover:text-[#E8742E] disabled:opacity-50">
+              className="flex size-8 items-center justify-center rounded-full border-2 border-[#E7D7C5] text-[13px] font-extrabold text-muted transition-colors hover:border-primary hover:text-[#E8742E] disabled:opacity-50">
               {n}
             </button>
           ))}
         </div>
       )}
 
-      {/* 투표자 실명 */}
+      {/* 투표자 실명 + 점수(가시성 강화) */}
       {candidate.voters.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {candidate.voters.map((v) => (
-            <span key={v.userId} className="rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold text-[#5C5044]">
-              {v.name} {v.score}점
-            </span>
-          ))}
+        <div className="mt-3 border-t border-border pt-2.5">
+          <div className="mb-1.5 text-[11px] font-bold text-muted">
+            투표한 사람 {candidate.voteCount}명 · 평균 {(candidate.totalScore / candidate.voteCount).toFixed(1)}점
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {candidate.voters.map((v) => (
+              <span key={v.userId} className="flex items-center gap-1 rounded-full bg-background px-2 py-1 text-[11px] font-semibold text-foreground">
+                {v.name}
+                <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-extrabold text-primary-foreground">
+                  {v.score}
+                </span>
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>

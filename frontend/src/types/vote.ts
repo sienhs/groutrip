@@ -41,6 +41,8 @@ export interface VoteSession {
   title: string | null;
   status: VoteStatus;
   closesAt: string | null;
+  /** 세션 생성자 userId (마감 권한 판단용) */
+  createdById: number;
   /** 마감 시 당선 후보 */
   winnerCandidateId: number | null;
   /** 내가 투표했는지 */

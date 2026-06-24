@@ -25,6 +25,8 @@ interface Options {
   currentUserId: number;
   /** actorId → 표시 이름. 미지정 시 '멤버' */
   resolveActorName?: (actorId: number) => string;
+  /** 모든 도메인 이벤트에 대해 호출(본인/알림설정 무관). 예: 특정 페이지를 다시 불러오기. */
+  onEvent?: (evt: GroupEvent) => void;
   enabled?: boolean;
 }
 
@@ -41,16 +43,18 @@ interface Options {
  *  - 본인(actorId === currentUserId) 이벤트는 토스트/알림 생략, 캐시만 갱신
  *  - 수신 시: 이벤트 타입별로 영향받는 React Query 키만 정밀 무효화(전체 remount 아님)
  */
-export function useGroupStream({ groupId, currentUserId, resolveActorName, enabled = true }: Options) {
+export function useGroupStream({ groupId, currentUserId, resolveActorName, onEvent, enabled = true }: Options) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const addNotification = useNotificationStore((s) => s.add);
 
-  // resolveActorName은 멤버 로딩 시 참조가 바뀐다. ref로 고정해 변경만으로 SSE가
+  // resolveActorName/onEvent은 렌더마다 참조가 바뀔 수 있다. ref로 고정해 변경만으로 SSE가
   // 재연결되는 것을 막는다 → 의존성은 [groupId, currentUserId, enabled]로 한정.
   const resolveActorNameRef = useRef(resolveActorName);
+  const onEventRef = useRef(onEvent);
   useEffect(() => {
     resolveActorNameRef.current = resolveActorName;
+    onEventRef.current = onEvent;
   });
 
   const pollRef = useRef<number | null>(null);
@@ -92,6 +96,9 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, enabl
       } catch {
         return;
       }
+
+      // 페이지별 커스텀 처리(본인/알림설정 무관). 예: 투표 상세를 다시 불러오기.
+      onEventRef.current?.(evt);
 
       // 본인 이벤트: 토스트/알림은 생략하되 영향받는 캐시는 갱신(낙관적 업데이트와 중복 방지).
       if (evt.actorId === currentUserId) {
