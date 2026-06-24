@@ -57,9 +57,13 @@ public class Accommodation extends BaseEntity {
     @Column(length = 100)
     private String sigungu;
 
-    // 날짜별 숙소 선택용 숙박일. null이면 날짜 미지정(하위 호환).
+    // 날짜별 숙소 선택용 숙박 시작일(체크인 기준 첫 박). null이면 날짜 미지정(하위 호환).
     @Column(name = "stay_date")
     private LocalDate stayDate;
+
+    // 한 숙소가 여러 박을 커버할 때 마지막 숙박일. null이면 stayDate와 동일(1박).
+    @Column(name = "stay_end_date")
+    private LocalDate stayEndDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -77,12 +81,13 @@ public class Accommodation extends BaseEntity {
 
     @Builder
     private Accommodation(TravelGroup travelGroup, Place place, User createdBy,
-                          String sigungu, LocalDate stayDate, BookingStatus status) {
+                          String sigungu, LocalDate stayDate, LocalDate stayEndDate, BookingStatus status) {
         this.travelGroup = travelGroup;
         this.place = place;
         this.createdBy = createdBy;
         this.sigungu = sigungu;
         this.stayDate = stayDate;
+        this.stayEndDate = stayEndDate;
         this.status = status;
     }
 

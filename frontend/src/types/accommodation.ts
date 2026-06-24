@@ -9,8 +9,10 @@ export interface Accommodation {
   place: PlaceResponse;
   /** 추천/맥락용 시·군·구(상세주소 경로면 null). */
   sigungu: string | null;
-  /** 날짜별 숙소 선택 시 숙박일(YYYY-MM-DD). 미지정이면 null. */
+  /** 숙박 시작일(YYYY-MM-DD). 미지정이면 null. */
   stayDate: string | null;
+  /** 숙박 종료일(여러 박이면 마지막 박, 1박이면 stayDate와 동일). */
+  stayEndDate: string | null;
   status: BookingStatus;
   /** 사용자가 입력한 예약 금액(원). 없으면 null. */
   reservationPrice: number | null;

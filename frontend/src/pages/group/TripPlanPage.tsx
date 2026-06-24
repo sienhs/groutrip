@@ -54,6 +54,17 @@ function nightsBetween(start: string, end: string): string[] {
   return res.length ? res : [start];
 }
 
+/** start~end(양끝 포함) 날짜 목록. 숙소가 커버하는 박들을 펼칠 때 사용. */
+function datesInclusive(start: string, end: string): string[] {
+  const res: string[] = [];
+  const s = new Date(start + 'T00:00:00');
+  const e = new Date(end + 'T00:00:00');
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    res.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  }
+  return res;
+}
+
 /** 'YYYY-MM-DD' → 'M/D' 짧은 라벨. */
 function shortDate(date: string): string {
   const [, m, d] = date.split('-');
@@ -71,9 +82,10 @@ export default function TripPlanPage() {
   const [destination, setDestination] = useState('');
   const [sigunguOptions, setSigunguOptions] = useState<string[]>([]);
   const [sigungu, setSigungu] = useState('');
-  // 날짜별 숙소 선택용: 숙박일 목록 + 현재 선택한 숙박일.
+  // 날짜별 숙소 선택용: 전체 숙박일 + 현재 선택한 박들(연속) + 기존 숙소(커버 계산).
   const [nights, setNights] = useState<string[]>([]);
-  const [stayDate, setStayDate] = useState('');
+  const [selectedNights, setSelectedNights] = useState<string[]>([]);
+  const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlaceSearchResult[]>([]);
@@ -117,9 +129,16 @@ export default function TripPlanPage() {
         const [g, accs] = await Promise.all([getGroup(groupId), getAccommodations(groupId)]);
         setDestination(g.destination);
         setSigunguOptions(sigunguOptionsFor(g.destination));
+        setAccommodations(accs);
         const ns = nightsBetween(g.startDate, g.endDate);
         setNights(ns);
-        setStayDate(ns[0] ?? '');
+        // 기본 선택: 아직 숙소가 없는 첫 날 1박.
+        const covered = new Set<string>();
+        for (const a of accs) {
+          if (a.stayDate) for (const d of datesInclusive(a.stayDate, a.stayEndDate ?? a.stayDate)) covered.add(d);
+        }
+        const firstFree = ns.find((n) => !covered.has(n));
+        setSelectedNights(firstFree ? [firstFree] : []);
         const selected = accs.find((a) => a.status === 'SELECTED');
         const booked = accs.find((a) => a.status === 'BOOKED');
         if (selected) {
@@ -191,14 +210,41 @@ export default function TripPlanPage() {
     goAccommodation(s);
   };
 
+  // 이미 숙소가 정해진 날짜 → 숙소명 매핑(각 숙소의 stayDate~stayEndDate를 펼침).
+  const coveredByDate = new Map<string, string>();
+  for (const a of accommodations) {
+    if (!a.stayDate) continue;
+    for (const d of datesInclusive(a.stayDate, a.stayEndDate ?? a.stayDate)) {
+      if (!coveredByDate.has(d)) coveredByDate.set(d, a.place.name);
+    }
+  }
+
+  const toggleNight = (n: string) => {
+    setSelectedNights((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
+  };
+
   const handleSelectPlace = async (place: PlaceSearchResult) => {
+    // 선택한 박들이 연속이고 모두 비어있는지 검증(한 숙소 = 연속 기간).
+    const sorted = [...selectedNights].sort();
+    const stayStart = sorted[0];
+    const stayEnd = sorted[sorted.length - 1];
+    if (sorted.length > 0) {
+      const span = datesInclusive(stayStart, stayEnd);
+      const contiguousFree = span.length === sorted.length && span.every((d) => !coveredByDate.has(d));
+      if (!contiguousFree) {
+        toast.warning('날짜를 확인해주세요', '숙소가 없는 연속된 날짜만 한 숙소로 지정할 수 있어요.');
+        return;
+      }
+    }
     setSelectingId(place.googlePlaceId);
     try {
       const acc = await selectAccommodation(groupId, {
         googlePlaceId: place.googlePlaceId,
         sigungu: sigungu || undefined,
-        stayDate: stayDate || undefined,
+        stayDate: stayStart || undefined,
+        stayEndDate: stayEnd || undefined,
       });
+      setAccommodations((prev) => [...prev, acc]);
       setCurrent(acc);
       setShowBookingForm(false);
       setPrice('');
@@ -407,25 +453,33 @@ export default function TripPlanPage() {
           </p>
 
           {/* 날짜별 숙소 선택: 어느 날 묵을 숙소인지 먼저 고른다. */}
-          {nights.length > 1 && (
+          {nights.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[12px] font-bold text-muted">어느 날 숙소인가요?</p>
+              <p className="mb-1.5 text-[12px] font-bold text-muted">며칠 묵을 숙소인가요? (연속 날짜 선택, 이미 정한 날은 비활성)</p>
               <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-                {nights.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setStayDate(n)}
-                    className={cn(
-                      'shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors',
-                      stayDate === n
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border bg-surface text-muted',
-                    )}
-                  >
-                    {shortDate(n)}
-                  </button>
-                ))}
+                {nights.map((n) => {
+                  const coveredName = coveredByDate.get(n);
+                  const isSel = selectedNights.includes(n);
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={!!coveredName}
+                      title={coveredName ? `${coveredName} 지정됨` : undefined}
+                      onClick={() => toggleNight(n)}
+                      className={cn(
+                        'shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors',
+                        coveredName
+                          ? 'cursor-not-allowed border-border bg-skeleton text-muted opacity-70'
+                          : isSel
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-surface text-muted',
+                      )}
+                    >
+                      {shortDate(n)}{coveredName ? ' ✓' : ''}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

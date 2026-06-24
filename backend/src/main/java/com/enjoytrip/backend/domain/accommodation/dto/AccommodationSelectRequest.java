@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Size;
 public record AccommodationSelectRequest(
         @NotBlank String googlePlaceId,
         @Size(max = 100) String sigungu,
-        LocalDate stayDate
+        LocalDate stayDate,
+        LocalDate stayEndDate
 ) {
 }

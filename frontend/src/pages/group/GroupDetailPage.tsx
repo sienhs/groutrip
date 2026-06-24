@@ -255,7 +255,7 @@ export default function GroupDetailPage() {
       )}
 
       {/* 우리 숙소(날짜별 선정/예약) */}
-      <GroupAccommodations groupId={groupId} />
+      <GroupAccommodations groupId={groupId} startDate={group?.startDate} endDate={group?.endDate} />
 
       {/* 탭 */}
       <div className="sticky top-0 z-20 bg-surface">

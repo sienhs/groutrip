@@ -10,7 +10,7 @@ import type { Accommodation } from '../types/accommodation';
 /** 숙소 선정. 응답의 bookingSearchUrl로 네이버 최저가 핸드오프. */
 export const selectAccommodation = async (
   groupId: number,
-  body: { googlePlaceId: string; sigungu?: string; stayDate?: string },
+  body: { googlePlaceId: string; sigungu?: string; stayDate?: string; stayEndDate?: string },
 ): Promise<Accommodation> => {
   const res = await instance.post<ApiResponse<Accommodation>>(
     `/api/groups/${groupId}/accommodations`,
