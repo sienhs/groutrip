@@ -82,6 +82,8 @@ storage:
     bucket: ${AWS_S3_BUCKET_NAME:enjoy-trip-files}
     access-key: ${AWS_ACCESS_KEY_ID:}
     secret-key: ${AWS_SECRET_ACCESS_KEY:}
+    # S3 호환 스토리지(로컬 MinIO 등)로 연결할 때만 지정. 비우면 실제 AWS S3 사용.
+    endpoint: ${AWS_S3_ENDPOINT:}
 
 google:
   maps:
