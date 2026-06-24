@@ -102,8 +102,8 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   const onScore = async (candidateId: number, score: number) => {
     setBusy(true);
     try {
+      // 점수는 카드에 바로 반영되므로 확인 토스트는 띄우지 않는다(불필요한 알림 제거).
       setSession(await castVote(groupId, sessionId, { candidateId, score }));
-      toast.success('투표했어요', `${score}점`);
     } catch {
       toast.error('투표에 실패했어요', '잠시 후 다시 시도해 주세요.');
     } finally {

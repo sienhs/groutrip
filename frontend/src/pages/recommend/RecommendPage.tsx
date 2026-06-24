@@ -8,7 +8,7 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getRecommendations } from '../../api/recommend';
 import { getGroupPersona, type GroupPersona } from '../../api/survey';
-import { searchPlaces, addBookmark } from '../../api/place';
+import { searchPlaces, addBookmark, getBookmarks } from '../../api/place';
 import { contentTypeLabel, type RecommendItem } from '../../types/recommend';
 import { cn } from '../../lib/cn';
 import { naverPlaceUrl } from '../../lib/naver';
@@ -17,6 +17,11 @@ import { naverPlaceUrl } from '../../lib/naver';
  * 맞춤 추천(TourAPI). thumbnailUrl 은 절대 URL → 그대로 사용.
  * "보관함 담기"는 전용 API 가 없어 추천 장소명으로 검색→보관함추가 플로우를 태운다(Google 단일 소스).
  */
+/** 장소명 비교용 정규화(공백 제거 + 소문자). */
+function normalizeName(s: string): string {
+  return s.replace(/\s+/g, '').toLowerCase();
+}
+
 /** 그룹 평균 성향에서 가장 두드러진 축을 한 줄 수식어로(백엔드 추천 이유와 동일한 기준). */
 function personaTrait(a: NonNullable<GroupPersona['average']>): string {
   const dA = Math.abs(a.activity - 0.5);
@@ -57,11 +62,25 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
       .finally(() => setLoading(false));
   }, [groupId]);
 
-  // 진입/그룹 변경 시 로드. effect 본문 동기 setState를 피해 async 콜백에서만 상태를 바꾼다.
+  // 진입/그룹 변경 시 로드. 추천 + 보관함을 함께 불러와 '이미 담은 장소'를 표시한다.
   useEffect(() => {
     let active = true;
-    getRecommendations(groupId)
-      .then((d) => { if (active) { setItems(d); setError(false); } })
+    Promise.all([getRecommendations(groupId), getBookmarks(groupId).catch(() => [])])
+      .then(([recs, bookmarks]) => {
+        if (!active) return;
+        setItems(recs);
+        setError(false);
+        // 보관함 장소명과 추천 제목을 정규화 비교해 이미 담긴 항목을 표시(이름 기반, 근사치).
+        const names = bookmarks.map((b) => normalizeName(b.place.name)).filter(Boolean);
+        const already = new Set<number>();
+        for (const r of recs) {
+          const t = normalizeName(r.title);
+          if (t && names.some((n) => n === t || (t.length >= 3 && (n.includes(t) || t.includes(n))))) {
+            already.add(r.contentId);
+          }
+        }
+        setSaved(already);
+      })
       .catch(() => { if (active) setError(true); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -77,10 +96,16 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
         return;
       }
       await addBookmark(groupId, { googlePlaceId: found[0].googlePlaceId, categoryTag: found[0].category });
+      // 버튼이 '담음' 상태로 바뀌므로 확인 토스트는 생략(불필요한 알림 제거).
       setSaved((prev) => new Set(prev).add(item.contentId));
-      toast.success('보관함에 담았어요', found[0].name);
-    } catch {
-      toast.error('담기에 실패했어요', '잠시 후 다시 시도해 주세요.');
+    } catch (e) {
+      // 이미 담긴 장소(409)면 에러 대신 '담음'으로 표시.
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        setSaved((prev) => new Set(prev).add(item.contentId));
+      } else {
+        toast.error('담기에 실패했어요', '잠시 후 다시 시도해 주세요.');
+      }
     } finally {
       setSavingId(null);
     }

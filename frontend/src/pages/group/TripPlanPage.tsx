@@ -257,8 +257,8 @@ export default function TripPlanPage() {
         return;
       }
       await addBookmark(groupId, { googlePlaceId: found.googlePlaceId, categoryTag: found.category });
+      // '담음' 상태로 표시되므로 확인 토스트는 생략.
       setSavedRecIds((prev) => new Set(prev).add(rec.contentId));
-      toast.success('보관함에 담았어요', found.name);
     } catch (e) {
       const status = (e as { response?: { status?: number } }).response?.status;
       if (status === 409) {
@@ -320,8 +320,8 @@ export default function TripPlanPage() {
       // 통합 검색이면 장소 자체 카테고리로, 카테고리 선정 모드면 선택한 카테고리로 담는다.
       const categoryTag = pickUnified ? place.category : pickCategory;
       await addBookmark(groupId, { googlePlaceId: place.googlePlaceId, categoryTag });
+      // '담음 ✓' 상태로 표시되므로 확인 토스트는 생략.
       setAddedIds((prev) => new Set(prev).add(place.googlePlaceId));
-      toast.success('보관함에 담았어요', place.name);
     } catch (e) {
       const status = (e as { response?: { status?: number } }).response?.status;
       if (status === 409) {

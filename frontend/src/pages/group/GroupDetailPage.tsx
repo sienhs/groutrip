@@ -112,14 +112,28 @@ export default function GroupDetailPage() {
     resolveActorName,
   });
 
-  // 초대 코드를 실제로 클립보드에 복사한다(복사 실패 시 코드 노출로 폴백).
-  const copyInvite = useCallback(async () => {
+  // 초대 코드 복사(멤버 탭의 '코드 복사').
+  const copyInviteCode = useCallback(async () => {
     const code = group?.inviteCode;
     if (!code) {
       toast.info('초대', '초대 코드를 불러오는 중이에요.');
       return;
     }
-    // 코드 대신 바로 합류할 수 있는 초대 링크를 복사한다(/join/:code).
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success('초대 코드를 복사했어요', `코드 ${code}`);
+    } catch {
+      toast.info('초대 코드', code);
+    }
+  }, [group?.inviteCode, toast]);
+
+  // 초대 링크 복사(배너 공유 아이콘) — 바로 합류 가능한 /join/:code 링크.
+  const copyInviteLink = useCallback(async () => {
+    const code = group?.inviteCode;
+    if (!code) {
+      toast.info('초대', '초대 코드를 불러오는 중이에요.');
+      return;
+    }
     const link = `${window.location.origin}/join/${code}`;
     try {
       await navigator.clipboard.writeText(link);
@@ -191,7 +205,7 @@ export default function GroupDetailPage() {
         <button
           type="button"
           aria-label="공유"
-          onClick={copyInvite}
+          onClick={copyInviteLink}
           className="absolute right-14 top-3 flex size-9 items-center justify-center rounded-[10px] bg-white/25 text-white"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -269,7 +283,7 @@ export default function GroupDetailPage() {
             currentUserId={currentUserId}
             isOwner={isOwner}
             inviteCode={group?.inviteCode ?? ''}
-            onCopyInvite={copyInvite}
+            onCopyInvite={copyInviteCode}
             onRefresh={refreshGroupAndMembers}
             onExit={() => navigate('/groups')}
           />
