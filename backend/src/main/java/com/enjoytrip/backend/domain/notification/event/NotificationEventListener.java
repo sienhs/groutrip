@@ -34,6 +34,10 @@ public class NotificationEventListener {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onDomainEvent(DomainEvent<?> event) {
+        // 정산 변화는 SSE로 화면만 실시간 갱신하고, 벨 알림은 남기지 않는다(잦은 송금/수령 확인 소음 방지).
+        if (event.type() == EventType.SETTLEMENT_UPDATED) {
+            return;
+        }
         boolean groupDissolved = isGroupDissolved(event);
         List<GroupMember> recipients = groupDissolved
                 ? groupMemberRepository.findByTravelGroupId(event.groupId())
@@ -83,6 +87,8 @@ public class NotificationEventListener {
             case EXPENSE_ADDED -> actorName + "님이 지출을 등록했습니다.";
             case EXPENSE_UPDATED -> actorName + "님이 지출을 수정했습니다.";
             case EXPENSE_DELETED -> actorName + "님이 지출을 삭제했습니다.";
+            case SETTLEMENT_UPDATED -> actorName + "님이 정산을 업데이트했습니다."; // 실제로는 위에서 early-return
+
             case MEMBER_JOINED -> actorName + "님이 그룹에 참여했습니다.";
             case MEMBER_LEFT -> "그룹 멤버가 나갔습니다.";
             case GROUP_UPDATED -> actorName + "님이 그룹 정보를 변경했습니다.";
@@ -95,7 +101,7 @@ public class NotificationEventListener {
             case SCHEDULE_ADDED, SCHEDULE_UPDATED, SCHEDULE_DELETED, SCHEDULE_REORDERED,
                     VOTE_CAST, VOTE_CLOSED -> groupPath + "/schedules";
             case PLACE_BOOKMARKED, PLACE_REMOVED -> groupPath + "/places";
-            case EXPENSE_ADDED, EXPENSE_UPDATED, EXPENSE_DELETED -> groupPath + "/expenses";
+            case EXPENSE_ADDED, EXPENSE_UPDATED, EXPENSE_DELETED, SETTLEMENT_UPDATED -> groupPath + "/expenses";
             case MEMBER_JOINED, MEMBER_LEFT -> groupPath + "/members";
             case GROUP_UPDATED -> groupPath;
         };

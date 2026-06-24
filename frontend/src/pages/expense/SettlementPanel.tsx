@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/Button';
 import { useToast } from '../../components/Toast';
 import {
@@ -7,6 +8,7 @@ import {
   confirmSent,
   confirmReceived,
 } from '../../api/settlement';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { formatWon } from '../../types/expense';
 import type { SettlementProgress, SettlementRecord, SettlementStatus } from '../../types/settlement';
 
@@ -41,8 +43,9 @@ function FromTo({ from, to, amount }: { from: string; to: string; amount: number
 
 /**
  * FR-EXPENSE-05/06 정산 워크플로우.
- * - 미시작: 최소 송금 계산 결과 표시 + "정산 시작하기"
- * - 진행 중: 송금별 상태 + 내 송금엔 Toss/카카오페이 딥링크 & "송금 완료", 내 수취엔 "수령 확인"
+ * - 미시작: 최소 송금 계산 결과 + "정산 시작하기"
+ * - 진행 중: 송금별 상태 + 내 송금엔 "송금 완료", 내 수취엔 "수령 확인"
+ * 진행 상태는 React Query(지출 키 하위)로 관리 → SETTLEMENT_UPDATED SSE 무효화 시 모든 멤버 화면이 갱신된다.
  */
 export default function SettlementPanel({
   groupId,
@@ -57,25 +60,36 @@ export default function SettlementPanel({
   onChanged?: () => void;
 }) {
   const toast = useToast();
-  const [progress, setProgress] = useState<SettlementProgress | null>(null);
-  const [started, setStarted] = useState<boolean | null>(null); // null=로딩
+  const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<number | 'start' | null>(null);
 
-  // 진행 상태 로드(없으면 404 → 미시작). effect 본문 동기 setState를 피해 async 콜백에서만 상태를 바꾼다.
-  useEffect(() => {
-    let active = true;
-    getSettlementProgress(groupId)
-      .then((p) => { if (active) { setProgress(p); setStarted(true); } })
-      .catch(() => { if (active) setStarted(false); });
-    return () => { active = false; };
-  }, [groupId]);
+  // 지출 키 하위로 두어 EXPENSE_*/SETTLEMENT_UPDATED 무효화 시 함께 refetch된다.
+  const settlementKey = [...groupQueryKeys.expenses(groupId), 'settlement'] as const;
+  const settlementQuery = useQuery({
+    queryKey: settlementKey,
+    queryFn: async (): Promise<{ started: boolean; progress: SettlementProgress | null }> => {
+      try {
+        return { started: true, progress: await getSettlementProgress(groupId) };
+      } catch {
+        return { started: false, progress: null }; // 404 = 미시작
+      }
+    },
+    enabled: Number.isFinite(groupId),
+  });
+  const started = settlementQuery.data?.started ?? null; // null = 로딩
+  const progress = settlementQuery.data?.progress ?? null;
+
+  // 정산 변화 → 정산/지출 요약 모두 갱신(본인 즉시 + 다른 멤버는 SSE로).
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: groupQueryKeys.expenses(groupId) });
+    onChanged?.();
+  };
 
   const handleStart = async () => {
     setBusyId('start');
     try {
-      setProgress(await startSettlement(groupId));
-      setStarted(true);
-      onChanged?.();
+      await startSettlement(groupId);
+      refresh();
       toast.success('정산을 시작했어요', '각자 송금 후 완료를 체크하세요.');
     } catch (err) {
       toast.error('정산을 시작할 수 없어요', apiMessage(err) || '정산할 금액이 없을 수 있어요.');
@@ -84,11 +98,11 @@ export default function SettlementPanel({
     }
   };
 
-  const act = async (id: number, fn: () => Promise<SettlementProgress>, okMsg: string) => {
+  const act = async (id: number, fn: () => Promise<unknown>, okMsg: string) => {
     setBusyId(id);
     try {
-      setProgress(await fn());
-      onChanged?.();
+      await fn();
+      refresh();
       toast.success(okMsg);
     } catch (err) {
       toast.error('처리에 실패했어요', apiMessage(err));

@@ -15,6 +15,7 @@ export type GroupEventType =
   | 'EXPENSE_ADDED'
   | 'EXPENSE_UPDATED'
   | 'EXPENSE_DELETED'
+  | 'SETTLEMENT_UPDATED'
   | 'MEMBER_JOINED'
   | 'MEMBER_LEFT'
   | 'GROUP_UPDATED';
@@ -24,6 +25,8 @@ export interface GroupEvent<T = unknown> {
   groupId: number;
   /** 이벤트 발생자 userId. 본인이면 무시(중복 반영 방지). */
   actorId: number;
+  /** 이벤트 발생자 닉네임(백엔드가 채워줌). 없으면 클라 멤버 캐시로 보조. */
+  actorName?: string | null;
   payload: T;
   /** ISO datetime */
   ts: string;
@@ -53,6 +56,8 @@ export const EVENT_META: Record<GroupEventType, EventMeta> = {
   EXPENSE_ADDED: { text: '지출을 추가했습니다', toast: 'success', domain: 'expenses' },
   EXPENSE_UPDATED: { text: '지출을 수정했습니다', toast: 'info', domain: 'expenses' },
   EXPENSE_DELETED: { text: '지출을 삭제했습니다', toast: 'info', domain: 'expenses' },
+  // 정산 변화는 토스트/알림 없이 화면만 갱신(useGroupStream에서 silent 처리). 메타는 형식상 존재.
+  SETTLEMENT_UPDATED: { text: '정산을 업데이트했습니다', toast: 'info', domain: 'expenses' },
   MEMBER_JOINED: { text: '그룹에 참여했습니다', toast: 'success', domain: 'group' },
   MEMBER_LEFT: { text: '그룹에서 나갔습니다', toast: 'warning', domain: 'group' },
   GROUP_UPDATED: { text: '그룹 정보를 변경했습니다', toast: 'info', domain: 'group' },

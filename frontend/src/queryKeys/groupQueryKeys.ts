@@ -49,6 +49,7 @@ export function invalidationKeysForEvent(
     case 'EXPENSE_ADDED':
     case 'EXPENSE_UPDATED':
     case 'EXPENSE_DELETED':
+    case 'SETTLEMENT_UPDATED':
       return [groupQueryKeys.expenses(groupId)];
     case 'MEMBER_JOINED':
     case 'MEMBER_LEFT':

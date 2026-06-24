@@ -55,7 +55,8 @@ class SettlementServiceTest {
                 currentUserResolver,
                 groupAccessValidator,
                 new SettlementCalculator(),
-                new SettlementPaymentLinkGenerator()
+                new SettlementPaymentLinkGenerator(),
+                mock(org.springframework.context.ApplicationEventPublisher.class)
         );
     }
 

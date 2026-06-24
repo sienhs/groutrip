@@ -9,20 +9,22 @@ public record SseEventPayload(
         String type,
         Long groupId,
         Long actorId,
+        String actorName,
         Object payload,
         LocalDateTime ts
 ) {
-    public static SseEventPayload from(DomainEvent<?> event) {
+    public static SseEventPayload from(DomainEvent<?> event, String actorName) {
         return new SseEventPayload(
                 event.type().name(),
                 event.groupId(),
                 event.actorId(),
+                actorName,
                 event.payload(),
                 event.ts()
         );
     }
 
     public static SseEventPayload system(String type, Long groupId) {
-        return new SseEventPayload(type, groupId, null, null, LocalDateTime.now());
+        return new SseEventPayload(type, groupId, null, null, null, LocalDateTime.now());
     }
 }

@@ -6,8 +6,12 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.enjoytrip.backend.global.event.DomainEvent;
+import com.enjoytrip.backend.global.event.EventType;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
 import com.enjoytrip.backend.domain.auth.repository.UserRepository;
@@ -49,6 +53,12 @@ public class SettlementService {
     private final GroupAccessValidator groupAccessValidator;
     private final SettlementCalculator settlementCalculator;
     private final SettlementPaymentLinkGenerator settlementPaymentLinkGenerator;
+    private final ApplicationEventPublisher eventPublisher;
+
+    // 정산 상태 변화를 그룹에 실시간 전파(프론트는 정산/지출 화면을 갱신).
+    private void publishSettlementUpdated(Long groupId, Long actorId) {
+        eventPublisher.publishEvent(DomainEvent.of(EventType.SETTLEMENT_UPDATED, groupId, actorId, Map.of()));
+    }
 
     /**
      * FR-EXPENSE-04: 정산 매트릭스 조회.
@@ -137,7 +147,9 @@ public class SettlementService {
                         .build())
                 .toList();
 
-        return toProgress(groupId, settlementRepository.saveAll(settlements));
+        SettlementProgressResponse progress = toProgress(groupId, settlementRepository.saveAll(settlements));
+        publishSettlementUpdated(groupId, actor.getId());
+        return progress;
     }
 
     // 저장된 정산 송금 상태는 그룹 멤버 누구나 조회할 수 있다.
@@ -160,7 +172,9 @@ public class SettlementService {
 
         Settlement settlement = findSettlement(groupId, settlementId);
         settlement.confirmSent(actor.getId());
-        return toProgress(groupId, settlementRepository.findByTravelGroupIdOrderByIdAsc(groupId));
+        SettlementProgressResponse progress = toProgress(groupId, settlementRepository.findByTravelGroupIdOrderByIdAsc(groupId));
+        publishSettlementUpdated(groupId, actor.getId());
+        return progress;
     }
 
     // 수취인 본인만 SENT 송금의 입금을 확인해 COMPLETED로 전환할 수 있다.
@@ -171,7 +185,9 @@ public class SettlementService {
 
         Settlement settlement = findSettlement(groupId, settlementId);
         settlement.confirmReceived(actor.getId());
-        return toProgress(groupId, settlementRepository.findByTravelGroupIdOrderByIdAsc(groupId));
+        SettlementProgressResponse progress = toProgress(groupId, settlementRepository.findByTravelGroupIdOrderByIdAsc(groupId));
+        publishSettlementUpdated(groupId, actor.getId());
+        return progress;
     }
 
     /**

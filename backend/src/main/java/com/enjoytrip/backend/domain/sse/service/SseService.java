@@ -21,6 +21,7 @@ public class SseService {
     private final SseEventStore eventStore;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
+    private final com.enjoytrip.backend.domain.auth.repository.UserRepository userRepository;
 
     // FR-SSE-01: 그룹 멤버만 연결하며 CONNECTED 이벤트를 즉시 보낸다.
     @Transactional(readOnly = true)
@@ -46,11 +47,15 @@ public class SseService {
     }
 
     public void broadcast(DomainEvent<?> event) {
+        // 토스트/알림에 실제 닉네임이 보이도록 actor 이름을 payload에 담는다(프론트의 멤버 캐시 의존 제거).
+        String actorName = event.actorId() == null
+                ? null
+                : userRepository.findById(event.actorId()).map(u -> u.getName()).orElse(null);
         synchronized (eventStore.lockFor(event.groupId())) {
             SseEventStore.StoredSseEvent storedEvent = eventStore.append(
                     event.groupId(),
                     event.type().name(),
-                    SseEventPayload.from(event)
+                    SseEventPayload.from(event, actorName)
             );
             emitterRegistry.send(
                     event.groupId(),

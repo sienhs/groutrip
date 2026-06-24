@@ -15,6 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
+import com.enjoytrip.backend.domain.auth.repository.UserRepository;
 import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.domain.sse.dto.SseEventPayload;
@@ -43,8 +44,9 @@ class SseServiceTest {
         ReflectionTestUtils.setField(user, "id", 7L);
         when(currentUserResolver.getCurrentUser()).thenReturn(user);
 
+        UserRepository userRepository = mock(UserRepository.class);
         when(eventStore.lockFor(org.mockito.ArgumentMatchers.anyLong())).thenReturn(new Object());
-        sseService = new SseService(emitterRegistry, eventStore, currentUserResolver, groupAccessValidator);
+        sseService = new SseService(emitterRegistry, eventStore, currentUserResolver, groupAccessValidator, userRepository);
     }
 
     @Test
@@ -65,7 +67,7 @@ class SseServiceTest {
         SseEventStore.StoredSseEvent storedEvent = new SseEventStore.StoredSseEvent(
                 11L,
                 "EXPENSE_ADDED",
-                SseEventPayload.from(event)
+                SseEventPayload.from(event, null)
         );
         when(eventStore.append(eq(3L), eq("EXPENSE_ADDED"), org.mockito.ArgumentMatchers.any(SseEventPayload.class)))
                 .thenReturn(storedEvent);

@@ -17,6 +17,9 @@ public enum EventType {
     EXPENSE_UPDATED,
     EXPENSE_DELETED,
 
+    // 정산 시작/송금완료/수령확인 등 정산 상태 변화(그룹 전체 실시간 갱신용).
+    SETTLEMENT_UPDATED,
+
     MEMBER_JOINED,
     MEMBER_LEFT,
     GROUP_UPDATED

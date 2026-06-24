@@ -106,6 +106,12 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
         return;
       }
 
+      // 정산 변화는 토스트/알림 없이 화면만 갱신(잦은 송금/수령 확인 소음 방지).
+      if (evt.type === 'SETTLEMENT_UPDATED') {
+        invalidateForEvent(evt.type);
+        return;
+      }
+
       const meta = EVENT_META[evt.type];
       if (!meta) return;
 
@@ -115,7 +121,8 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
         return;
       }
 
-      const actor = resolveActorNameRef.current?.(evt.actorId) ?? '멤버';
+      // 백엔드가 보낸 actorName 우선, 없으면 멤버 캐시로 보조 → 토스트/알림에 실제 닉네임 표시.
+      const actor = evt.actorName ?? resolveActorNameRef.current?.(evt.actorId) ?? '멤버';
       const message = `${actor}님이 ${meta.text}`;
 
       toast.show(meta.toast, message);
