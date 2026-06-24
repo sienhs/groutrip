@@ -1,7 +1,11 @@
 package com.enjoytrip.backend.domain.place.service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -300,7 +304,18 @@ public class PlaceService {
         String normalizedQuery = query.trim().toLowerCase(Locale.KOREAN);
         String categoryKey = category == null ? "ALL" : category.name();
         String pageKey = (pageToken == null || pageToken.isBlank()) ? "0" : pageToken;
-        return "q=" + normalizedQuery + "|c=" + categoryKey + "|r=" + REGION_CODE + "|p=" + pageKey;
+        String raw = "q=" + normalizedQuery + "|c=" + categoryKey + "|r=" + REGION_CODE + "|p=" + pageKey;
+        // 구글 nextPageToken이 매우 길어 cache_key(varchar 500)를 넘길 수 있으므로 SHA-256으로 고정 길이화한다.
+        return sha256(raw);
+    }
+
+    private String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is not available.", e);
+        }
     }
 
     private String serialize(PlaceSearchPage page) {

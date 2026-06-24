@@ -173,9 +173,9 @@ public class ExpenseService {
      */
     public ExpenseResponse update(Long groupId, Long expenseId, ExpenseUpdateRequest request) {
         User user = currentUserResolver.getCurrentUser();
-        GroupMember actorMember = groupAccessValidator.validateMember(groupId, user.getId());
+        // 협업 정책: 그룹 멤버면 누구나 지출을 수정할 수 있다(삭제는 작성자/Owner로 제한).
+        groupAccessValidator.validateMember(groupId, user.getId());
         Expense expense = findActiveExpense(groupId, expenseId);
-        validateWriterOrOwner(expense, actorMember, user.getId());
 
         GroupMember payerMember = groupAccessValidator.validateMember(groupId, request.payerId());
         List<ResolvedSplit> resolvedSplits = resolveSplits(

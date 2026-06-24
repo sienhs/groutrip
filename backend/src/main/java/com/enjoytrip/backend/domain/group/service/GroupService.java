@@ -123,7 +123,11 @@ public class GroupService {
         TravelGroup group = travelGroupRepository.findByInviteCodeAndDeletedAtIsNull(inviteCode)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INVITE_CODE));
 
-        if (groupMemberRepository.existsByTravelGroupIdAndUserIdAndLeftAtIsNull(group.getId(), user.getId())) {
+        // (group_id, user_id) unique 제약 때문에, 떠났던/강퇴된 멤버는 기존 행을 재활성화한다.
+        GroupMember existing = groupMemberRepository
+                .findByTravelGroupIdAndUserId(group.getId(), user.getId())
+                .orElse(null);
+        if (existing != null && existing.isActive()) {
             throw new BusinessException(ErrorCode.DUPLICATE_GROUP_MEMBER);
         }
 
@@ -131,11 +135,15 @@ public class GroupService {
             throw new BusinessException(ErrorCode.GROUP_FULL);
         }
 
-        groupMemberRepository.save(GroupMember.builder()
-                .travelGroup(group)
-                .user(user)
-                .role(GroupRole.MEMBER)
-                .build());
+        if (existing != null) {
+            existing.rejoinAsMember(); // 변경 감지로 leftAt=null, role=MEMBER 갱신
+        } else {
+            groupMemberRepository.save(GroupMember.builder()
+                    .travelGroup(group)
+                    .user(user)
+                    .role(GroupRole.MEMBER)
+                    .build());
+        }
 
         publish(EventType.MEMBER_JOINED, group.getId(), user.getId(), Map.of("userId", user.getId()));
         return GroupResponse.from(group);

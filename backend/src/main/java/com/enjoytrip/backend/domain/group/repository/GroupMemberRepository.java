@@ -20,6 +20,9 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     @EntityGraph(attributePaths = {"travelGroup", "user"})
     Optional<GroupMember> findByTravelGroupIdAndUserIdAndLeftAtIsNull(Long groupId, Long userId);
 
+    // FR-GROUP-03: 재참여 시 떠난 행 포함해 기존 멤버십을 조회한다(있으면 재활성화).
+    Optional<GroupMember> findByTravelGroupIdAndUserId(Long groupId, Long userId);
+
     // 내 그룹 목록(FR-GROUP-02)을 만들기 위해 사용자의 활성 그룹 멤버십을 조회한다.
     @EntityGraph(attributePaths = {"travelGroup", "user"})
     List<GroupMember> findByUserIdAndLeftAtIsNull(Long userId);

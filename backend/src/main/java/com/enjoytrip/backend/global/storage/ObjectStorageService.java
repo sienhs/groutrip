@@ -14,11 +14,18 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException;
+import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
+import software.amazon.awssdk.services.s3.model.BucketLocationConstraint;
+import software.amazon.awssdk.services.s3.model.CreateBucketConfiguration;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 /**
  * 이미지/파일 객체 스토리지(AWS S3) 게이트웨이.
@@ -39,14 +46,53 @@ public class ObjectStorageService {
 	@Value("${storage.s3.bucket}")
 	private String bucket;
 
+	@Value("${storage.s3.region}")
+	private String region;
+
+	private volatile boolean bucketReady = false;
+
 	@PostConstruct
 	void init() {
+		// 부팅 시 버킷을 확인하고 없으면 생성 시도(best-effort). 실패해도 부팅은 계속한다.
+		ensureBucket();
+	}
+
+	/**
+	 * 버킷이 없으면 생성한다(best-effort). 로컬/신규 환경에서 업로드 500("bucket does not exist")을 막는다.
+	 * 권한 부족이나 글로벌 이름 충돌로 생성 실패 시엔 경고만 남기고, 실제 오류는 업로드 시점에 드러난다.
+	 */
+	private void ensureBucket() {
+		if (bucketReady) {
+			return;
+		}
 		try {
 			s3Client.headBucket(HeadBucketRequest.builder().bucket(bucket).build());
-			log.info("[storage] S3 버킷 확인 완료: {}", bucket);
+			bucketReady = true;
+			return;
+		} catch (NoSuchBucketException e) {
+			// 없음 → 아래에서 생성 시도
+		} catch (S3Exception e) {
+			if (e.statusCode() != 404) {
+				// 권한 등 다른 문제: 생성 시도하지 않고 종료(업로드 시 실제 오류 노출)
+				log.warn("[storage] S3 버킷 확인 실패(부팅 계속): bucket={} {}", bucket, e.getMessage());
+				return;
+			}
+		}
+		try {
+			CreateBucketRequest.Builder request = CreateBucketRequest.builder().bucket(bucket);
+			// us-east-1 외 리전은 LocationConstraint가 필요하다.
+			if (region != null && !region.isBlank() && !"us-east-1".equals(region)) {
+				request.createBucketConfiguration(CreateBucketConfiguration.builder()
+						.locationConstraint(BucketLocationConstraint.fromValue(region))
+						.build());
+			}
+			s3Client.createBucket(request.build());
+			bucketReady = true;
+			log.info("[storage] S3 버킷 생성 완료: {}", bucket);
+		} catch (BucketAlreadyOwnedByYouException | BucketAlreadyExistsException e) {
+			bucketReady = true; // 이미 존재(내 소유) → 사용 가능
 		} catch (RuntimeException e) {
-			// 버킷 미존재/권한 부족이어도 부팅은 계속한다(업로드 시점에 실제 오류가 드러난다).
-			log.warn("[storage] S3 버킷 확인 실패(부팅은 계속): bucket={} {}", bucket, e.getMessage());
+			log.warn("[storage] S3 버킷 생성 실패(업로드 시 재시도): bucket={} {}", bucket, e.getMessage());
 		}
 	}
 
@@ -58,6 +104,7 @@ public class ObjectStorageService {
 	 * @param contentType MIME 타입(null이면 octet-stream)
 	 */
 	public String upload(String prefix, byte[] data, String contentType) {
+		ensureBucket(); // 버킷이 아직 없으면 생성 시도(부팅 시 실패했을 수 있음)
 		String key = prefix + "/" + UUID.randomUUID().toString().replace("-", "");
 		try {
 			s3Client.putObject(PutObjectRequest.builder()

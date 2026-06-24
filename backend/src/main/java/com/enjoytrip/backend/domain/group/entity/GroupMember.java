@@ -85,4 +85,11 @@ public class GroupMember {
     public boolean isActive() {
         return this.leftAt == null;
     }
+
+    // FR-GROUP-03: 떠났던/강퇴된 멤버가 초대코드로 재참여할 때 기존 행을 재활성화한다.
+    // (group_id, user_id) unique 제약 때문에 새 행 INSERT 대신 이 메서드로 되살린다.
+    public void rejoinAsMember() {
+        this.leftAt = null;
+        this.role = GroupRole.MEMBER;
+    }
 }
