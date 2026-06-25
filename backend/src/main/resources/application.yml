@@ -25,7 +25,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    clean-disabled: true
+    # 개발/시연 편의로 부팅 시 DB 초기화(clean)를 허용한다. 운영(prod)에서는 true로 덮어써 비활성화.
+    clean-disabled: ${FLYWAY_CLEAN_DISABLED:false}
     baseline-on-migrate: false
 
   servlet:
@@ -72,8 +73,13 @@ jwt:
 
 auth:
   refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:false}
+  # 교차 사이트(Vercel 프론트 ↔ api 도메인 백엔드)면 None, 같은 Origin이면 Lax.
+  refresh-cookie-same-site: ${REFRESH_COOKIE_SAME_SITE:Lax}
 
 app:
+  # 부팅할 때마다 DB를 초기화(Flyway clean → migrate → 시드)한다. 개발/시연 기본값 true.
+  # ⚠️ 운영(prod)에서는 application-prod.yml에서 false로 덮어쓰고, prod 프로필이면 코드에서도 강제 차단한다.
+  db-reset-on-start: ${DB_RESET_ON_START:true}
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
   # 민감 개인정보(정산 계좌/링크) 컬럼 암호화 키(Base64 16/24/32바이트). 미설정 시 jwt.secret에서 파생.
   encryption-key: ${APP_ENCRYPTION_KEY:}

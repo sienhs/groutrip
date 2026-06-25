@@ -1,6 +1,13 @@
 spring:
   jpa:
     show-sql: false
+  flyway:
+    # 운영 DB는 절대 clean 금지(데이터 보존). 부팅 시 migrate만 수행.
+    clean-disabled: true
+
+app:
+  # 운영에서는 부팅 시 DB 초기화 비활성화(이중 안전장치: 코드에서도 prod 프로필이면 차단).
+  db-reset-on-start: false
 
 server:
   forward-headers-strategy: framework
@@ -11,6 +18,9 @@ server:
 
 auth:
   refresh-cookie-secure: true
+  # Vercel 프론트와 api 도메인 백엔드는 서로 다른 사이트이므로 reissue 요청에 쿠키를 실으려면 None 필요.
+  # (None은 Secure=true가 필수이며 위에서 충족됨) 단일 Origin 배포로 되돌리면 Lax 로 바꾼다.
+  refresh-cookie-same-site: ${REFRESH_COOKIE_SAME_SITE:None}
 
 springdoc:
   api-docs:

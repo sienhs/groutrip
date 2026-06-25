@@ -11,3 +11,6 @@ services:
       - .env
     environment:
       SERVER_PORT: ${SERVER_PORT:-8080}
+      # HTTPS(Nginx 리버스 프록시) 운영 프로필 활성화.
+      # application-prod.yml 적용 → forward-headers-strategy, secure 쿠키, swagger off.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}

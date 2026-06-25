@@ -35,6 +35,32 @@ const enumerateDates = (start: string, end: string): string[] => {
 const shortDate = (d: string): string => d.slice(5).replace('-', '.');
 const won = (n: number): string => `${n.toLocaleString('ko-KR')}원`;
 
+/**
+ * 순서대로 이어진 좌표들을 살짝 휜 곡선(구간별 2차 베지어)으로 샘플링해 kakao LatLng 배열로 만든다.
+ * 실제 도로가 아니라 "이동 흐름"을 보여주는 용도라, 직선의 날카로운 꺾임을 부드럽게 만든다.
+ */
+function curvedLatLngs(kakao: any, pts: [number, number][]): any[] {
+  if (pts.length < 2) return pts.map(([la, ln]) => new kakao.maps.LatLng(la, ln));
+  const BEND = 0.14; // 휘는 정도(구간 길이 대비). 클수록 더 둥글게.
+  const STEPS = 18;
+  const out: any[] = [];
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const [aLat, aLng] = pts[i];
+    const [bLat, bLng] = pts[i + 1];
+    // 중점을 진행 방향의 수직으로 살짝 밀어 제어점을 만든다(서울권에선 위경도 왜곡 무시 가능).
+    const cLat = (aLat + bLat) / 2 - (bLng - aLng) * BEND;
+    const cLng = (aLng + bLng) / 2 + (bLat - aLat) * BEND;
+    for (let s = i === 0 ? 0 : 1; s <= STEPS; s += 1) {
+      const t = s / STEPS;
+      const u = 1 - t;
+      const lat = u * u * aLat + 2 * u * t * cLat + t * t * bLat;
+      const lng = u * u * aLng + 2 * u * t * cLng + t * t * bLng;
+      out.push(new kakao.maps.LatLng(lat, lng));
+    }
+  }
+  return out;
+}
+
 /** 지도에 찍을 핀 한 개. */
 interface Pin {
   lat: number;
@@ -220,7 +246,9 @@ export default function ScheduleMapPage() {
     return () => { cancelled = true; };
   }, [visibleLegs, legInfo, groupId]);
 
-  // 이동 흐름 선 그리기 — 일자 색의 직선(실제 도로 경로 대신 단순 직선으로 흐름만 표시).
+  // 이동 흐름 선 그리기 — 실제 도로 경로 대신 흐름만 표시한다.
+  // 하루치 구간을 하나의 연속 경로로 잇고, 직선 대신 살짝 휜 곡선으로 그려
+  // (멀리 떨어진 장소 사이에서 생기던 날카로운 꺾임을 부드럽게) 시연하기 좋게 보여준다.
   useEffect(() => {
     const kakao = (window as any).kakao;
     const map = mapRef.current;
@@ -228,13 +256,22 @@ export default function ScheduleMapPage() {
     polylinesRef.current.forEach((p) => p.setMap(null));
     polylinesRef.current = [];
 
+    // 같은 일자의 구간들을 순서대로 하나의 점 배열로 연결한다(leg.to === 다음 leg.from).
+    const ordered = new Map<number, [number, number][]>();
     for (const leg of visibleLegs) {
-      const color = leg.dayIdx >= 0 ? DAY_COLORS[leg.dayIdx % DAY_COLORS.length] : '#8A7B6B';
+      const arr = ordered.get(leg.dayIdx) ?? [];
+      if (arr.length === 0) arr.push(leg.from);
+      arr.push(leg.to);
+      ordered.set(leg.dayIdx, arr);
+    }
+
+    for (const [dayIdx, pts] of ordered) {
+      const color = dayIdx >= 0 ? DAY_COLORS[dayIdx % DAY_COLORS.length] : '#8A7B6B';
       const polyline = new kakao.maps.Polyline({
-        path: [new kakao.maps.LatLng(leg.from[0], leg.from[1]), new kakao.maps.LatLng(leg.to[0], leg.to[1])],
-        strokeWeight: 4,
+        path: curvedLatLngs(kakao, pts),
+        strokeWeight: 5,
         strokeColor: color,
-        strokeOpacity: 0.9,
+        strokeOpacity: 0.85,
         strokeStyle: 'solid',
       });
       polyline.setMap(map);

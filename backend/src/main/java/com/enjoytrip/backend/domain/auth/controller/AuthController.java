@@ -40,6 +40,11 @@ public class AuthController {
 	@Value("${auth.refresh-cookie-secure:false}")
 	private boolean refreshCookieSecure;
 
+	// 프론트(Vercel)와 백엔드(api.도메인)가 교차 사이트일 때는 "None"이어야 reissue 요청에 쿠키가 실린다.
+	// 같은 Origin(로컬/단일 Nginx) 환경에서는 기본값 "Lax" 유지.
+	@Value("${auth.refresh-cookie-same-site:Lax}")
+	private String refreshCookieSameSite;
+
 	// 쿠키 이름 상수
 	private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
@@ -67,7 +72,7 @@ public class AuthController {
 		ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, token)
 				.httpOnly(true)
 				.secure(refreshCookieSecure)
-				.sameSite("Lax")
+				.sameSite(refreshCookieSameSite)
 				.path("/api/auth")
 				.maxAge(Duration.ofDays(7))
 				.build();
@@ -118,7 +123,7 @@ public class AuthController {
 		ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
 				.httpOnly(true)
 				.secure(refreshCookieSecure)
-				.sameSite("Lax")
+				.sameSite(refreshCookieSameSite)
 				.path("/api/auth")
 				.maxAge(Duration.ZERO)
 				.build();
