@@ -39,6 +39,25 @@ public class UserAccountService {
         return user.getName();
     }
 
+    /** FR-EXPENSE: 정산 받을 송금 링크/계좌 조회. */
+    @Transactional(readOnly = true)
+    public PayoutResult getPayout(String email) {
+        User user = findActiveUser(email);
+        return new PayoutResult(user.getPayoutLink(), user.getPayoutAccount());
+    }
+
+    /** FR-EXPENSE: 정산 받을 송금 링크/계좌 변경 후 저장된 값을 반환한다. */
+    public PayoutResult updatePayout(String email, String payoutLink, String payoutAccount) {
+        User user = findActiveUser(email);
+        user.updatePayout(payoutLink, payoutAccount);
+        log.info("정산 링크/계좌 변경: userId={}", user.getId());
+        return new PayoutResult(user.getPayoutLink(), user.getPayoutAccount());
+    }
+
+    /** 서비스 계층 반환용 간단 보관 타입. */
+    public record PayoutResult(String payoutLink, String payoutAccount) {
+    }
+
     /**
      * FR-AUTH-06: 계정 탈퇴.
      * 본인 확인은 클라이언트 측 확인 절차로 대체한다(SNS 전용이라 비밀번호 재확인 없음).

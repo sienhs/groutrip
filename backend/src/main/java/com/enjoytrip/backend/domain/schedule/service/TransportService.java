@@ -14,6 +14,7 @@ import com.enjoytrip.backend.domain.place.entity.Place;
 import com.enjoytrip.backend.domain.schedule.client.KakaoDirections;
 import com.enjoytrip.backend.domain.schedule.client.KakaoMobilityClient;
 import com.enjoytrip.backend.domain.schedule.dto.TransportLegResponse;
+import com.enjoytrip.backend.domain.schedule.dto.TransportPathResponse;
 import com.enjoytrip.backend.domain.schedule.entity.Schedule;
 import com.enjoytrip.backend.domain.schedule.entity.TransportLeg;
 import com.enjoytrip.backend.domain.schedule.entity.TransportMode;
@@ -86,6 +87,30 @@ public class TransportService {
                         .expiresAt(expiresAt)
                         .build()));
         return TransportLegResponse.from(leg);
+    }
+
+    /**
+     * 두 일정 사이의 자동차 도로 경로 좌표열을 반환한다(지도 표시용). 길찾기 실패 시 available=false.
+     * 읽기 전용이며 캐시하지 않는다(좌표열이 커서 cost 캐시와 분리).
+     */
+    @Transactional(readOnly = true)
+    public TransportPathResponse getRoutePath(Long groupId, Long fromScheduleId, Long toScheduleId) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, user.getId());
+
+        Place origin = findSchedule(groupId, fromScheduleId).getPlace();
+        Place destination = findSchedule(groupId, toScheduleId).getPlace();
+        if (origin == null || destination == null) {
+            return TransportPathResponse.unavailable();
+        }
+        try {
+            return new TransportPathResponse(true, kakaoMobilityClient.getCarRoutePath(
+                    origin.getLongitude(), origin.getLatitude(),
+                    destination.getLongitude(), destination.getLatitude()));
+        } catch (BusinessException e) {
+            // 길찾기 실패(미지원 구간 등) → 프론트가 직선 폴백을 그린다.
+            return TransportPathResponse.unavailable();
+        }
     }
 
     private Computed compute(TransportMode mode, Place origin, Place destination) {

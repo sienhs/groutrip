@@ -3,7 +3,6 @@ import Modal from '../../components/Modal';
 import Button from '../../components/Button';
 import Select from '../../components/Select';
 import { useToast } from '../../components/Toast';
-import { StarInput } from './PlaceBits';
 import { addBookmark, updateBookmark } from '../../api/place';
 import {
   PLACE_CATEGORIES,
@@ -38,13 +37,11 @@ export default function BookmarkFormModal(props: Props) {
   const initialTag: PlaceCategory =
     props.mode === 'create' ? props.place.category : props.bookmark.categoryTag;
   const initialMemo = props.mode === 'edit' ? (props.bookmark.memo ?? '') : '';
-  const initialRating = props.mode === 'edit' ? (props.bookmark.personalRating ?? 0) : 0;
 
   const placeName = props.mode === 'create' ? props.place.name : props.bookmark.place.name;
 
   const [categoryTag, setCategoryTag] = useState<PlaceCategory>(initialTag);
   const [memo, setMemo] = useState(initialMemo);
-  const [rating, setRating] = useState(initialRating);
   const [submitting, setSubmitting] = useState(false);
 
   // 모달이 새로 열릴 때 대상이 바뀌면 폼 초기화
@@ -52,7 +49,6 @@ export default function BookmarkFormModal(props: Props) {
     if (!open) return;
     setCategoryTag(initialTag);
     setMemo(initialMemo);
-    setRating(initialRating);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -62,7 +58,6 @@ export default function BookmarkFormModal(props: Props) {
       const body = {
         categoryTag,
         memo: memo.trim() ? memo.trim() : undefined,
-        personalRating: rating > 0 ? rating : undefined,
       };
       const saved =
         props.mode === 'create'
@@ -106,11 +101,6 @@ export default function BookmarkFormModal(props: Props) {
           onChange={(e) => setCategoryTag(e.target.value as PlaceCategory)}
           options={PLACE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
         />
-
-        <div>
-          <span className="mb-1.5 block text-[13px] font-bold text-foreground">개인 평점</span>
-          <StarInput value={rating} onChange={setRating} />
-        </div>
 
         <div>
           <label htmlFor="bookmark-memo" className="mb-1.5 block text-[13px] font-bold text-foreground">

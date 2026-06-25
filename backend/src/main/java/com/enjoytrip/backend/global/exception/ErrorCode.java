@@ -70,6 +70,7 @@ public enum ErrorCode {
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "장소를 찾을 수 없습니다."),
     PLACE_ALREADY_BOOKMARKED(HttpStatus.CONFLICT, "이미 보관함에 등록된 장소입니다."),
     PLACE_SEARCH_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "장소 검색 서비스가 일시적으로 불안정합니다."),
+    REVIEW_SUMMARY_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "리뷰 요약 서비스가 일시적으로 불안정합니다."),
 
     // Schedule
     SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다."),

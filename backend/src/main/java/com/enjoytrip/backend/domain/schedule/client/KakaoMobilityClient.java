@@ -1,5 +1,8 @@
 package com.enjoytrip.backend.domain.schedule.client;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +41,40 @@ public class KakaoMobilityClient {
      */
     public KakaoDirections getCarDirections(double originLng, double originLat,
                                             double destLng, double destLat) {
+        JsonNode route = fetchRoute(originLng, originLat, destLng, destLat);
+        JsonNode summary = route.path("summary");
+        JsonNode fare = summary.path("fare");
+        return new KakaoDirections(
+                summary.path("distance").asInt(0),
+                summary.path("duration").asInt(0),
+                fare.path("toll").asInt(0),
+                fare.path("taxi").asInt(0)
+        );
+    }
+
+    /**
+     * 자동차 경로의 도로 좌표열을 [위도, 경도] 목록으로 반환한다(지도에 실제 이동 경로를 그릴 때 사용).
+     * 카카오 응답의 routes[0].sections[].roads[].vertexes(평면 [경도,위도,...])를 펼쳐 변환한다.
+     */
+    public List<double[]> getCarRoutePath(double originLng, double originLat,
+                                          double destLng, double destLat) {
+        JsonNode route = fetchRoute(originLng, originLat, destLng, destLat);
+        List<double[]> path = new ArrayList<>();
+        for (JsonNode section : route.path("sections")) {
+            for (JsonNode road : section.path("roads")) {
+                JsonNode vertexes = road.path("vertexes");
+                for (int i = 0; i + 1 < vertexes.size(); i += 2) {
+                    double lng = vertexes.get(i).asDouble();
+                    double lat = vertexes.get(i + 1).asDouble();
+                    path.add(new double[] {lat, lng});
+                }
+            }
+        }
+        return path;
+    }
+
+    /** 자동차 길찾기 요청 후 첫 경로(result_code 0) 노드를 반환한다. 실패 시 예외. */
+    private JsonNode fetchRoute(double originLng, double originLat, double destLng, double destLat) {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("KAKAO_MOBILITY_API_KEY is not configured");
             throw new BusinessException(ErrorCode.DIRECTIONS_FETCH_FAILED);
@@ -62,15 +99,7 @@ public class KakaoMobilityClient {
             if (route == null || route.path("result_code").asInt(-1) != 0) {
                 throw new BusinessException(ErrorCode.DIRECTIONS_FETCH_FAILED);
             }
-
-            JsonNode summary = route.path("summary");
-            JsonNode fare = summary.path("fare");
-            return new KakaoDirections(
-                    summary.path("distance").asInt(0),
-                    summary.path("duration").asInt(0),
-                    fare.path("toll").asInt(0),
-                    fare.path("taxi").asInt(0)
-            );
+            return route;
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {

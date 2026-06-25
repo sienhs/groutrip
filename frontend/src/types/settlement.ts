@@ -29,4 +29,7 @@ export interface PaymentLinks {
   memo: string;
   tossDeepLink: string;
   kakaoPayDeepLink: string;
+  /** 받는 사람이 마이페이지에 저장한 송금 링크/계좌(없으면 null). */
+  receiverPayoutLink: string | null;
+  receiverPayoutAccount: string | null;
 }

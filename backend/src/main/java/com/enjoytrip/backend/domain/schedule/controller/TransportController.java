@@ -13,6 +13,7 @@ import com.enjoytrip.backend.domain.expense.dto.ExpenseResponse;
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
 import com.enjoytrip.backend.domain.schedule.dto.TransportExpenseRequest;
 import com.enjoytrip.backend.domain.schedule.dto.TransportLegResponse;
+import com.enjoytrip.backend.domain.schedule.dto.TransportPathResponse;
 import com.enjoytrip.backend.domain.schedule.entity.TransportMode;
 import com.enjoytrip.backend.domain.schedule.service.ScheduleExpenseService;
 import com.enjoytrip.backend.domain.schedule.service.TransportService;
@@ -58,6 +59,27 @@ public class TransportController {
     ) {
         TransportLegResponse response = transportService.getLeg(groupId, fromScheduleId, toScheduleId, mode);
         return ResponseEntity.ok(ApiResponse.success("이동 정보 조회 성공", response));
+    }
+
+    @RequiredGroupMember
+    @GetMapping("/transport-path")
+    @Operation(
+            summary = "이동 경로(도로 좌표) 조회",
+            description = """
+                    두 일정 사이의 자동차 이동 경로를 도로 좌표열([위도,경도] 목록)로 반환한다.
+                    여행 일정 지도에서 실제 이동 경로 선을 그릴 때 사용한다. 실패 시 available=false.
+                    """
+    )
+    public ResponseEntity<ApiResponse<TransportPathResponse>> getTransportPath(
+            @Parameter(description = "그룹 ID", example = "1")
+            @PathVariable Long groupId,
+            @Parameter(description = "출발 일정 ID", example = "10")
+            @RequestParam Long fromScheduleId,
+            @Parameter(description = "도착 일정 ID", example = "11")
+            @RequestParam Long toScheduleId
+    ) {
+        TransportPathResponse response = transportService.getRoutePath(groupId, fromScheduleId, toScheduleId);
+        return ResponseEntity.ok(ApiResponse.success("이동 경로 조회 성공", response));
     }
 
     @RequiredGroupMember

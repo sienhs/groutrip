@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/Button';
+import Modal from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import {
   getSettlementProgress,
   startSettlement,
   confirmSent,
   confirmReceived,
+  getPaymentLinks,
 } from '../../api/settlement';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { CATEGORY_LABEL, EXPENSE_CATEGORIES, expenseIcon, formatWon, type Expense, type ExpenseCategory } from '../../types/expense';
-import type { SettlementProgress, SettlementRecord, SettlementStatus } from '../../types/settlement';
+import type { PaymentLinks, SettlementProgress, SettlementRecord, SettlementStatus } from '../../types/settlement';
 
 interface FallbackTransfer {
   fromName: string;
@@ -113,12 +115,15 @@ function FromTo({ from, to, amount }: { from: string; to: string; amount: number
 export default function SettlementPanel({
   groupId,
   currentUserId,
+  isOwner = false,
   expenses = [],
   fallback,
   onChanged,
 }: {
   groupId: number;
   currentUserId: number;
+  /** 정산 시작은 그룹 Owner만 가능 */
+  isOwner?: boolean;
   /** 정산 대상 지출 내역(간단/자세히 표시용) */
   expenses?: Expense[];
   fallback: FallbackTransfer[];
@@ -128,6 +133,39 @@ export default function SettlementPanel({
   const toast = useToast();
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<number | 'start' | null>(null);
+  // 송금 딥링크(설정ID→링크)와 로딩 상태. '송금하기' 클릭 시점에만 조회한다.
+  const [payLinks, setPayLinks] = useState<Record<number, PaymentLinks>>({});
+  const [payLoadingId, setPayLoadingId] = useState<number | null>(null);
+  // 송금 안내 모달이 열린 송금 id(없으면 닫힘).
+  const [sendModalId, setSendModalId] = useState<number | null>(null);
+
+  // '송금하기' → 링크 조회 후 송금 안내 모달을 연다.
+  const openSend = async (settlementId: number) => {
+    setSendModalId(settlementId);
+    await openPay(settlementId);
+  };
+
+  const copyText = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('복사했어요', label);
+    } catch {
+      toast.info('계좌 정보', text);
+    }
+  };
+
+  const openPay = async (settlementId: number) => {
+    if (payLinks[settlementId]) return;
+    setPayLoadingId(settlementId);
+    try {
+      const links = await getPaymentLinks(groupId, settlementId);
+      setPayLinks((prev) => ({ ...prev, [settlementId]: links }));
+    } catch {
+      toast.error('송금 링크를 만들지 못했어요', '잠시 후 다시 시도해 주세요.');
+    } finally {
+      setPayLoadingId(null);
+    }
+  };
 
   // 지출 키 하위로 두어 EXPENSE_*/SETTLEMENT_UPDATED 무효화 시 함께 refetch된다.
   const settlementKey = [...groupQueryKeys.expenses(groupId), 'settlement'] as const;
@@ -193,9 +231,16 @@ export default function SettlementPanel({
             </div>
           ))}
         </div>
-        <Button size="lg" fullWidth className="mt-3" loading={busyId === 'start'} onClick={handleStart}>
-          정산 시작하기
-        </Button>
+        {/* 정산 시작은 그룹 Owner만. 일반 멤버에겐 안내만 노출한다. */}
+        {isOwner ? (
+          <Button size="lg" fullWidth className="mt-3" loading={busyId === 'start'} onClick={handleStart}>
+            정산 시작하기
+          </Button>
+        ) : (
+          <p className="mt-3 rounded-card border border-border bg-surface px-3.5 py-3 text-center text-[12px] font-semibold text-muted">
+            정산은 그룹 Owner가 시작할 수 있어요.
+          </p>
+        )}
       </section>
     );
   }
@@ -225,9 +270,12 @@ export default function SettlementPanel({
                   {STATUS[t.status].label}
                 </span>
 
-                {/* 내가 보낼 송금(PENDING) — 외부 결제 딥링크 없이 정산 완료 표시만 */}
+                {/* 내가 보낼 송금(PENDING): 송금 안내 모달 + 완료 표시 */}
                 {iAmSender && t.status === 'PENDING' && (
-                  <div className="ml-auto">
+                  <div className="ml-auto flex gap-1.5">
+                    <Button size="sm" variant="secondary" loading={payLoadingId === t.id && sendModalId !== t.id} onClick={() => openSend(t.id)}>
+                      송금하기
+                    </Button>
                     <Button size="sm" loading={busyId === t.id} onClick={() => act(t.id, () => confirmSent(groupId, t.id), '송금 완료로 표시했어요')}>송금 완료</Button>
                   </div>
                 )}
@@ -243,6 +291,82 @@ export default function SettlementPanel({
           );
         })}
       </div>
+
+      {/* 송금 안내 모달 — '송금하기'로 열림. 받는 사람 링크로 '보내기' 연결, 없으면 계좌 안내. */}
+      {sendModalId != null && (() => {
+        const t = transfers.find((x) => x.id === sendModalId);
+        if (!t) return null;
+        const links = payLinks[sendModalId];
+        return (
+          <Modal
+            open
+            onClose={() => setSendModalId(null)}
+            title={`${t.toName}님에게 송금`}
+            description={`${formatWon(t.amount)}을 보내요. 아래에서 송금하고 ‘송금 완료’를 눌러주세요.`}
+            footer={
+              <>
+                <Button variant="ghost" fullWidth className="border border-border" onClick={() => setSendModalId(null)}>닫기</Button>
+                <Button
+                  fullWidth
+                  loading={busyId === t.id}
+                  onClick={() => { void act(t.id, () => confirmSent(groupId, t.id), '송금 완료로 표시했어요'); setSendModalId(null); }}
+                >
+                  송금 완료
+                </Button>
+              </>
+            }
+          >
+            {!links ? (
+              <p className="py-6 text-center text-[13px] text-muted">송금 정보를 불러오는 중…</p>
+            ) : (
+              <div className="space-y-3">
+                {/* 1) 받는 사람이 등록한 송금 링크/계좌(있으면 우선) */}
+                {(links.receiverPayoutLink || links.receiverPayoutAccount) ? (
+                  <div className="rounded-card bg-[#F2FBF0] p-3">
+                    <p className="mb-2 text-[12px] font-extrabold text-[#5A8C46]">{t.toName}님이 등록한 정산 정보</p>
+                    {links.receiverPayoutLink && (
+                      <a
+                        href={links.receiverPayoutLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mb-2 flex items-center justify-center gap-1.5 rounded-button bg-[#2E7D32] px-3 py-2.5 text-[14px] font-extrabold text-white active:opacity-90"
+                      >
+                        {t.toName}님에게 보내기 ↗
+                      </a>
+                    )}
+                    {links.receiverPayoutAccount && (
+                      <div className="flex items-center justify-between gap-2 rounded-button border border-[#CDE9C7] bg-surface px-3 py-2.5">
+                        <span className="min-w-0 flex-1 text-[13px] font-bold text-foreground">{links.receiverPayoutAccount}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyText(links.receiverPayoutAccount!, `${links.receiverPayoutAccount} (${formatWon(t.amount)})`)}
+                          className="shrink-0 rounded-button bg-[#2E7D32] px-2.5 py-1 text-[12px] font-extrabold text-white"
+                        >
+                          계좌 복사
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="rounded-card border border-[#FFE0B2] bg-[#FFF7F0] px-3 py-2.5 text-[12px] font-semibold leading-snug text-[#A8662F]">
+                    {t.toName}님이 아직 정산 받을 링크·계좌를 등록하지 않았어요. 아래 앱으로 직접 보내거나, {t.toName}님께 마이페이지 등록을 요청해 주세요.
+                  </p>
+                )}
+
+                {/* 2) 송금 앱 바로 열기(금액 프리필, 받는 사람은 앱에서 선택) */}
+                <div>
+                  <p className="mb-1.5 text-[11px] font-bold text-muted">송금 앱으로 열기 (금액 자동 입력)</p>
+                  <div className="flex gap-2">
+                    <a href={links.tossDeepLink} className="flex flex-1 items-center justify-center rounded-button bg-[#0064FF] px-3 py-2.5 text-[13px] font-extrabold text-white active:opacity-90">토스 ↗</a>
+                    <a href={links.kakaoPayDeepLink} className="flex flex-1 items-center justify-center rounded-button bg-[#FFEB00] px-3 py-2.5 text-[13px] font-extrabold text-[#3C1E1E] active:opacity-90">카카오페이 ↗</a>
+                  </div>
+                  <p className="mt-1.5 text-[11px] leading-snug text-[#BCA48C]">앱이 안 열리면 휴대폰에서 시도해 주세요(PC는 미지원).</p>
+                </div>
+              </div>
+            )}
+          </Modal>
+        );
+      })()}
     </section>
   );
 }

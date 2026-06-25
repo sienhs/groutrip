@@ -4,13 +4,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.enjoytrip.backend.domain.auth.dto.PayoutRequest;
+import com.enjoytrip.backend.domain.auth.dto.PayoutResponse;
 import com.enjoytrip.backend.domain.auth.dto.ProfileUpdateRequest;
 import com.enjoytrip.backend.domain.auth.service.UserAccountService;
+import com.enjoytrip.backend.domain.auth.service.UserAccountService.PayoutResult;
 import com.enjoytrip.backend.global.response.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +46,25 @@ public class UserAccountController {
     ) {
         String name = userAccountService.updateName(userDetails.getUsername(), request.name());
         return ResponseEntity.ok(ApiResponse.success("이름이 변경되었습니다.", name));
+    }
+
+    @GetMapping("/payout")
+    @Operation(summary = "정산 받을 링크/계좌 조회", description = "FR-EXPENSE: 내 정산 송금 링크와 계좌(미설정이면 null)를 반환한다.")
+    public ResponseEntity<ApiResponse<PayoutResponse>> getPayout(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        PayoutResult r = userAccountService.getPayout(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("정산 정보 조회 성공", new PayoutResponse(r.payoutLink(), r.payoutAccount())));
+    }
+
+    @PatchMapping("/payout")
+    @Operation(summary = "정산 받을 링크/계좌 변경", description = "FR-EXPENSE: 정산 송금 링크(URL)와 계좌(자유 텍스트)를 저장한다. 빈 값은 미설정 처리.")
+    public ResponseEntity<ApiResponse<PayoutResponse>> updatePayout(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid PayoutRequest request
+    ) {
+        PayoutResult r = userAccountService.updatePayout(userDetails.getUsername(), request.payoutLink(), request.payoutAccount());
+        return ResponseEntity.ok(ApiResponse.success("정산 정보가 저장되었습니다.", new PayoutResponse(r.payoutLink(), r.payoutAccount())));
     }
 
     @DeleteMapping

@@ -14,6 +14,7 @@ import { createVoteSession, getVoteSessions } from '../../api/vote';
 import { getGroup, getGroupMembers } from '../../api/group';
 import { getAccommodations } from '../../api/accommodation';
 import { placePhotoSrc } from '../../api/place';
+import { naverPlaceUrl } from '../../lib/naver';
 import useAuthStore from '../../store/authStore';
 import type { Accommodation } from '../../types/accommodation';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
@@ -334,6 +335,27 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
         ))}
       </div>
 
+      {/* 우리 여행일정 지도에서 보기 — 일정 장소+숙소를 핀으로 */}
+      <button
+        type="button"
+        onClick={() => navigate(`/groups/${groupId}/map`)}
+        className="mt-3 flex w-full items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-3 text-left active:scale-[0.99]"
+      >
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FFF1E6] text-[#E8742E]">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6 9 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+            <path d="M9 3v15M15 6v15" stroke="currentColor" strokeWidth="1.8" />
+          </svg>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-extrabold text-foreground">우리 여행일정 지도에서 보기</span>
+          <span className="block text-[12px] text-muted">일정 장소와 숙소를 지도에 핀으로 한눈에</span>
+        </span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M9 6l6 6-6 6" stroke="#E8742E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
       {/* 이 날 묵는 숙소 — 일정 목록과 별개로 상단에 고정 표시 */}
       {stayHere && (
         <div className="mt-4 flex items-center gap-3 rounded-card border border-[#FFCBA6] bg-surface p-3 shadow-sm">
@@ -386,7 +408,23 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                         </Badge>
                       )}
                     </div>
-                    <div className="mt-0.5 text-[12px] text-muted">{stop.startTime}–{stop.endTime}</div>
+                    <div className="mt-0.5 flex items-center gap-2 text-[12px] text-muted">
+                      <span>{stop.startTime}–{stop.endTime}</span>
+                      {/* 네이버 지도에서 보기 — 장소 탭처럼 작은 버튼 */}
+                      {stop.placeId && (
+                        <a
+                          href={naverPlaceUrl(stop.placeName ?? stop.title ?? '', null)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title="네이버 지도에서 사진·리뷰 보기"
+                          className="inline-flex items-center gap-1 rounded-button px-1.5 py-0.5 text-[10px] font-bold text-[#03C75A] transition-colors hover:bg-[#E9F8EE]"
+                        >
+                          <span className="flex size-3 items-center justify-center rounded-[3px] bg-[#03C75A] text-[8px] font-black leading-none text-white">N</span>
+                          지도
+                        </a>
+                      )}
+                    </div>
                     {stop.memo && <div className="mt-1 text-[12px] text-muted">{stop.memo}</div>}
                     {/* 예상 비용 — 장소가 정해진 일정에서 인라인으로 수정 가능 */}
                     {stop.placeId && (

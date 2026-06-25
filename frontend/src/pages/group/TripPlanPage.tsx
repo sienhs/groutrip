@@ -5,6 +5,7 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { useToast } from '../../components/Toast';
 import { NaverThumb, StarRating } from '../place/PlaceBits';
+import AiReviewButton from '../place/AiReviewButton';
 import { getGroup } from '../../api/group';
 import { searchPlaces, addBookmark } from '../../api/place';
 import { getRecommendations } from '../../api/recommend';
@@ -13,7 +14,7 @@ import {
   getAccommodations,
   confirmBooking,
 } from '../../api/accommodation';
-import { sigunguOptionsFor } from '../../lib/regions';
+import { sigunguOptionsFor, districtOptionsFor } from '../../lib/regions';
 import { naverPlaceUrl } from '../../lib/naver';
 import { cn } from '../../lib/cn';
 import { CATEGORY_LABEL, type PlaceCategory, type PlaceSearchResult } from '../../types/place';
@@ -24,6 +25,7 @@ type Step =
   | 'loading'
   | 'start'
   | 'sigungu'
+  | 'gu'
   | 'accommodation'
   | 'booking'
   | 'hub'
@@ -82,6 +84,9 @@ export default function TripPlanPage() {
   const [destination, setDestination] = useState('');
   const [sigunguOptions, setSigunguOptions] = useState<string[]>([]);
   const [sigungu, setSigungu] = useState('');
+  // 시/군 안의 구(자치구·일반구) 선택용.
+  const [districtOptions, setDistrictOptions] = useState<string[]>([]);
+  const [gu, setGu] = useState('');
   // 날짜별 숙소 선택용: 전체 숙박일 + 현재 선택한 박들(연속) + 기존 숙소(커버 계산).
   const [nights, setNights] = useState<string[]>([]);
   const [selectedNights, setSelectedNights] = useState<string[]>([]);
@@ -188,17 +193,28 @@ export default function TripPlanPage() {
 
   const chooseRegion = () => {
     setMode('region');
+    setGu('');
     if (sigunguOptions.length > 0) {
+      // 도(道) → 시/군 선택 단계로.
       setStep('sigungu');
-    } else {
-      setSigungu('');
-      goAccommodation(destination);
+      return;
     }
+    // 광역시/특별시 → 곧장 구 선택(자치구). 구 데이터가 없으면 목적지 자체로 검색.
+    const metroGus = districtOptionsFor(destination);
+    if (metroGus.length > 0) {
+      setSigungu('');
+      setDistrictOptions(metroGus);
+      setStep('gu');
+      return;
+    }
+    setSigungu('');
+    goAccommodation(`${destination} 숙소`);
   };
 
   const chooseAddress = () => {
     setMode('address');
     setSigungu('');
+    setGu('');
     setQuery('');
     setResults([]);
     setNextToken(null);
@@ -207,7 +223,23 @@ export default function TripPlanPage() {
 
   const pickSigungu = (s: string) => {
     setSigungu(s);
-    goAccommodation(s);
+    setGu('');
+    // 선택한 시/군에 구가 있으면 이어서 구를 고르고, 없으면 바로 숙소 검색.
+    const gus = districtOptionsFor(s);
+    if (gus.length > 0) {
+      setDistrictOptions(gus);
+      setStep('gu');
+      return;
+    }
+    // '숙소' 키워드를 붙여야 해당 지역 숙소가 바로 검색된다(지역명만으론 결과가 빈약함).
+    goAccommodation(`${s} 숙소`);
+  };
+
+  const pickGu = (g: string) => {
+    setGu(g);
+    // 검색 지역: 시/군 + 구 (광역시는 시/군이 없으니 목적지 + 구). '숙소' 키워드를 붙여 바로 숙소가 나오게 한다.
+    const base = sigungu || destination;
+    goAccommodation(`${base} ${g} 숙소`.replace(/\s+/g, ' ').trim());
   };
 
   // 이미 숙소가 정해진 날짜 → 숙소명 매핑(각 숙소의 stayDate~stayEndDate를 펼침).
@@ -224,20 +256,17 @@ export default function TripPlanPage() {
   };
 
   const handleSelectPlace = async (place: PlaceSearchResult) => {
-    // 선택한 박들이 연속이고 모두 비어있는지 검증(한 숙소 = 연속 기간).
     const sorted = [...selectedNights].sort();
-    const stayStart = sorted[0];
-    const stayEnd = sorted[sorted.length - 1];
-    // 여행 기간이 있는데 묵을 날짜를 안 고르면 날짜 없는 숙소가 생기므로 차단.
-    if (nights.length > 0 && sorted.length === 0) {
-      toast.warning('묵을 날짜를 선택해주세요', '이 숙소가 어느 날 묵는 곳인지 위에서 골라주세요.');
-      return;
-    }
+    // 날짜를 비워두면 '날짜 미정'으로 선정하고 나중에 정한다(건너뛰기). 날짜가 없어도 막지 않는다.
+    let stayStart: string | undefined;
+    let stayEnd: string | undefined;
     if (sorted.length > 0) {
+      stayStart = sorted[0];
+      stayEnd = sorted[sorted.length - 1];
+      // 선택 구간(시작~끝)에 이미 다른 숙소가 정해진 날이 끼어 있으면 막는다(겹침만 차단, 연속 여부는 강제하지 않음).
       const span = datesInclusive(stayStart, stayEnd);
-      const contiguousFree = span.length === sorted.length && span.every((d) => !coveredByDate.has(d));
-      if (!contiguousFree) {
-        toast.warning('날짜를 확인해주세요', '숙소가 없는 연속된 날짜만 한 숙소로 지정할 수 있어요.');
+      if (span.some((d) => coveredByDate.has(d))) {
+        toast.warning('날짜가 겹쳐요', '이미 숙소가 있는 날짜가 포함됐어요. 다른 날짜를 골라주세요.');
         return;
       }
     }
@@ -347,7 +376,7 @@ export default function TripPlanPage() {
 
   // 맛집/명소/카페 선정 반복 — 검색해 보관함에 담는다(여러 개 가능).
   const openPlaceSelect = (cat: PlaceCategory) => {
-    const region = sigungu || destination;
+    const region = (gu ? `${sigungu || destination} ${gu}` : sigungu || destination).trim();
     const keyword = PICK_CATEGORIES.find((c) => c.value === cat)?.keyword ?? '';
     const q = `${region} ${keyword}`.trim();
     setPickUnified(false);
@@ -361,7 +390,7 @@ export default function TripPlanPage() {
 
   // 통합 검색 — 카테고리 필터 없이 키워드로 검색해, 장소 자체 카테고리로 담는다.
   const openUnifiedSearch = () => {
-    const region = sigungu || destination;
+    const region = (gu ? `${sigungu || destination} ${gu}` : sigungu || destination).trim();
     setPickUnified(true);
     setPickQuery(region ? `${region} ` : '');
     setPickResults([]);
@@ -411,6 +440,8 @@ export default function TripPlanPage() {
   const stepTitle =
     step === 'sigungu'
       ? '지역 선택'
+      : step === 'gu'
+      ? '지역 선택'
       : step === 'accommodation'
         ? '숙소 선정'
         : step === 'booking'
@@ -429,13 +460,15 @@ export default function TripPlanPage() {
 
       {step === 'start' && (
         <div className="space-y-4">
-          <div>
-            <p className="text-[13px] font-bold text-foreground">목적지 · {destination}</p>
-            <p className="mt-1 text-[13px] text-muted">어떻게 장소를 정해볼까요?</p>
+          <div className="rounded-card border border-[#FFCBA6] bg-[#FFF7F0] p-4">
+            <p className="text-[12px] font-extrabold text-[#E8742E]">STEP 1 · 숙소 선정</p>
+            <p className="mt-1 text-[16px] font-extrabold text-foreground">먼저 묵을 숙소를 정해요</p>
+            <p className="mt-1 text-[13px] text-[#A8662F]">목적지 · {destination} · 숙소부터 정하고 갈 곳을 모아요.</p>
           </div>
+          <p className="text-[13px] font-bold text-foreground">어떻게 숙소를 정해볼까요?</p>
           <ChoiceCard
             title="지역만 정해서 추천받기"
-            desc="시·군·구를 고르고 숙소 선정 → 갈 만한 곳 추천을 단계별로 진행해요."
+            desc="시·군·구를 단계별로 고르면 그 지역 숙소를 바로 보여드려요."
             onClick={chooseRegion}
           />
           <ChoiceCard
@@ -467,10 +500,41 @@ export default function TripPlanPage() {
         </div>
       )}
 
+      {step === 'gu' && (
+        <div className="space-y-4">
+          <StepBack onClick={() => setStep(sigunguOptions.length > 0 ? 'sigungu' : 'start')} label="이전" />
+          <p className="text-[13px] text-muted">
+            <b className="text-foreground">{sigungu || destination}</b> 안에서 숙소를 찾을 구를 골라주세요.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {districtOptions.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => pickGu(d)}
+                className="rounded-card border border-border bg-surface px-3 py-3 text-[14px] font-semibold text-foreground active:scale-[0.98]"
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {step === 'accommodation' && (
         <div className="space-y-3.5">
           <StepBack
-            onClick={() => setStep(mode === 'region' && sigunguOptions.length > 0 ? 'sigungu' : 'start')}
+            onClick={() =>
+              setStep(
+                mode !== 'region'
+                  ? 'start'
+                  : gu
+                    ? 'gu'
+                    : sigunguOptions.length > 0
+                      ? 'sigungu'
+                      : 'start',
+              )
+            }
             label="이전"
           />
           <p className="text-[13px] text-muted">
@@ -482,7 +546,9 @@ export default function TripPlanPage() {
           {/* 날짜별 숙소 선택: 어느 날 묵을 숙소인지 먼저 고른다. */}
           {nights.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[12px] font-bold text-muted">며칠 묵을 숙소인가요? (연속 날짜 선택, 이미 정한 날은 비활성)</p>
+              <p className="mb-1.5 text-[12px] font-bold text-muted">
+                며칠 묵을 숙소인가요? (여러 박이면 연속으로 선택 · 비워두면 ‘날짜 미정’으로 선정해 나중에 정할 수 있어요)
+              </p>
               <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
                 {nights.map((n) => {
                   const coveredName = coveredByDate.get(n);
@@ -546,15 +612,16 @@ export default function TripPlanPage() {
                   <div className="mt-1">
                     <StarRating value={p.rating} count={p.ratingCount} />
                   </div>
-                  <div className="mt-auto pt-2">
+                  <div className="mt-auto flex items-center gap-2 pt-2">
                     <Button
                       size="sm"
                       onClick={() => handleSelectPlace(p)}
                       loading={selectingId === p.googlePlaceId}
                       disabled={!!selectingId}
                     >
-                      이 숙소로 선정
+                      {nights.length > 0 && selectedNights.length === 0 ? '날짜 미정으로 선정' : '이 숙소로 선정'}
                     </Button>
+                    <AiReviewButton groupId={groupId} googlePlaceId={p.googlePlaceId} align="left" />
                   </div>
                 </div>
               </div>
@@ -857,7 +924,7 @@ export default function TripPlanPage() {
                     <div className="mt-1">
                       <StarRating value={p.rating} count={p.ratingCount} />
                     </div>
-                    <div className="mt-auto pt-2">
+                    <div className="mt-auto flex items-center gap-2 pt-2">
                       <Button
                         size="sm"
                         variant={added ? 'secondary' : 'primary'}
@@ -867,6 +934,7 @@ export default function TripPlanPage() {
                       >
                         {added ? '담음 ✓' : '보관함에 담기'}
                       </Button>
+                      <AiReviewButton groupId={groupId} googlePlaceId={p.googlePlaceId} align="left" />
                     </div>
                   </div>
                 </div>

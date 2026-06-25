@@ -75,6 +75,8 @@ auth:
 
 app:
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+  # 민감 개인정보(정산 계좌/링크) 컬럼 암호화 키(Base64 16/24/32바이트). 미설정 시 jwt.secret에서 파생.
+  encryption-key: ${APP_ENCRYPTION_KEY:}
 
 storage:
   s3:
@@ -88,6 +90,12 @@ storage:
 google:
   maps:
     api-key: ${GOOGLE_MAPS_API_KEY:}
+
+# 리뷰 AI 요약(Gemini). 키는 Google AI Studio(aistudio.google.com)에서 무료 발급.
+# 미설정 시 리뷰 요약 기능만 비활성화되고 나머지는 정상 동작한다.
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
 
 kakao:
   mobility:

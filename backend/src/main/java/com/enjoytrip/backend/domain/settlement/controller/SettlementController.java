@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.enjoytrip.backend.domain.group.aop.RequiredGroupMember;
+import com.enjoytrip.backend.domain.group.aop.RequiredGroupOwner;
 import com.enjoytrip.backend.domain.settlement.dto.SettlementProgressResponse;
 import com.enjoytrip.backend.domain.settlement.dto.SettlementPaymentLinksResponse;
 import com.enjoytrip.backend.domain.settlement.dto.SettlementSummaryResponse;
@@ -48,12 +49,12 @@ public class SettlementController {
         return ResponseEntity.ok(ApiResponse.success("Settlement calculated.", response));
     }
 
-    // FR-EXPENSE-06: 현재 계산 결과를 PENDING 송금 스냅샷으로 확정한다.
-    @RequiredGroupMember
+    // FR-EXPENSE-06: 현재 계산 결과를 PENDING 송금 스냅샷으로 확정한다. 그룹 Owner만 시작할 수 있다.
+    @RequiredGroupOwner
     @PostMapping
     @Operation(
             summary = "정산 확인 시작",
-            description = "현재 최소 송금 계산 결과를 저장하고 각 송금 건을 PENDING 상태로 시작한다."
+            description = "현재 최소 송금 계산 결과를 저장하고 각 송금 건을 PENDING 상태로 시작한다. (그룹 Owner 전용)"
     )
     public ResponseEntity<ApiResponse<SettlementProgressResponse>> start(@PathVariable Long groupId) {
         SettlementProgressResponse response = settlementService.start(groupId);

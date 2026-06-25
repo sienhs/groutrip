@@ -20,8 +20,10 @@ import com.enjoytrip.backend.domain.place.dto.BookmarkSort;
 import com.enjoytrip.backend.domain.place.dto.BookmarkUpdateRequest;
 import com.enjoytrip.backend.domain.place.dto.PlaceSearchPage;
 import com.enjoytrip.backend.domain.place.dto.PlaceSearchResult;
+import com.enjoytrip.backend.domain.place.dto.ReviewSummaryResponse;
 import com.enjoytrip.backend.domain.place.entity.PlaceCategory;
 import com.enjoytrip.backend.domain.place.service.PlaceService;
+import com.enjoytrip.backend.domain.place.service.ReviewSummaryService;
 import com.enjoytrip.backend.global.response.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,6 +46,7 @@ public class PlaceController {
     private static final String NEXT_PAGE_TOKEN_HEADER = "X-Next-Page-Token";
 
     private final PlaceService placeService;
+    private final ReviewSummaryService reviewSummaryService;
 
     // FR-PLACE-01: Google Places 단일 소스 검색. 결과는 24시간 DB 캐시를 우선 사용한다.
     @RequiredGroupMember
@@ -120,6 +123,27 @@ public class PlaceController {
     ) {
         List<BookmarkResponse> response = placeService.getBookmarks(groupId, category, creatorId, priceLevel, sort);
         return ResponseEntity.ok(ApiResponse.success("보관함 조회 성공", response));
+    }
+
+    // 구글 리뷰 AI 요약(지연 실행): '리뷰 보기' 클릭 시점에만 호출. 결과는 7일 인메모리 캐시.
+    @RequiredGroupMember
+    @GetMapping("/{googlePlaceId}/review-summary")
+    @Operation(
+            summary = "구글 리뷰 AI 요약",
+            description = """
+                    장소/숙소의 구글 대표 리뷰(최대 5개)를 가져와 AI(Gemini)로 한국어 요약한다.
+                    토큰 절약을 위해 클릭 시점에만 호출하며 googlePlaceId 기준으로 7일 캐시한다.
+                    리뷰가 부족하거나 AI 키 미설정이면 available=false로 안내한다.
+                    """
+    )
+    public ResponseEntity<ApiResponse<ReviewSummaryResponse>> reviewSummary(
+            @Parameter(description = "그룹 ID", example = "1")
+            @PathVariable Long groupId,
+            @Parameter(description = "Google Place ID")
+            @PathVariable String googlePlaceId
+    ) {
+        ReviewSummaryResponse response = reviewSummaryService.summarize(groupId, googlePlaceId);
+        return ResponseEntity.ok(ApiResponse.success("리뷰 요약 조회 성공", response));
     }
 
     // FR-PLACE-04: 추가자 본인 또는 Owner가 보관함 항목을 수정한다.

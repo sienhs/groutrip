@@ -24,6 +24,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
   const toast = useToast();
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
+  const isOwner = members.find((m) => m.userId === currentUserId)?.role === 'OWNER';
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
@@ -138,6 +139,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
           <SettlementPanel
             groupId={groupId}
             currentUserId={currentUserId}
+            isOwner={isOwner}
             expenses={expenses}
             fallback={(summary?.transfers ?? []).map((t) => ({ fromName: t.fromName, toName: t.toName, amount: t.amount }))}
             onChanged={invalidateExpenses}

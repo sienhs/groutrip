@@ -128,6 +128,22 @@ export const getTransportLeg = async (
   return res.data.data;
 };
 
+/**
+ * 두 일정 사이의 자동차 도로 경로 좌표열([위도,경도] 목록). 지도에 실제 이동 경로 선을 그릴 때 사용.
+ * 길찾기 실패 시 available=false + 빈 path → 호출부가 직선으로 폴백한다.
+ */
+export const getTransportPath = async (
+  groupId: number,
+  fromScheduleId: number,
+  toScheduleId: number,
+): Promise<{ available: boolean; path: [number, number][] }> => {
+  const res = await instance.get<ApiResponse<{ available: boolean; path: [number, number][] }>>(
+    `/api/groups/${groupId}/schedules/transport-path`,
+    { params: { fromScheduleId, toScheduleId } },
+  );
+  return res.data.data;
+};
+
 /** 이동 비용 정산 추가. costType: DRIVING(톨+연료)/TAXI/TRANSIT. */
 export const addTransportExpense = async (
   groupId: number,

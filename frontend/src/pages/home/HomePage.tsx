@@ -162,7 +162,7 @@ function QuickActions({ navigate }: { navigate: (to: string) => void }) {
 function OngoingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
-      className="block w-full text-left text-white shadow-md transition-transform active:scale-[.99]">
+      className="block w-full overflow-hidden rounded-2xl text-left text-white shadow-md transition-transform active:scale-[.99]">
       <GroupCover groupId={g.id} coverImageKey={g.coverImageKey} className="rounded-2xl p-[18px]">
         {g.coverImageKey === 'CUSTOM' && <span className="absolute inset-0 bg-black/25" aria-hidden />}
         <span className="relative rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-extrabold">{g.day}</span>

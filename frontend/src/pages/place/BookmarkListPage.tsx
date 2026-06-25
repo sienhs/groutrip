@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/Button';
-import Badge from '../../components/Badge';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
 import EmptyState from '../../components/EmptyState';
@@ -10,15 +9,16 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import { NaverThumb, StarRating, PriceTag } from './PlaceBits';
+import AiReviewButton from './AiReviewButton';
 import BookmarkFormModal from './BookmarkFormModal';
 import { getBookmarks, deleteBookmark } from '../../api/place';
-import useAuthStore from '../../store/authStore';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
 import { naverPlaceUrl } from '../../lib/naver';
 import {
   PLACE_CATEGORIES,
   CATEGORY_LABEL,
+  CATEGORY_BADGE_CLASS,
   BOOKMARK_SORTS,
   type BookmarkResponse,
   type BookmarkSort,
@@ -44,7 +44,6 @@ export default function BookmarkListPage({
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
 
   const [category, setCategory] = useState<PlaceCategory | null>(null);
   const [sort, setSort] = useState<BookmarkSort>('RECENT');
@@ -181,8 +180,8 @@ export default function BookmarkListPage({
           filtered.slice(0, visibleCount).map((b) => (
             <BookmarkCard
               key={b.id}
+              groupId={groupId}
               bookmark={b}
-              isMine={b.createdById === currentUserId}
               onEdit={() => setEditing(b)}
               onDelete={() => setDeleting(b)}
             />
@@ -259,13 +258,13 @@ function formatDate(iso: string): string {
 }
 
 function BookmarkCard({
+  groupId,
   bookmark,
-  isMine,
   onEdit,
   onDelete,
 }: {
+  groupId: number;
   bookmark: BookmarkResponse;
-  isMine: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -285,7 +284,9 @@ function BookmarkCard({
             <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-foreground">
               {place.name}
             </h3>
-            <Badge tone="primary">{CATEGORY_LABEL[bookmark.categoryTag]}</Badge>
+            <span className={cn('inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold leading-none', CATEGORY_BADGE_CLASS[bookmark.categoryTag])}>
+              {CATEGORY_LABEL[bookmark.categoryTag]}
+            </span>
           </div>
 
           <div className="mt-1 flex items-center gap-2">
@@ -294,15 +295,6 @@ function BookmarkCard({
           </div>
 
           {place.address && <p className="mt-1 line-clamp-1 text-[12px] text-muted">{place.address}</p>}
-
-          {bookmark.personalRating != null && (
-            <div className="mt-1.5 flex items-center gap-1 text-[12px] font-bold text-muted">
-              <span className="text-[#A6907B]">{isMine ? '내 평점' : `${bookmark.createdByName} 평점`}</span>
-              <span className="text-[#F5A623]">★</span>
-              <span className="text-foreground">{bookmark.personalRating}</span>
-              <span className="text-[#C0AE9B]">/ 5</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -316,7 +308,8 @@ function BookmarkCard({
         <span className="text-[12px] text-muted">
           {bookmark.createdByName} · {formatDate(bookmark.createdAt)}
         </span>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          <AiReviewButton groupId={groupId} googlePlaceId={place.googlePlaceId} />
           <button
             type="button"
             aria-label="수정"

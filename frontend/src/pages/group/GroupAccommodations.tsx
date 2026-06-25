@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAccommodations } from '../../api/accommodation';
 import { placePhotoSrc } from '../../api/place';
+import { cn } from '../../lib/cn';
 import type { Accommodation } from '../../types/accommodation';
 
 /** 'YYYY-MM-DD' → 'M/D'. */
@@ -32,7 +33,7 @@ function datesInclusive(start: string, end: string): string[] {
 }
 
 function rangeLabel(a: Accommodation): string {
-  if (!a.stayDate) return '숙소';
+  if (!a.stayDate) return '날짜 미정';
   const end = a.stayEndDate ?? a.stayDate;
   return end !== a.stayDate ? `${shortDate(a.stayDate)}~${shortDate(end)}` : `${shortDate(a.stayDate)} 숙박`;
 }
@@ -61,17 +62,21 @@ export default function GroupAccommodations({
     return () => { active = false; };
   }, [groupId]);
 
-  if (!accs || accs.length === 0) return null;
+  if (!accs) return null; // 로딩 중
 
-  // 같은 시작일은 가장 최근 것만(목록은 최근순).
+  // 같은 시작일은 가장 최근 것만(목록은 최근순). 날짜 미정(stayDate=null)은 각각 따로 보여준다.
   const byStart = new Map<string, Accommodation>();
+  const undated: Accommodation[] = [];
   for (const a of accs) {
-    const key = a.stayDate ?? 'none';
-    if (!byStart.has(key)) byStart.set(key, a);
+    if (!a.stayDate) { undated.push(a); continue; }
+    if (!byStart.has(a.stayDate)) byStart.set(a.stayDate, a);
   }
-  const items = [...byStart.values()].sort((x, y) => (x.stayDate ?? '').localeCompare(y.stayDate ?? ''));
+  const items = [
+    ...[...byStart.values()].sort((x, y) => (x.stayDate ?? '').localeCompare(y.stayDate ?? '')),
+    ...undated,
+  ];
 
-  // 아직 숙소가 없는 박 계산(여행 기간이 있을 때).
+  // 아직 숙소가 없는 박 계산(여행 기간이 있을 때). 날짜 미정 숙소는 어떤 박도 커버하지 않는다.
   let missing: string[] = [];
   if (startDate && endDate) {
     const covered = new Set<string>();
@@ -81,26 +86,42 @@ export default function GroupAccommodations({
     missing = tripNights(startDate, endDate).filter((n) => !covered.has(n));
   }
 
+  // 숙소가 하나도 없으면 그룹 홈의 큰 '여행 계획 시작하기' CTA가 그 역할을 하므로 여기선 렌더 안 함.
+  if (items.length === 0) return null;
+
   return (
     <div className="border-b border-border bg-surface px-4 py-3">
       <p className="mb-2 text-[12px] font-extrabold text-muted">우리 숙소</p>
-      <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4">
-        {items.map((a) => {
-          const src = placePhotoSrc(a.place.photoUrl);
-          return (
-            <div key={a.id} className="flex w-44 shrink-0 items-center gap-2 rounded-card border border-border bg-background p-2">
-              <div className="size-11 shrink-0 overflow-hidden rounded-[8px] bg-skeleton">
-                {src && <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />}
+      {items.length > 0 && (
+        <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4">
+          {items.map((a) => {
+            const src = placePhotoSrc(a.place.photoUrl);
+            const noDate = !a.stayDate;
+            return (
+              <div key={a.id} className="flex w-44 shrink-0 items-center gap-2 rounded-card border border-border bg-background p-2">
+                <div className="size-11 shrink-0 overflow-hidden rounded-[8px] bg-skeleton">
+                  {src && <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className={cn('text-[11px] font-bold', noDate ? 'text-[#E8742E]' : 'text-primary')}>{rangeLabel(a)}</div>
+                  <div className="truncate text-[13px] font-bold text-foreground">{a.place.name}</div>
+                  {noDate ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/groups/${groupId}/plan`)}
+                      className="text-[10px] font-bold text-[#E8742E] underline-offset-2 hover:underline"
+                    >
+                      날짜 정하기 →
+                    </button>
+                  ) : (
+                    <div className="text-[10px] text-muted">{a.status === 'BOOKED' ? '예약 완료' : '선정됨'}</div>
+                  )}
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-bold text-primary">{rangeLabel(a)}</div>
-                <div className="truncate text-[13px] font-bold text-foreground">{a.place.name}</div>
-                <div className="text-[10px] text-muted">{a.status === 'BOOKED' ? '예약 완료' : '선정됨'}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
       {missing.length > 0 && (
         <button
           type="button"

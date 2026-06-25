@@ -51,6 +51,9 @@ public class GooglePlacesClient {
             "priceLevel", "photos", "googleMapsUri", "internationalPhoneNumber",
             "regularOpeningHours", "websiteUri");
 
+    // AI 리뷰 요약용 필드 마스크. reviews는 장소당 최대 5개가 내려온다.
+    private static final String REVIEWS_FIELD_MASK = String.join(",", "rating", "userRatingCount", "reviews");
+
     private final RestClient restClient;
     private final String apiKey;
     // Boot 4의 RestClient는 Jackson 3 컨버터라 Jackson 2 JsonNode로 직접 역직렬화할 수 없다.
@@ -134,6 +137,54 @@ public class GooglePlacesClient {
             throw e;
         } catch (Exception e) {
             log.warn("Google Place Details failed: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.PLACE_SEARCH_FAILED);
+        }
+    }
+
+    /**
+     * 장소의 평점·대표 리뷰(최대 5개)를 가져온다. AI 리뷰 요약 입력으로 사용한다.
+     * 리뷰가 없으면 빈 목록을 돌려준다(요약 불가 → 호출부가 안내 처리).
+     */
+    public GoogleReviews getReviews(String googlePlaceId) {
+        requireApiKey();
+        try {
+            String response = restClient.get()
+                    .uri("/places/{placeId}?languageCode={lang}&regionCode={region}",
+                            googlePlaceId, LANGUAGE_CODE, REGION_CODE)
+                    .header(API_KEY_HEADER, apiKey)
+                    .header(FIELD_MASK_HEADER, REVIEWS_FIELD_MASK)
+                    .retrieve()
+                    .body(String.class);
+            JsonNode root = (response == null || response.isBlank()) ? null : objectMapper.readTree(response);
+            if (root == null) {
+                return new GoogleReviews(null, null, List.of());
+            }
+
+            List<GoogleReviews.Review> reviews = new ArrayList<>();
+            for (JsonNode r : root.path("reviews")) {
+                String body = text(r.path("text"), "text");
+                if (body == null || body.isBlank()) {
+                    body = text(r.path("originalText"), "text");
+                }
+                if (body == null || body.isBlank()) {
+                    continue;
+                }
+                reviews.add(new GoogleReviews.Review(
+                        text(r.path("authorAttribution"), "displayName"),
+                        r.has("rating") ? r.get("rating").asDouble() : null,
+                        body,
+                        text(r, "relativePublishTimeDescription")
+                ));
+            }
+            return new GoogleReviews(
+                    root.has("rating") ? root.get("rating").asDouble() : null,
+                    root.has("userRatingCount") ? root.get("userRatingCount").asInt() : null,
+                    reviews
+            );
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Google Place reviews fetch failed: {}", e.getMessage());
             throw new BusinessException(ErrorCode.PLACE_SEARCH_FAILED);
         }
     }

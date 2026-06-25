@@ -21,7 +21,9 @@ public class SettlementPaymentLinkGenerator {
                 settlement.getAmount(),
                 memo,
                 "supertoss://send?amount=" + settlement.getAmount() + "&msg=" + encodedMemo,
-                "kakaopay://send?amount=" + settlement.getAmount()
+                "kakaopay://send?amount=" + settlement.getAmount(),
+                settlement.getToUser().getPayoutLink(),
+                settlement.getToUser().getPayoutAccount()
         );
     }
 

@@ -74,6 +74,21 @@ export interface BookmarkResponse {
   createdAt: string;
 }
 
+/** 구글 리뷰 AI 요약 응답(구조화). available=false면 message로 안내. */
+export interface ReviewSummary {
+  available: boolean;
+  rating: number | null;
+  ratingCount: number | null;
+  reviewCount: number;
+  /** 한 줄 총평 */
+  overall: string | null;
+  /** 장점 목록 */
+  pros: string[];
+  /** 아쉬운 점 목록 */
+  cons: string[];
+  message: string | null;
+}
+
 /** ④ 보관함 추가 요청. */
 export interface BookmarkCreateRequest {
   googlePlaceId: string;
@@ -118,6 +133,16 @@ export const CATEGORY_LABEL: Record<PlaceCategory, string> = {
   TOURIST_ATTRACTION: '명소',
   SHOPPING: '쇼핑',
   ETC: '기타',
+};
+
+/** 카테고리별 태그 배지 색(보관함·검색 등에서 한눈에 구분). bg/text 한 쌍. */
+export const CATEGORY_BADGE_CLASS: Record<PlaceCategory, string> = {
+  LODGING: 'bg-[#DBEAFE] text-[#1D4ED8]',          // 숙소 — 파랑
+  RESTAURANT: 'bg-[#FFE0D2] text-[#D9480F]',       // 맛집 — 주황/빨강
+  CAFE: 'bg-[#F0E6D2] text-[#92600A]',             // 카페 — 갈색
+  TOURIST_ATTRACTION: 'bg-[#DCFCE7] text-[#15803D]', // 명소 — 초록
+  SHOPPING: 'bg-[#F3E8FF] text-[#7E22CE]',         // 쇼핑 — 보라
+  ETC: 'bg-[#ECE7E1] text-[#6B5B4D]',              // 기타 — 회갈색
 };
 
 /** 가격대 표시 라벨(₩ 개수). FREE 는 "무료". */

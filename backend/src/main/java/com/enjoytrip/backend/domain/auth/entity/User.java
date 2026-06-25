@@ -3,8 +3,10 @@ package com.enjoytrip.backend.domain.auth.entity;
 import java.time.LocalDateTime;
 
 import com.enjoytrip.backend.global.entity.BaseEntity;
+import com.enjoytrip.backend.global.crypto.PayoutCryptoConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -50,9 +52,29 @@ public class User extends BaseEntity {
 	@Column(name = "avatar_content_type", length = 100)
 	private String avatarContentType;
 
+	// FR-EXPENSE: 정산 받을 송금 링크(토스/카카오페이 URL)와 계좌(은행/계좌, 자유 텍스트). 둘 다 선택값.
+	// 민감 개인정보라 DB에는 AES-GCM 암호문(Base64)으로 저장한다(@Convert) → 컬럼 길이를 넉넉히 둔다.
+	@Convert(converter = PayoutCryptoConverter.class)
+	@Column(name = "payout_link", length = 512)
+	private String payoutLink;
+
+	@Convert(converter = PayoutCryptoConverter.class)
+	@Column(name = "payout_account", length = 512)
+	private String payoutAccount;
+
 	// FR-MYPAGE: 표시 이름을 변경한다.
 	public void updateName(String name) {
 		this.name = name;
+	}
+
+	/** 정산 받을 링크/계좌 설정. 빈 문자열은 null로 정규화해 '미설정'으로 저장한다. */
+	public void updatePayout(String payoutLink, String payoutAccount) {
+		this.payoutLink = blankToNull(payoutLink);
+		this.payoutAccount = blankToNull(payoutAccount);
+	}
+
+	private static String blankToNull(String v) {
+		return (v == null || v.isBlank()) ? null : v.trim();
 	}
 
 	/** 프로필 사진 설정. avatarKey는 S3 object key. */

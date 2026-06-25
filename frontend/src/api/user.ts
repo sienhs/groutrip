@@ -24,6 +24,24 @@ export const updateMyName = async (name: string): Promise<string> => {
   return res.data.data;
 };
 
+/** 정산 받을 링크/계좌(미설정이면 null). */
+export interface Payout {
+  payoutLink: string | null;
+  payoutAccount: string | null;
+}
+
+/** 내 정산 링크/계좌 조회. */
+export const getMyPayout = async (): Promise<Payout> => {
+  const res = await instance.get<ApiResponse<Payout>>('/api/users/me/payout');
+  return res.data.data;
+};
+
+/** 내 정산 링크/계좌 저장(빈 값은 미설정). 저장된 값을 반환한다. */
+export const updateMyPayout = async (body: Payout): Promise<Payout> => {
+  const res = await instance.patch<ApiResponse<Payout>>('/api/users/me/payout', body);
+  return res.data.data;
+};
+
 /** 내 여행 통계 조회. */
 export const getMyStats = async (): Promise<MyStats> => {
   const res = await instance.get<ApiResponse<MyStats>>('/api/mypage/stats');

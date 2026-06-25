@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import Button from '../../components/Button';
-import Badge from '../../components/Badge';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { NaverThumb, StarRating, PriceTag } from './PlaceBits';
+import AiReviewButton from './AiReviewButton';
 import BookmarkFormModal from './BookmarkFormModal';
 import { searchPlaces } from '../../api/place';
 import { cn } from '../../lib/cn';
@@ -13,6 +13,7 @@ import { naverPlaceUrl } from '../../lib/naver';
 import {
   PLACE_CATEGORIES,
   CATEGORY_LABEL,
+  CATEGORY_BADGE_CLASS,
   type PlaceCategory,
   type PlaceSearchResult,
 } from '../../types/place';
@@ -147,6 +148,7 @@ export default function PlaceSearchPage({ groupId: groupIdProp }: { groupId?: nu
           results.map((p) => (
             <ResultCard
               key={p.googlePlaceId}
+              groupId={groupId}
               place={p}
               added={addedIds.has(p.googlePlaceId)}
               onAdd={() => setTarget(p)}
@@ -204,10 +206,12 @@ function CategoryChip({
 }
 
 function ResultCard({
+  groupId,
   place,
   added,
   onAdd,
 }: {
+  groupId: number;
   place: PlaceSearchResult;
   added: boolean;
   onAdd: () => void;
@@ -226,7 +230,9 @@ function ResultCard({
           <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-foreground">
             {place.name}
           </h3>
-          <Badge tone="neutral">{CATEGORY_LABEL[place.category]}</Badge>
+          <span className={cn('inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold leading-none', CATEGORY_BADGE_CLASS[place.category])}>
+            {CATEGORY_LABEL[place.category]}
+          </span>
         </div>
 
         <div className="mt-1 flex items-center gap-2">
@@ -238,7 +244,7 @@ function ResultCard({
           <p className="mt-1 line-clamp-1 text-[12px] text-muted">{place.address}</p>
         )}
 
-        <div className="mt-auto pt-2">
+        <div className="mt-auto flex items-center gap-2 pt-2">
           <Button
             size="sm"
             variant={added ? 'ghost' : 'secondary'}
@@ -247,6 +253,7 @@ function ResultCard({
           >
             {added ? '보관함에 있음 · 다시 추가' : '+ 보관함에 추가'}
           </Button>
+          <AiReviewButton groupId={groupId} googlePlaceId={place.googlePlaceId} align="left" />
         </div>
       </div>
     </div>

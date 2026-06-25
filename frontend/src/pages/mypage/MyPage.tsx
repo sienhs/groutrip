@@ -5,7 +5,7 @@ import Avatar from '../../components/Avatar';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { useToast } from '../../components/Toast';
-import { deleteAccount, getMyStats, updateMyName, uploadMyAvatar, userAvatarUrl, type MyStats } from '../../api/user';
+import { deleteAccount, getMyStats, getMyPayout, updateMyName, updateMyPayout, uploadMyAvatar, userAvatarUrl, type MyStats } from '../../api/user';
 import { logout } from '../../api/auth';
 import useAuthStore from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -55,6 +55,42 @@ export default function MyPage() {
   const [stats, setStats] = useState<MyStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState(false);
+
+  // 정산 받을 링크/계좌
+  const [payoutLink, setPayoutLink] = useState('');
+  const [payoutAccount, setPayoutAccount] = useState('');
+  const [payoutSaving, setPayoutSaving] = useState(false);
+  const [payoutDirty, setPayoutDirty] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getMyPayout()
+      .then((p) => {
+        if (!active) return;
+        setPayoutLink(p.payoutLink ?? '');
+        setPayoutAccount(p.payoutAccount ?? '');
+      })
+      .catch(() => { /* 미설정/일시 오류 — 빈 값 유지 */ });
+    return () => { active = false; };
+  }, []);
+
+  const savePayout = async () => {
+    setPayoutSaving(true);
+    try {
+      const saved = await updateMyPayout({
+        payoutLink: payoutLink.trim() || null,
+        payoutAccount: payoutAccount.trim() || null,
+      });
+      setPayoutLink(saved.payoutLink ?? '');
+      setPayoutAccount(saved.payoutAccount ?? '');
+      setPayoutDirty(false);
+      toast.success('정산 정보를 저장했어요', '정산에서 다른 멤버가 이 링크/계좌로 송금할 수 있어요.');
+    } catch {
+      toast.error('저장에 실패했어요', '잠시 후 다시 시도해 주세요.');
+    } finally {
+      setPayoutSaving(false);
+    }
+  };
 
   // 재시도 버튼용(이벤트 핸들러에서 호출 — 로딩 상태를 즉시 표시).
   const loadStats = useCallback(() => {
@@ -223,6 +259,38 @@ export default function MyPage() {
           )}
           <p className="mt-0.5 text-[13px] text-muted">{user?.email ?? '-'}</p>
         </div>
+      </div>
+
+      {/* 정산 받을 링크/계좌 — 정산 시 다른 멤버가 이 정보로 송금한다 */}
+      <p className="mb-2 mt-6 text-[12px] font-extrabold tracking-wide text-muted">정산 받을 링크 · 계좌</p>
+      <div className="space-y-2.5 rounded-card border border-border bg-surface p-3.5">
+        <div>
+          <label htmlFor="payout-link" className="mb-1 block text-[12px] font-bold text-muted">송금 링크 (토스·카카오페이)</label>
+          <input
+            id="payout-link"
+            value={payoutLink}
+            onChange={(e) => { setPayoutLink(e.target.value); setPayoutDirty(true); }}
+            placeholder="예: https://toss.me/내아이디"
+            inputMode="url"
+            className="w-full rounded-button border border-border bg-background px-3 py-2 text-[14px] outline-none focus:border-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor="payout-account" className="mb-1 block text-[12px] font-bold text-muted">계좌</label>
+          <input
+            id="payout-account"
+            value={payoutAccount}
+            onChange={(e) => { setPayoutAccount(e.target.value); setPayoutDirty(true); }}
+            placeholder="예: 카카오뱅크 3333-01-1234567 홍길동"
+            className="w-full rounded-button border border-border bg-background px-3 py-2 text-[14px] outline-none focus:border-primary"
+          />
+        </div>
+        <p className="text-[11px] leading-snug text-[#BCA48C]">
+          정산할 때 다른 멤버가 이 링크/계좌로 바로 송금할 수 있어요. 비워두면 표시되지 않아요.
+        </p>
+        <Button size="sm" fullWidth variant="secondary" loading={payoutSaving} disabled={!payoutDirty} onClick={savePayout}>
+          {payoutDirty ? '저장' : '저장됨'}
+        </Button>
       </div>
 
       {/* 여행 통계 */}

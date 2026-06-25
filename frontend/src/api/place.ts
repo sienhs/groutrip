@@ -7,6 +7,7 @@ import type {
   BookmarkUpdateRequest,
   BookmarkListParams,
   PlaceCategory,
+  ReviewSummary,
 } from '../types/place';
 
 /**
@@ -83,6 +84,20 @@ export const updateBookmark = async (
 /** 보관함 삭제(작성자/Owner). */
 export const deleteBookmark = async (groupId: number, bookmarkId: number): Promise<void> => {
   await instance.delete<ApiResponse<null>>(`/api/groups/${groupId}/places/${bookmarkId}`);
+};
+
+/**
+ * 구글 리뷰 AI 요약(지연 호출). '리뷰 보기' 클릭 시점에만 부른다(토큰 절약).
+ * BE가 googlePlaceId 기준 7일 캐시하므로 동일 장소 재호출은 즉시 응답한다.
+ */
+export const getReviewSummary = async (
+  groupId: number,
+  googlePlaceId: string,
+): Promise<ReviewSummary> => {
+  const res = await instance.get<ApiResponse<ReviewSummary>>(
+    `/api/groups/${groupId}/places/${encodeURIComponent(googlePlaceId)}/review-summary`,
+  );
+  return res.data.data;
 };
 
 /**
