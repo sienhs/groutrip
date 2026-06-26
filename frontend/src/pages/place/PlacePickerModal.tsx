@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useToast } from '../../components/Toast';
 import { getBookmarks, addBookmark, searchPlaces } from '../../api/place';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
-import type { BookmarkResponse, PlaceSearchResult } from '../../types/place';
+import type { PlaceSearchResult } from '../../types/place';
 
 interface Props {
   groupId: number;
@@ -22,43 +24,27 @@ interface Props {
  */
 export default function PlacePickerModal({ groupId, title = '장소 선택', description, onClose, onPick }: Props) {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<'bookmark' | 'search'>('bookmark');
-  const [bookmarks, setBookmarks] = useState<BookmarkResponse[]>([]);
-  const [bmLoading, setBmLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlaceSearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
+  const { data: bookmarks = [], isLoading: bmLoading, isError: bmError } = useQuery({
+    queryKey: groupQueryKeys.bookmarks(groupId),
+    queryFn: () => getBookmarks(groupId),
+  });
   useEffect(() => {
-    let cancelled = false;
-    getBookmarks(groupId)
-      .then((bms) => {
-        if (!cancelled) setBookmarks(bms);
-      })
-      .catch(() => {
-        if (!cancelled) toast.error('보관함을 불러오지 못했어요', '잠시 후 다시 시도해 주세요.');
-      })
-      .finally(() => {
-        if (!cancelled) setBmLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId]);
+    if (bmError) toast.error('보관함을 불러오지 못했어요', '잠시 후 다시 시도해 주세요.');
+  }, [bmError, toast]);
 
-  const runSearch = async () => {
-    if (!query.trim()) return;
-    setSearching(true);
-    try {
-      setResults((await searchPlaces(groupId, query.trim())).items);
-    } catch {
-      toast.error('검색에 실패했어요', '잠시 후 다시 시도해 주세요.');
-    } finally {
-      setSearching(false);
-    }
-  };
+  const searchMutation = useMutation({
+    mutationFn: (q: string) => searchPlaces(groupId, q),
+    onSuccess: (res) => setResults(res.items),
+    onError: () => toast.error('검색에 실패했어요', '잠시 후 다시 시도해 주세요.'),
+  });
+  const searching = searchMutation.isPending;
+  const runSearch = () => { if (query.trim()) searchMutation.mutate(query.trim()); };
 
   const pickBookmark = async (placeId: number, key: string) => {
     setBusyKey(key);
@@ -75,6 +61,8 @@ export default function PlacePickerModal({ groupId, title = '장소 선택', des
       let placeId: number;
       try {
         placeId = (await addBookmark(groupId, { googlePlaceId: p.googlePlaceId, categoryTag: p.category })).place.placeId;
+        // 검색 선택으로 보관함에 새로 담겼으면 목록 캐시를 무효화.
+        queryClient.invalidateQueries({ queryKey: groupQueryKeys.bookmarks(groupId) });
       } catch {
         const found = (await getBookmarks(groupId)).find((b) => b.place.googlePlaceId === p.googlePlaceId);
         if (!found) throw new Error('placeId 확보 실패');

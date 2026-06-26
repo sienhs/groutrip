@@ -86,7 +86,7 @@ export default function PlaceSearchPage({ groupId: groupIdProp }: { groupId?: nu
         <div className="relative flex-1">
           <svg
             aria-hidden
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C0AE9B]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B6B1C4]"
             width="18" height="18" viewBox="0 0 24 24" fill="none"
           >
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
@@ -97,7 +97,7 @@ export default function PlaceSearchPage({ groupId: groupIdProp }: { groupId?: nu
             onChange={(e) => setQuery(e.target.value)}
             placeholder="장소·키워드 검색 (예: 제주 흑돼지)"
             enterKeyHint="search"
-            className="h-11 w-full rounded-button border border-border bg-surface pl-10 pr-3 text-[15px] outline-none transition-colors placeholder:text-[#C0AE9B] focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="h-11 w-full rounded-button border border-border bg-surface pl-10 pr-3 text-[15px] outline-none transition-colors placeholder:text-[#B6B1C4] focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <Button type="submit" disabled={!query.trim()}>
@@ -197,7 +197,7 @@ function CategoryChip({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
         active
           ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border bg-surface text-muted hover:border-[#FFCBA6] hover:text-[#E8742E]',
+          : 'border-border bg-surface text-muted hover:border-[#FFCFEB] hover:text-[#D62E97]',
       )}
     >
       {children}
@@ -249,7 +249,7 @@ function ResultCard({
             size="sm"
             variant={added ? 'ghost' : 'secondary'}
             onClick={onAdd}
-            className={cn(added && 'border border-border text-[#A6907B]')}
+            className={cn(added && 'border border-border text-[#9A95A8]')}
           >
             {added ? '보관함에 있음 · 다시 추가' : '+ 보관함에 추가'}
           </Button>

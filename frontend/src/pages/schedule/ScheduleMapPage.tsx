@@ -16,7 +16,7 @@ import { formatDuration, formatKm, type Schedule } from '../../types/schedule';
 import type { Accommodation, BookingStatus } from '../../types/accommodation';
 
 // 일자별 핀·경로 색(반복).
-const DAY_COLORS = ['#E8742E', '#3182F6', '#22C55E', '#A855F7', '#EC4899', '#F59E0B', '#06B6D4', '#EF4444'];
+const DAY_COLORS = ['#D62E97', '#3182F6', '#22C55E', '#A855F7', '#EC4899', '#F59E0B', '#06B6D4', '#EF4444'];
 
 const addDay = (ymd: string): string => {
   const d = new Date(`${ymd}T12:00:00`);
@@ -266,7 +266,7 @@ export default function ScheduleMapPage() {
     }
 
     for (const [dayIdx, pts] of ordered) {
-      const color = dayIdx >= 0 ? DAY_COLORS[dayIdx % DAY_COLORS.length] : '#8A7B6B';
+      const color = dayIdx >= 0 ? DAY_COLORS[dayIdx % DAY_COLORS.length] : '#8A8699';
       const polyline = new kakao.maps.Polyline({
         path: curvedLatLngs(kakao, pts),
         strokeWeight: 5,
@@ -371,11 +371,11 @@ export default function ScheduleMapPage() {
 
               {/* 범례 */}
               <div className="flex items-center gap-3 px-1 text-[11px] text-muted">
-                <span className="inline-flex items-center gap-1"><span className="size-3 rounded-full border-2 border-white bg-[#E8742E] shadow" />일정(순번)</span>
+                <span className="inline-flex items-center gap-1"><span className="size-3 rounded-full border-2 border-white bg-[#D62E97] shadow" />일정(순번)</span>
                 <span className="inline-flex items-center gap-1"><StayGlyph small />숙소</span>
                 <span className="inline-flex items-center gap-1"><span className="h-0.5 w-4 bg-[#3182F6]" />이동 경로</span>
               </div>
-              <p className="text-center text-[12px] text-[#BCA48C]">
+              <p className="text-center text-[12px] text-[#ABA6B8]">
                 일정에 들어간 장소와 숙소만 표시돼요(보관함 전체는 제외) · 핀을 누르면 상세가 보여요.
               </p>
             </>
@@ -388,7 +388,7 @@ export default function ScheduleMapPage() {
 
 /** 핀 DOM 요소 — 일정은 색 원형+순번, 숙소는 둥근 사각+침대 아이콘+'숙소' 라벨(이모지 미사용). */
 function buildPinEl(pin: Pin): HTMLDivElement {
-  const color = pin.dayIdx >= 0 ? DAY_COLORS[pin.dayIdx % DAY_COLORS.length] : '#8A7B6B';
+  const color = pin.dayIdx >= 0 ? DAY_COLORS[pin.dayIdx % DAY_COLORS.length] : '#8A8699';
   const safeName = pin.name.replace(/</g, '&lt;');
   const el = document.createElement('div');
   el.style.cssText = 'transform:translate(-50%,-100%);cursor:pointer;';
@@ -420,7 +420,7 @@ function buildPinEl(pin: Pin): HTMLDivElement {
           box-shadow:0 2px 6px rgba(0,0,0,.3);border:2px solid #fff;">${pin.order}</div>
         <div style="width:2px;height:8px;background:${color};"></div>
         <div style="max-width:120px;margin-top:1px;padding:1px 5px;border-radius:6px;background:rgba(255,255,255,.92);
-          font-size:11px;font-weight:700;color:#3A2E22;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+          font-size:11px;font-weight:700;color:#2C2833;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
           box-shadow:0 1px 3px rgba(0,0,0,.18);">${safeName}</div>
       </div>`;
   }
@@ -432,7 +432,7 @@ function StayGlyph({ small }: { small?: boolean }) {
   const s = small ? 14 : 16;
   return (
     <span
-      className="inline-flex items-center justify-center rounded-[5px] border-2 border-white bg-[#E8742E] shadow"
+      className="inline-flex items-center justify-center rounded-[5px] border-2 border-white bg-[#D62E97] shadow"
       style={{ width: s, height: s }}
     >
       <svg width={s - 5} height={s - 5} viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -457,7 +457,7 @@ function TravelTotals({
       <div className="mb-2 flex items-center gap-1.5">
         <span className="text-[13px] font-extrabold text-foreground">종합 이동</span>
         <span className="text-[12px] text-muted">· {scope}</span>
-        {legCount > 0 && <span className="ml-auto text-[11px] text-[#BCA48C]">{legCount}개 구간</span>}
+        {legCount > 0 && <span className="ml-auto text-[11px] text-[#ABA6B8]">{legCount}개 구간</span>}
       </div>
 
       {legCount === 0 ? (
@@ -465,22 +465,22 @@ function TravelTotals({
       ) : (
         <div className="space-y-2">
           {/* 자차 — 카카오 모빌리티 실측 합산 */}
-          <div className="flex items-center gap-2.5 rounded-button bg-[#FFF7F0] px-3 py-2">
+          <div className="flex items-center gap-2.5 rounded-button bg-[#FAFAFF] px-3 py-2">
             <ModeIcon kind="car" />
             <span className="text-[12px] font-bold text-muted">자차</span>
             <span className="ml-auto text-[13px] font-extrabold text-foreground">
               {car.known === 0
                 ? (car.pending ? '계산 중…' : '정보 없음')
-                : <>{formatDuration(car.dur)} · {formatKm(car.dist)}{car.pending && <span className="text-[11px] font-bold text-[#BCA48C]"> · 계산 중…</span>}</>}
+                : <>{formatDuration(car.dur)} · {formatKm(car.dist)}{car.pending && <span className="text-[11px] font-bold text-[#ABA6B8]"> · 계산 중…</span>}</>}
             </span>
           </div>
           {/* 대중교통 — 카카오 공개 API 미지원 → 안내만 */}
           <div className="flex items-center gap-2.5 rounded-button bg-background px-3 py-2">
             <ModeIcon kind="transit" />
             <span className="text-[12px] font-bold text-muted">대중교통</span>
-            <span className="ml-auto text-[12px] font-semibold text-[#BCA48C]">정보 제공 불가 · 네이버 지도 참고</span>
+            <span className="ml-auto text-[12px] font-semibold text-[#ABA6B8]">정보 제공 불가 · 네이버 지도 참고</span>
           </div>
-          <p className="text-[11px] text-[#BCA48C]">자차 기준 카카오 모빌리티 실측 합산 · 직선 순서 기준</p>
+          <p className="text-[11px] text-[#ABA6B8]">자차 기준 카카오 모빌리티 실측 합산 · 직선 순서 기준</p>
         </div>
       )}
     </div>
@@ -492,7 +492,7 @@ function ModeIcon({ kind }: { kind: 'car' | 'transit' }) {
     ? 'M5 11l2-5h10l2 5M5 11h14v5H5v-5ZM7 16v2M17 16v2'
     : 'M6 4h12v11H6zM6 15l-1 4M18 15l1 4M9 18h6M9 8h6';
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="text-[#E8742E]">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="text-[#D62E97]">
       <path d={d} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -526,8 +526,8 @@ function DetailCard({ pin, onClose }: { pin: Pin; onClose: () => void }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {pin.isStay
-              ? <span className="rounded-full bg-[#FFF1E6] px-2 py-0.5 text-[11px] font-extrabold text-[#E8742E]">숙소</span>
-              : <span className="rounded-full bg-[#FFF1E6] px-2 py-0.5 text-[11px] font-extrabold text-[#E8742E]">{pin.order}번째 일정</span>}
+              ? <span className="rounded-full bg-[#FCF0F9] px-2 py-0.5 text-[11px] font-extrabold text-[#D62E97]">숙소</span>
+              : <span className="rounded-full bg-[#FCF0F9] px-2 py-0.5 text-[11px] font-extrabold text-[#D62E97]">{pin.order}번째 일정</span>}
             <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-foreground">{pin.name}</span>
           </div>
           {pin.address && <p className="mt-1 line-clamp-1 text-[12px] text-muted">{pin.address}</p>}
@@ -535,15 +535,15 @@ function DetailCard({ pin, onClose }: { pin: Pin; onClose: () => void }) {
           {pin.isStay ? (
             <div className="mt-2 space-y-0.5 text-[13px]">
               <div className="flex items-center gap-1.5">
-                <span className="text-[#A6907B]">상태</span>
+                <span className="text-[#9A95A8]">상태</span>
                 <span className="font-bold text-foreground">{pin.status === 'BOOKED' ? '예약 완료' : '선정됨'}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[#A6907B]">머무는 기간</span>
+                <span className="text-[#9A95A8]">머무는 기간</span>
                 <span className="font-bold text-foreground">{stayPeriod}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[#A6907B]">예약 금액</span>
+                <span className="text-[#9A95A8]">예약 금액</span>
                 <span className="font-bold text-foreground">
                   {pin.reservationPrice != null ? won(pin.reservationPrice) : '미입력'}
                 </span>
@@ -551,7 +551,7 @@ function DetailCard({ pin, onClose }: { pin: Pin; onClose: () => void }) {
             </div>
           ) : (
             <div className="mt-2 text-[13px]">
-              <span className="text-[#A6907B]">시간 </span>
+              <span className="text-[#9A95A8]">시간 </span>
               <span className="font-bold text-foreground">
                 {pin.date ? `${shortDate(pin.date)} · ` : ''}{pin.startTime}–{pin.endTime}
               </span>
@@ -587,7 +587,7 @@ function DetailCard({ pin, onClose }: { pin: Pin; onClose: () => void }) {
 function MapFallback({ pins, message }: { pins: Pin[]; message: string }) {
   return (
     <div className="space-y-2.5">
-      <p className="rounded-card border border-[#FFCBA6] bg-[#FFF7F0] px-3.5 py-2.5 text-[12px] font-semibold text-[#A8662F]">
+      <p className="rounded-card border border-[#FFCFEB] bg-[#FAFAFF] px-3.5 py-2.5 text-[12px] font-semibold text-[#B02080]">
         {message} 지도를 켜려면 카카오 JavaScript 키를 설정해 주세요. 우선 장소 목록으로 보여드려요.
       </p>
       {pins.map((p, i) => (
@@ -600,7 +600,7 @@ function MapFallback({ pins, message }: { pins: Pin[]; message: string }) {
         >
           {p.isStay
             ? <StayGlyph />
-            : <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#FFF1E6] text-[12px] font-extrabold text-[#E8742E]">{p.order}</span>}
+            : <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#FCF0F9] text-[12px] font-extrabold text-[#D62E97]">{p.order}</span>}
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-bold text-foreground">{p.name}</div>
             <div className="text-[11px] text-muted">{p.isStay ? '숙소' : p.date ? `${shortDate(p.date)} 일정` : '일정'} · 네이버 지도에서 보기 ↗</div>

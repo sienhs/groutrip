@@ -113,13 +113,13 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
 
   return (
     <AppLayout title="맞춤 추천" showBack>
-      <div className="flex items-center gap-3 rounded-card bg-gradient-to-br from-[#FFEAD9] to-[#FFD9BF] px-4 py-3.5">
+      <div className="flex items-center gap-3 rounded-card bg-gradient-to-br from-[#FFEDF7] to-[#FFDDF0] px-4 py-3.5">
         <span className="text-[30px]">🧭</span>
         <div className="min-w-0">
-          <p className="text-[12px] font-bold text-[#B5763E]">그룹 성향 기반</p>
-          <p className="text-[16px] font-extrabold text-[#8A4B1E]">성향순 추천 코스</p>
+          <p className="text-[12px] font-bold text-[#C23C95]">그룹 성향 기반</p>
+          <p className="text-[16px] font-extrabold text-[#8E1768]">성향순 추천 코스</p>
           {/* 어떤 성향에 맞춘 추천인지 표시(2/11) */}
-          <p className="mt-0.5 text-[12px] font-semibold text-[#A8662F]">
+          <p className="mt-0.5 text-[12px] font-semibold text-[#B02080]">
             {persona?.average
               ? `${personaTrait(persona.average)} 그룹 성향에 맞췄어요${persona.matchRate != null ? ` · 일치율 ${persona.matchRate}%` : ''}`
               : '설문을 완료하면 그룹 성향 맞춤 추천을 받아요'}
@@ -137,7 +137,7 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
         <span className="text-[13px] font-bold text-foreground">
           {saved.size > 0 ? `담은 장소 ${saved.size}곳으로 일정 짜기` : '보관함에서 일정 짜러 가기'}
         </span>
-        <span className="text-[#E8742E]">→</span>
+        <span className="text-[#D62E97]">→</span>
       </button>
 
       <div className="mt-2.5 space-y-3">
@@ -166,7 +166,7 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
                 {item.thumbnailUrl ? (
                   <img src={item.thumbnailUrl} alt={item.title} loading="lazy" className="h-28 w-full object-cover" />
                 ) : (
-                  <div className="flex h-28 flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#FFB088] to-[#FF8A47] text-white/90">
+                  <div className="flex h-28 flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#FF9FD6] to-[#F23BA6] text-white/90">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
                       <path d="M12 21s-7-5.2-7-10.5A7 7 0 0 1 19 10.5C19 15.8 12 21 12 21Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
                       <circle cx="12" cy="10.5" r="2" fill="currentColor" />
@@ -186,13 +186,13 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
                 </div>
                 <p className="mt-1 line-clamp-1 text-[12px] text-muted">{item.address}</p>
                 {item.reason && (
-                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-[#FFF3E9] px-2.5 py-1.5 text-[12px] font-semibold leading-snug text-[#B5763E]">
+                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-[#FBF1FB] px-2.5 py-1.5 text-[12px] font-semibold leading-snug text-[#C23C95]">
                     <span aria-hidden>💡</span>
                     <span className="min-w-0 flex-1">{item.reason}</span>
                   </p>
                 )}
                 <Button size="sm" variant={isSaved ? 'ghost' : 'secondary'} loading={savingId === item.contentId}
-                  className={cn('mt-3', isSaved && 'border border-border text-[#A6907B]')} onClick={() => onSave(item)}>
+                  className={cn('mt-3', isSaved && 'border border-border text-[#9A95A8]')} onClick={() => onSave(item)}>
                   {isSaved ? '보관함에 담음' : '+ 보관함에 담기'}
                 </Button>
               </div>

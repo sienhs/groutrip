@@ -36,21 +36,21 @@ export default function RadarChart({ data, size = 260 }: RadarChartProps) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="취향 레이더 차트">
       {rings.map((pts, i) => (
-        <polygon key={i} points={pts} fill="none" stroke="#F0E4D6" strokeWidth="1" />
+        <polygon key={i} points={pts} fill="none" stroke="#EEECF6" strokeWidth="1" />
       ))}
       {data.map((_, i) => {
         const [x, y] = point(i, 1);
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#EBDDCB" strokeWidth="1" />;
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#E6E3F0" strokeWidth="1" />;
       })}
       <polygon
         points={join(dataPts)}
         fill="rgba(255,159,102,.28)"
-        stroke="#FF8A47"
+        stroke="#F23BA6"
         strokeWidth="2.5"
         strokeLinejoin="round"
       />
       {dataPts.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="3.5" fill="#FF8A47" />
+        <circle key={i} cx={x} cy={y} r="3.5" fill="#F23BA6" />
       ))}
       {data.map((d, i) => {
         const lx = cx + labelR * Math.cos(angle(i));
@@ -58,7 +58,7 @@ export default function RadarChart({ data, size = 260 }: RadarChartProps) {
         const c = Math.cos(angle(i));
         const anchor = Math.abs(c) < 0.2 ? 'middle' : c > 0 ? 'start' : 'end';
         return (
-          <text key={i} x={lx} y={ly + 4} textAnchor={anchor} fontSize="12" fontWeight="800" fill="#7A6A58">
+          <text key={i} x={lx} y={ly + 4} textAnchor={anchor} fontSize="12" fontWeight="800" fill="#6E6A7C">
             {d.label}
           </text>
         );

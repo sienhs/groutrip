@@ -39,7 +39,7 @@ export default function Tabs({ items, value, onChange, className }: TabsProps) {
               'flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3.5 py-3 text-[14px] font-bold transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
               active
-                ? 'border-primary text-[#E8742E]'
+                ? 'border-primary text-[#D62E97]'
                 : 'border-transparent text-muted hover:text-muted',
             )}
           >
@@ -48,7 +48,7 @@ export default function Tabs({ items, value, onChange, className }: TabsProps) {
               <span
                 className={cn(
                   'inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold',
-                  active ? 'bg-primary text-primary-foreground' : 'bg-[#F0E4D6] text-[#8A7B6B]',
+                  active ? 'bg-primary text-primary-foreground' : 'bg-[#EEECF6] text-[#8A8699]',
                 )}
               >
                 {t.badge}

@@ -69,7 +69,7 @@ function ExpenseBreakdown({ expenses }: { expenses: Expense[] }) {
         <ul className="mt-2.5 space-y-2">
           {expenses.map((e) => (
             <li key={e.id} className="flex items-center gap-2 text-[13px]">
-              <span className="flex size-7 items-center justify-center rounded-[8px] bg-[#FFF1E6] text-[13px]">{expenseIcon(e.category)}</span>
+              <span className="flex size-7 items-center justify-center rounded-[8px] bg-[#FCF0F9] text-[13px]">{expenseIcon(e.category)}</span>
               <div className="min-w-0 flex-1">
                 <div className="truncate font-bold text-foreground">{e.description}</div>
                 <div className="text-[11px] text-muted">{e.payerName} 결제 · {CATEGORY_LABEL[e.category]} · {e.paidAt.slice(5).replace('-', '.')}</div>
@@ -88,7 +88,7 @@ function apiMessage(err: unknown): string {
 }
 
 const STATUS: Record<SettlementStatus, { label: string; cls: string }> = {
-  PENDING: { label: '대기', cls: 'bg-[#FFF1E6] text-[#E8742E]' },
+  PENDING: { label: '대기', cls: 'bg-[#FCF0F9] text-[#D62E97]' },
   SENT: { label: '송금됨', cls: 'bg-[#EAF2FF] text-[#3182F6]' },
   COMPLETED: { label: '완료', cls: 'bg-[#EAF9EF] text-success' },
 };
@@ -98,10 +98,10 @@ function FromTo({ from, to, amount }: { from: string; to: string; amount: number
     <div className="flex items-center gap-2 text-[14px] font-bold">
       <span>{from}</span>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M5 12h14M13 6l6 6-6 6" stroke="#A6907B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5 12h14M13 6l6 6-6 6" stroke="#9A95A8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span>{to}</span>
-      <span className="ml-auto font-extrabold text-[#E8742E]">{formatWon(amount)}</span>
+      <span className="ml-auto font-extrabold text-[#D62E97]">{formatWon(amount)}</span>
     </div>
   );
 }
@@ -348,7 +348,7 @@ export default function SettlementPanel({
                     )}
                   </div>
                 ) : (
-                  <p className="rounded-card border border-[#FFE0B2] bg-[#FFF7F0] px-3 py-2.5 text-[12px] font-semibold leading-snug text-[#A8662F]">
+                  <p className="rounded-card border border-[#FFE4F4] bg-[#FAFAFF] px-3 py-2.5 text-[12px] font-semibold leading-snug text-[#B02080]">
                     {t.toName}님이 아직 정산 받을 링크·계좌를 등록하지 않았어요. 아래 앱으로 직접 보내거나, {t.toName}님께 마이페이지 등록을 요청해 주세요.
                   </p>
                 )}
@@ -360,7 +360,7 @@ export default function SettlementPanel({
                     <a href={links.tossDeepLink} className="flex flex-1 items-center justify-center rounded-button bg-[#0064FF] px-3 py-2.5 text-[13px] font-extrabold text-white active:opacity-90">토스 ↗</a>
                     <a href={links.kakaoPayDeepLink} className="flex flex-1 items-center justify-center rounded-button bg-[#FFEB00] px-3 py-2.5 text-[13px] font-extrabold text-[#3C1E1E] active:opacity-90">카카오페이 ↗</a>
                   </div>
-                  <p className="mt-1.5 text-[11px] leading-snug text-[#BCA48C]">앱이 안 열리면 휴대폰에서 시도해 주세요(PC는 미지원).</p>
+                  <p className="mt-1.5 text-[11px] leading-snug text-[#ABA6B8]">앱이 안 열리면 휴대폰에서 시도해 주세요(PC는 미지원).</p>
                 </div>
               </div>
             )}

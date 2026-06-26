@@ -105,7 +105,7 @@ export default function GroupCreatePage() {
             <span className="mb-1.5 block text-[13px] font-bold text-foreground">여행 기간</span>
             <div className="flex items-center gap-2">
               <Input type="date" value={start} min={todayStr} onChange={(e) => setStart(e.target.value)} />
-              <span className="text-[#C0AE9B]">–</span>
+              <span className="text-[#B6B1C4]">–</span>
               <Input type="date" value={end} min={start || todayStr} onChange={(e) => setEnd(e.target.value)} />
             </div>
             {start && start < todayStr && (
@@ -118,7 +118,7 @@ export default function GroupCreatePage() {
 
           <div>
             <span className="mb-2 block text-[13px] font-bold text-foreground">
-              커버 <span className="font-medium text-[#BCA48C]">(프리셋 또는 직접 올리기)</span>
+              커버 <span className="font-medium text-[#ABA6B8]">(프리셋 또는 직접 올리기)</span>
             </span>
             <div className="grid grid-cols-4 gap-2">
               {/* 직접 올리기 */}
@@ -128,7 +128,7 @@ export default function GroupCreatePage() {
                 aria-pressed={!!customFile}
                 onClick={() => coverInputRef.current?.click()}
                 className={cn(
-                  'flex h-[52px] items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-[#FFCBA6] bg-[#FFF7F0] text-[#E8742E] transition-transform active:scale-95',
+                  'flex h-[52px] items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] text-[#D62E97] transition-transform active:scale-95',
                   customFile && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                 )}
               >
@@ -159,7 +159,7 @@ export default function GroupCreatePage() {
               ))}
             </div>
             {customFile && (
-              <button type="button" onClick={() => setCustomFile(null)} className="mt-1.5 text-[12px] font-semibold text-[#A6907B]">
+              <button type="button" onClick={() => setCustomFile(null)} className="mt-1.5 text-[12px] font-semibold text-[#9A95A8]">
                 직접 올린 이미지 취소
               </button>
             )}

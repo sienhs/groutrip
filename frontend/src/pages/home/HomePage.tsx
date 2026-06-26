@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import AppLayout from '../../components/AppLayout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -7,9 +8,11 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import NotificationBell from '../../components/NotificationBell';
 import { getHome } from '../../api/home';
+import { getMyPayout } from '../../api/user';
+import { appQueryKeys } from '../../queryKeys/appQueryKeys';
 import GroupCover from '../group/GroupCover';
 import { cn } from '../../lib/cn';
-import type { HomeResponse, HomeGroupSummary } from '../../types/home';
+import type { HomeGroupSummary } from '../../types/home';
 
 /**
  * 홈 — GET /api/home (greetingName + 진행/예정/완료 + 알림 배지).
@@ -17,21 +20,16 @@ import type { HomeResponse, HomeGroupSummary } from '../../types/home';
  */
 export default function HomePage() {
   const navigate = useNavigate();
-  const [home, setHome] = useState<HomeResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data: home, isLoading: loading, isError: error } = useQuery({
+    queryKey: appQueryKeys.home(),
+    queryFn: getHome,
+  });
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setHome(await getHome());
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  // 정산 받을 수단(링크/계좌) 미등록 여부 — 링크·계좌 둘 다 비어 있으면 설정 유도 배너를 띄운다.
+  // 토스/카카오페이 링크라도 등록돼 있으면 배너는 뜨지 않는다.
+  const { data: payout } = useQuery({ queryKey: appQueryKeys.myPayout(), queryFn: getMyPayout });
+  const needsPayout = !!payout && !payout.payoutLink && !payout.payoutAccount;
+  const [payoutDismissed, setPayoutDismissed] = useState(false);
 
   const isEmpty =
     home && home.inProgress.length === 0 && home.upcoming.length === 0 && home.completed.length === 0;
@@ -45,7 +43,7 @@ export default function HomePage() {
       {home && (home.notification.unsettledAmount > 0 || home.notification.pendingVoteCount > 0) && (
         <div className="mt-3 flex gap-2">
           {home.notification.unsettledAmount > 0 && (
-            <span className="rounded-full bg-[#FFF1E6] px-3 py-1.5 text-[12px] font-bold text-[#E8742E]">
+            <span className="rounded-full bg-[#FCF0F9] px-3 py-1.5 text-[12px] font-bold text-[#D62E97]">
               미정산 ₩{home.notification.unsettledAmount.toLocaleString('ko-KR')}
             </span>
           )}
@@ -55,6 +53,14 @@ export default function HomePage() {
             </span>
           )}
         </div>
+      )}
+
+      {/* 정산 받기 설정 유도 — 링크·계좌 미등록자에게만 노출(바로가기 제공) */}
+      {needsPayout && !payoutDismissed && (
+        <PayoutNudge
+          onGo={() => navigate('/mypage?settle=1')}
+          onDismiss={() => setPayoutDismissed(true)}
+        />
       )}
 
       {/* 빠른 시작 — 주요 기능 바로가기 */}
@@ -109,7 +115,7 @@ export default function HomePage() {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-[#BCA48C]">{children}</h2>;
+  return <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-[#ABA6B8]">{children}</h2>;
 }
 
 interface QuickAction {
@@ -122,7 +128,7 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   {
-    label: '새 그룹', to: '/groups/new', bg: 'bg-[#FFE3CC]', fg: 'text-[#E8742E]',
+    label: '새 그룹', to: '/groups/new', bg: 'bg-[#FFE9F6]', fg: 'text-[#D62E97]',
     icon: <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />,
   },
   {
@@ -159,6 +165,42 @@ function QuickActions({ navigate }: { navigate: (to: string) => void }) {
   );
 }
 
+/** 정산 받을 수단(링크·계좌) 미등록 안내 배너. 마이페이지 정산 설정으로 바로 이동. */
+function PayoutNudge({ onGo, onDismiss }: { onGo: () => void; onDismiss: () => void }) {
+  return (
+    <div className="mt-4 flex items-start gap-3 rounded-card border border-border bg-surface p-3.5 shadow-sm">
+      <span className="flex size-9 flex-none items-center justify-center rounded-[12px] bg-[#E0F6FD] text-accent">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <rect x="3" y="6" width="18" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+          <path d="M3 10h18" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-extrabold">정산 받을 수단을 등록해 주세요</p>
+        <p className="mt-0.5 text-[12px] leading-snug text-muted">
+          토스·카카오페이 링크나 계좌를 등록하면 친구들이 바로 송금할 수 있어요.
+        </p>
+        <button
+          type="button"
+          onClick={onGo}
+          className="mt-2 inline-flex items-center gap-0.5 rounded-button bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
+        >
+          설정하러 가기
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+      </div>
+      <button
+        type="button"
+        aria-label="닫기"
+        onClick={onDismiss}
+        className="-mr-1 -mt-1 flex size-7 flex-none items-center justify-center rounded-full text-muted transition-colors hover:bg-border/60"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+      </button>
+    </div>
+  );
+}
+
 function OngoingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
@@ -188,7 +230,7 @@ function UpcomingCard({ g, onClick }: { g: HomeGroupSummary; onClick: () => void
         <div className="text-[12px] text-muted">{g.destination} · {g.memberCount}명</div>
       </div>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M9 6l6 6-6 6" stroke="#C0AE9B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9 6l6 6-6 6" stroke="#B6B1C4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
   );
@@ -202,7 +244,7 @@ function CompletedRow({ g, onClick }: { g: HomeGroupSummary; onClick: () => void
         <div className="truncate text-[14px] font-extrabold">{g.title}</div>
         <div className="text-[12px] text-muted">{g.destination} · {g.memberCount}명</div>
       </div>
-      <span className="flex items-center gap-1 text-[12px] font-bold text-[#E8742E]">
+      <span className="flex items-center gap-1 text-[12px] font-bold text-[#D62E97]">
         회고 보기
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </span>

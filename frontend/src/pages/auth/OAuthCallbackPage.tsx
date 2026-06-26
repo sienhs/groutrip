@@ -59,7 +59,7 @@ export default function OAuthCallbackPage() {
         {error ? (
           <div className="text-center">
             <p role="alert" className="mb-4 text-sm text-danger">{error}</p>
-            <Link to="/login" className="font-bold text-[#E8742E] hover:underline">
+            <Link to="/login" className="font-bold text-[#D62E97] hover:underline">
               로그인 화면으로 돌아가기
             </Link>
           </div>

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import AppLayout from '../../components/AppLayout';
 import Card from '../../components/Card';
@@ -10,11 +11,12 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getMyGroups, joinGroup } from '../../api/group';
+import { appQueryKeys } from '../../queryKeys/appQueryKeys';
 import GroupCover from './GroupCover';
 import { ddayLabel, dateRange, groupStatus } from './groupUi';
 import { cn } from '../../lib/cn';
 import type { ApiResponse } from '../../types/auth';
-import type { GroupStatus, TravelGroup } from '../../types/group';
+import type { GroupStatus } from '../../types/group';
 
 const FILTERS: ReadonlyArray<{ value: GroupStatus | 'ALL'; label: string }> = [
   { value: 'ALL', label: '전체' },
@@ -27,45 +29,39 @@ const FILTERS: ReadonlyArray<{ value: GroupStatus | 'ALL'; label: string }> = [
 export default function GroupListPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [groups, setGroups] = useState<TravelGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: groups = [], isLoading: loading, isError: error } = useQuery({
+    queryKey: appQueryKeys.myGroups(),
+    queryFn: getMyGroups,
+  });
   const [filter, setFilter] = useState<GroupStatus | 'ALL'>('ALL');
 
   // 초대 코드로 참여
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState('');
-  const [joining, setJoining] = useState(false);
 
-  const handleJoin = async () => {
-    const code = joinCode.trim().toUpperCase();
-    if (!code) return;
-    setJoining(true);
-    try {
-      const group = await joinGroup(code);
+  const joinMutation = useMutation({
+    mutationFn: (code: string) => joinGroup(code),
+    onSuccess: (group) => {
       toast.success('그룹에 참여했어요', group.title);
       setJoinOpen(false);
       setJoinCode('');
+      // 새 그룹이 목록·홈에 즉시 반영되도록 무효화.
+      queryClient.invalidateQueries({ queryKey: appQueryKeys.myGroups() });
+      queryClient.invalidateQueries({ queryKey: appQueryKeys.home() });
       navigate(`/groups/${group.id}`);
-    } catch (err) {
+    },
+    onError: (err) => {
       const message = (err as AxiosError<ApiResponse<null>>).response?.data?.message;
       toast.error('참여하지 못했어요', message ?? '초대 코드를 다시 확인해 주세요.');
-    } finally {
-      setJoining(false);
-    }
+    },
+  });
+  const joining = joinMutation.isPending;
+  const handleJoin = () => {
+    const code = joinCode.trim().toUpperCase();
+    if (!code) return;
+    joinMutation.mutate(code);
   };
-
-  useEffect(() => {
-    (async () => {
-      try {
-        setGroups(await getMyGroups());
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   const counts = (s: GroupStatus) => groups.filter((g) => groupStatus(g.startDate, g.endDate) === s).length;
   const shown = groups.filter(
@@ -77,7 +73,7 @@ export default function GroupListPage() {
       type="button"
       aria-label="그룹 만들기"
       onClick={() => navigate('/groups/new')}
-      className="flex size-9 items-center justify-center rounded-[9px] bg-[#FFF1E6] text-[#E8742E]"
+      className="flex size-9 items-center justify-center rounded-[9px] bg-[#FCF0F9] text-[#D62E97]"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
@@ -114,7 +110,7 @@ export default function GroupListPage() {
       <button
         type="button"
         onClick={() => setJoinOpen(true)}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCBA6] bg-[#FFF7F0] py-3 text-[14px] font-bold text-[#E8742E] active:bg-[#FFEEDF]"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#D62E97] active:bg-[#FCEFF9]"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M9 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.5 19c0-3 2.5-5 5.5-5M16 11h6M19 8v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

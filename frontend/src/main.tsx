@@ -5,7 +5,21 @@ import ToastProvider from './components/Toast'
 import './index.css'
 import App from './App.tsx'
 
-const queryClient = new QueryClient()
+// React Query 전역 기본값.
+// - staleTime 30s: 같은 데이터로 재마운트되는 화면 전환 시 중복 네트워크 요청을 막는다.
+// - refetchOnWindowFocus off: 모바일에서 앱 포커스가 자주 바뀌어 불필요한 재요청이 잦다.
+// - retry 1: 일시적 네트워크 오류만 1회 재시도(영구 오류는 빠르게 표면화).
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+    mutations: { retry: 0 },
+  },
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

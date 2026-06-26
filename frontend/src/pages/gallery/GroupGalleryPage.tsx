@@ -171,13 +171,13 @@ function GalleryThumb({
   }, [photo.imageUrl]);
 
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-[10px] bg-[#F4ECE0]">
+    <div className="group relative aspect-square overflow-hidden rounded-[10px] bg-[#EFEDF7]">
       {url ? (
         <button type="button" onClick={() => onOpen(url)} className="h-full w-full">
           <img src={url} alt={`${photo.uploadedByName}님의 사진`} className="h-full w-full object-cover" />
         </button>
       ) : (
-        <div className="h-full w-full animate-pulse bg-[#EFE4D6]" />
+        <div className="h-full w-full animate-pulse bg-[#EEECF6]" />
       )}
       {canDelete && (
         <button

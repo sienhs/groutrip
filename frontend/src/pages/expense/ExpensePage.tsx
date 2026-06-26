@@ -83,7 +83,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
       {!loading && !error && (
         <div className="space-y-5">
           {/* 총 지출 */}
-          <div className="rounded-card bg-gradient-to-br from-[#FF9F66] to-[#FF8A47] p-4 text-white">
+          <div className="rounded-card bg-gradient-to-br from-[#FF4FB7] to-[#F23BA6] p-4 text-white">
             <p className="text-[12px] opacity-90">총 지출</p>
             <p className="mt-0.5 text-[25px] font-extrabold">{formatWon(summary?.totalExpenseAmount ?? 0)}</p>
             {summary && (
@@ -102,18 +102,18 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
               <div className="space-y-2.5">
                 {expenses.map((e) => (
                   <div key={e.id} className="flex items-center gap-3 rounded-card border border-border bg-surface px-3.5 py-3">
-                    <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#FFF1E6] text-[17px]">{expenseIcon(e.category)}</span>
+                    <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#FCF0F9] text-[17px]">{expenseIcon(e.category)}</span>
                     <button type="button" onClick={() => { setEditing(e); setFormOpen(true); }} className="min-w-0 flex-1 text-left">
                       <div className="truncate text-[15px] font-bold">{e.description}</div>
                       <div className="text-[12px] text-muted">{e.payerName} 결제 · {e.splits.length}명 분담</div>
-                      {e.memo && <div className="truncate text-[11px] text-[#A6907B]">{e.memo}</div>}
+                      {e.memo && <div className="truncate text-[11px] text-[#9A95A8]">{e.memo}</div>}
                     </button>
                     <span className="text-[15px] font-extrabold">{formatWon(e.amount)}</span>
                     <button
                       type="button"
                       aria-label="수정"
                       onClick={() => { setEditing(e); setFormOpen(true); }}
-                      className="flex size-8 items-center justify-center rounded-button text-[#8A7B6B] hover:bg-[#FFF1E6] hover:text-[#E8742E]"
+                      className="flex size-8 items-center justify-center rounded-button text-[#8A8699] hover:bg-[#FCF0F9] hover:text-[#D62E97]"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
                         <path d="M4 20h4L18 10l-4-4L4 16v4ZM14 6l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -123,7 +123,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
                       type="button"
                       aria-label="삭제"
                       onClick={() => setDeleting(e)}
-                      className="flex size-8 items-center justify-center rounded-button text-[#8A7B6B] hover:bg-[#FEE2E2] hover:text-danger"
+                      className="flex size-8 items-center justify-center rounded-button text-[#8A8699] hover:bg-[#FEE2E2] hover:text-danger"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
                         <path d="M5 7h14M10 7V5h4v2M6 7l1 13h10l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

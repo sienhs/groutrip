@@ -112,7 +112,7 @@ export default function BookmarkListPage({
       <button
         type="button"
         onClick={() => navigate(`/groups/${groupId}/plan`)}
-        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCBA6] bg-[#FFF7F0] py-3 text-[14px] font-bold text-[#E8742E] active:bg-[#FFEEDF]"
+        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#D62E97] active:bg-[#FCEFF9]"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -243,7 +243,7 @@ function FilterChip({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
         active
           ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border bg-surface text-muted hover:border-[#FFCBA6]',
+          : 'border-border bg-surface text-muted hover:border-[#FFCFEB]',
       )}
     >
       {children}
@@ -314,7 +314,7 @@ function BookmarkCard({
             type="button"
             aria-label="수정"
             onClick={onEdit}
-            className="flex size-8 items-center justify-center rounded-button text-[#8A7B6B] hover:bg-black/5"
+            className="flex size-8 items-center justify-center rounded-button text-[#8A8699] hover:bg-black/5"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L4 18v2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
@@ -325,7 +325,7 @@ function BookmarkCard({
             type="button"
             aria-label="삭제"
             onClick={onDelete}
-            className="flex size-8 items-center justify-center rounded-button text-[#8A7B6B] hover:bg-[#FEE2E2] hover:text-danger"
+            className="flex size-8 items-center justify-center rounded-button text-[#8A8699] hover:bg-[#FEE2E2] hover:text-danger"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M5 7h14M10 7V5h4v2M6 7l1 13h10l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

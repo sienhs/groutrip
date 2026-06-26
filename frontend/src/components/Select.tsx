@@ -48,8 +48,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
             'h-11 w-full appearance-none rounded-button border bg-surface pl-3.5 pr-10 text-[15px] text-foreground',
             'outline-none transition-colors',
             'focus:border-primary focus:ring-2 focus:ring-primary/20',
-            'disabled:cursor-not-allowed disabled:bg-[#F7EFE5] disabled:text-[#A6907B]',
-            error ? 'border-danger bg-[#FFF5F5]' : 'border-border',
+            'disabled:cursor-not-allowed disabled:bg-[#F4F2FB] disabled:text-[#9A95A8]',
+            error ? 'border-danger bg-[#FFF1FA]' : 'border-border',
             className,
           )}
           {...rest}
@@ -67,7 +67,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
         </select>
         <svg
           aria-hidden
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#A6907B]"
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9A95A8]"
           width="14" height="14" viewBox="0 0 24 24" fill="none"
         >
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />

@@ -1,43 +1,54 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────
-   enjoy-trip 디자인 토큰 (Tailwind v4 @theme)
+   편돌즈.trip 디자인 토큰 (Tailwind v4 @theme)
    v4는 tailwind.config.js 대신 CSS @theme 블록으로 토큰을 정의한다.
    토큰 → 유틸: bg-primary / text-primary / rounded-card / rounded-button ...
+   팔레트: 화이트·연라벤더 베이스 + 핫핑크 주색 + 시안·옐로우 포인트(캔디톤).
    ────────────────────────────────────────────── */
 @theme {
-  /* color */
-  --color-primary: #FF9F66;            /* 메인 오렌지 */
-  --color-primary-hover: #FF8A47;
+  /* color — 주색(핫핑크) */
+  --color-primary: #FF4FB7;            /* 메인 핫핑크 */
+  --color-primary-hover: #F23BA6;
   --color-primary-foreground: #FFFFFF;
-  --color-background: #FFF8F0;         /* 페이지 배경(크림) */
+
+  /* 포인트 컬러(보조 강조) */
+  --color-accent: #36C5F0;             /* 시안 */
+  --color-accent-foreground: #FFFFFF;
+  --color-secondary: #FFC93C;          /* 옐로우 */
+  --color-secondary-foreground: #3A2A00;
+
+  /* 베이스 */
+  --color-background: #FAFAFF;         /* 페이지 배경(연라벤더 화이트) */
   --color-surface: #FFFFFF;            /* 카드 배경 */
-  --color-border: #F2E6D8;             /* 카드/구분선 */
-  --color-muted: #8A7B6B;              /* 보조 텍스트 */
-  --color-foreground: #3A322B;         /* 기본 본문 텍스트 */
-  --color-skeleton: #F0E4D6;           /* 로딩 스켈레톤 배경 */
+  --color-border: #ECEAF6;             /* 카드/구분선 */
+  --color-muted: #8A8699;              /* 보조 텍스트(쿨 그레이) */
+  --color-foreground: #2C2833;         /* 기본 본문 텍스트(차콜) */
+  --color-skeleton: #EEECF6;           /* 로딩 스켈레톤 배경 */
+
+  /* 상태색 */
   --color-danger: #EF4444;
   --color-success: #22C55E;
-  --color-info: #3B82F6;
-  --color-warning: #F59E0B;
+  --color-info: #36C5F0;
+  --color-warning: #FFC93C;
 
-  /* radius */
-  --radius-card: 12px;                 /* 카드 */
-  --radius-button: 8px;                /* 버튼/인풋 */
+  /* radius — 캔디톤에 맞춰 더 둥글게 */
+  --radius-card: 16px;                 /* 카드 */
+  --radius-button: 12px;               /* 버튼/인풋 */
 
   /* font */
   --font-sans: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
 }
 
 /* 다크 테마: 핵심 토큰만 덮어쓴다. bg-background/bg-surface/text-muted/border-border 등
-   토큰 기반 유틸은 자동으로 따라오며, 일부 하드코딩 hex는 라이트 톤이 남을 수 있다(점진 개선). */
+   토큰 기반 유틸은 자동으로 따라온다(쿨 라벤더 다크). */
 html.dark {
-  --color-background: #1A1714;
-  --color-surface: #241F1B;
-  --color-border: #3A322B;
-  --color-muted: #B0A292;
-  --color-foreground: #F2EAE0;
-  --color-skeleton: #2E2823;
+  --color-background: #14131A;
+  --color-surface: #1E1C26;
+  --color-border: #322F3D;
+  --color-muted: #9A95A8;
+  --color-foreground: #F0EEF6;
+  --color-skeleton: #272430;
 }
 
 /* 전역 기본값: 배경/폰트/안티앨리어싱 */

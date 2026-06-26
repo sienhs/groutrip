@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
@@ -6,6 +7,8 @@ import MultiSelect from '../../components/MultiSelect';
 import Button from '../../components/Button';
 import { useToast } from '../../components/Toast';
 import { addExpense, updateExpense } from '../../api/expense';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
+import { appQueryKeys } from '../../queryKeys/appQueryKeys';
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from '../../types/expense';
 import type { GroupMember } from '../../types/group';
 
@@ -21,6 +24,7 @@ interface Props {
 /** 지출 추가/수정 모달 — 금액/항목/결제자/분담 대상/카테고리. */
 export default function ExpenseFormModal({ open, groupId, members, expense, onClose, onSaved }: Props) {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const editing = !!expense;
 
   const [title, setTitle] = useState('');
@@ -29,7 +33,6 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
   const [payerId, setPayerId] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
   const [category, setCategory] = useState<ExpenseCategory>('MEAL');
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -44,33 +47,33 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
   const amountNum = Number(amount);
   const valid = title.trim().length > 0 && amountNum > 0 && payerId !== '' && participants.length > 0;
 
-  const handleSubmit = async () => {
-    if (!valid) return;
-    setSubmitting(true);
+  const saveMutation = useMutation({
     // 백엔드 ExpenseCreateRequest: EQUAL 분담(participantIds), description, paidAt(결제일).
-    const body = {
-      amount: amountNum,
-      payerId: Number(payerId),
-      category,
-      splitType: 'EQUAL' as const,
-      description: title.trim(),
-      memo: memo.trim() || undefined,
-      paidAt: expense?.paidAt ?? new Date().toISOString().slice(0, 10),
-      participantIds: participants.map(Number),
-    };
-    try {
-      const saved = editing
-        ? await updateExpense(groupId, expense!.id, body)
-        : await addExpense(groupId, body);
+    mutationFn: () => {
+      const body = {
+        amount: amountNum,
+        payerId: Number(payerId),
+        category,
+        splitType: 'EQUAL' as const,
+        description: title.trim(),
+        memo: memo.trim() || undefined,
+        paidAt: expense?.paidAt ?? new Date().toISOString().slice(0, 10),
+        participantIds: participants.map(Number),
+      };
+      return editing ? updateExpense(groupId, expense!.id, body) : addExpense(groupId, body);
+    },
+    onSuccess: (saved) => {
+      // 지출/정산 요약 + 홈 미정산 배지를 갱신.
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.expenses(groupId) });
+      queryClient.invalidateQueries({ queryKey: appQueryKeys.home() });
       toast.success(editing ? '지출을 수정했어요' : '지출을 추가했어요', saved.description);
       onSaved(saved);
       onClose();
-    } catch {
-      toast.error('저장에 실패했어요', '잠시 후 다시 시도해 주세요.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    onError: () => toast.error('저장에 실패했어요', '잠시 후 다시 시도해 주세요.'),
+  });
+  const submitting = saveMutation.isPending;
+  const handleSubmit = () => { if (valid) saveMutation.mutate(); };
 
   return (
     <Modal

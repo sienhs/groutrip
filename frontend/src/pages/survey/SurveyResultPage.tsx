@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import AppLayout from '../../components/AppLayout';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
@@ -7,6 +7,7 @@ import { SkeletonCard } from '../../components/Skeleton';
 import RadarChart from './RadarChart';
 import { getPersona } from './persona';
 import { getMyPreference } from '../../api/survey';
+import { appQueryKeys } from '../../queryKeys/appQueryKeys';
 import { DIMENSIONS, DIMENSION_META, prefValue, type UserPreference } from '../../types/survey';
 
 interface ResultLocationState {
@@ -22,27 +23,14 @@ export default function SurveyResultPage() {
   const location = useLocation();
   const statePreference = (location.state as ResultLocationState | null)?.preference;
 
-  const [preference, setPreference] = useState<UserPreference | null>(statePreference ?? null);
-  // 라우터 state가 없을 때만 서버 조회 → 미응답 판정.
-  const [loading, setLoading] = useState(!statePreference);
-
-  useEffect(() => {
-    if (statePreference) return;
-    let cancelled = false;
-    getMyPreference()
-      .then((p) => {
-        if (!cancelled) setPreference(p);
-      })
-      .catch(() => {
-        if (!cancelled) setPreference(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [statePreference]);
+  // 라우터 state로 받았으면 그대로 쓰고, 직접 진입/새로고침이면 저장된 성향을 조회한다.
+  const { data: fetchedPreference, isLoading } = useQuery({
+    queryKey: appQueryKeys.myPreference(),
+    queryFn: getMyPreference,
+    enabled: !statePreference,
+  });
+  const preference: UserPreference | null = statePreference ?? fetchedPreference ?? null;
+  const loading = !statePreference && isLoading;
 
   if (loading) {
     return (
@@ -95,11 +83,11 @@ export default function SurveyResultPage() {
               <div key={dim}>
                 <div className="mb-1.5 flex justify-between text-[13px] font-bold">
                   <span>{meta.label}</span>
-                  <span className="text-[#E8742E]">{pct}%</span>
+                  <span className="text-[#D62E97]">{pct}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-skeleton">
                   {/* 동적 값 — 인라인 style 사용 */}
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#FFB585] to-[#FF8A47]" style={{ width: `${pct}%` }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#FFB0DD] to-[#F23BA6]" style={{ width: `${pct}%` }} />
                 </div>
               </div>
             );

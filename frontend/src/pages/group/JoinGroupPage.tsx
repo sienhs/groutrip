@@ -37,7 +37,7 @@ export default function JoinGroupPage() {
       <AuthBrand subtitle="여행 그룹 초대" />
       <Card padding="lg">
         <div className="text-center">
-          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-[#FFF1E6] text-[26px]">🎟️</div>
+          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-[#FCF0F9] text-[26px]">🎟️</div>
           <p className="text-[15px] font-extrabold text-foreground">그룹 초대를 받았어요</p>
           <p className="mt-1 text-[13px] text-muted">
             초대 코드 <b className="tracking-[0.15em] text-foreground">{code.toUpperCase()}</b> 로 참여합니다.

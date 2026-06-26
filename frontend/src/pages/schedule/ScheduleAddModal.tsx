@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
@@ -7,8 +8,8 @@ import { useToast } from '../../components/Toast';
 import { addSchedule } from '../../api/schedule';
 import { getBookmarks } from '../../api/place';
 import { getGroup } from '../../api/group';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
-import type { BookmarkResponse } from '../../types/place';
 
 interface Props {
   groupId: number;
@@ -39,9 +40,19 @@ export default function ScheduleAddModal({ groupId, defaultDate, defaultStart, o
   // 직전 일정 종료 이후 정시로 시작, 1시간 일정 기본.
   const initialStart = defaultStart ? ceilHour(defaultStart) : '10:00';
   const toast = useToast();
-  const [bookmarks, setBookmarks] = useState<BookmarkResponse[]>([]);
-  const [period, setPeriod] = useState<{ start: string; end: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // 보관함 장소·그룹 기간은 다른 화면과 캐시를 공유한다.
+  const { data: bookmarks = [], isLoading: bmLoading, isError: bmError } = useQuery({
+    queryKey: groupQueryKeys.bookmarks(groupId),
+    queryFn: () => getBookmarks(groupId),
+  });
+  const { data: group, isLoading: gLoading, isError: gError } = useQuery({
+    queryKey: groupQueryKeys.detail(groupId),
+    queryFn: () => getGroup(groupId),
+  });
+  const loading = bmLoading || gLoading;
+  const period = group ? { start: group.startDate, end: group.endDate } : null;
 
   // 'place' = 보관함 장소 / 'empty' = 빈 일정(제목만, 나중에 투표로 장소 결정)
   const [kind, setKind] = useState<'place' | 'empty'>('place');
@@ -52,58 +63,45 @@ export default function ScheduleAddModal({ groupId, defaultDate, defaultStart, o
   const [end, setEnd] = useState(addHour(initialStart));
   const [memo, setMemo] = useState('');
   const [cost, setCost] = useState('');
-  const [saving, setSaving] = useState(false);
 
+  // 조회 결과로 초기값(일자·기본 장소·보관함 빈 경우 빈 일정)을 시드한다.
   useEffect(() => {
-    let cancelled = false;
-    Promise.all([getBookmarks(groupId), getGroup(groupId)])
-      .then(([bms, g]) => {
-        if (cancelled) return;
-        setBookmarks(bms);
-        setPeriod({ start: g.startDate, end: g.endDate });
-        setDate((d) => d || defaultDate || g.startDate);
-        setPlaceId((p) => p || (bms[0] ? String(bms[0].place.placeId) : ''));
-        // 보관함이 비어 있으면 빈 일정으로 시작
-        if (bms.length === 0) setKind('empty');
-      })
-      .catch(() => {
-        if (!cancelled) toast.error('정보를 불러오지 못했어요', '잠시 후 다시 시도해 주세요.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId]);
+    if (group) setDate((d) => d || defaultDate || group.startDate);
+  }, [group, defaultDate]);
+  useEffect(() => {
+    if (bookmarks.length === 0) setKind('empty');
+    else setPlaceId((p) => p || String(bookmarks[0].place.placeId));
+  }, [bookmarks]);
+  useEffect(() => {
+    if (bmError || gError) toast.error('정보를 불러오지 못했어요', '잠시 후 다시 시도해 주세요.');
+  }, [bmError, gError, toast]);
 
   const timeValid = start < end;
   const valid = !!date && timeValid && (kind === 'place' ? !!placeId : !!title.trim());
 
-  const handleSave = async () => {
-    if (!valid) return;
-    setSaving(true);
-    try {
-      await addSchedule(groupId, {
-        placeId: kind === 'place' ? Number(placeId) : undefined,
-        title: kind === 'empty' ? title.trim() : undefined,
-        scheduleDate: date,
-        startTime: start,
-        endTime: end,
-        memo: memo.trim() || undefined,
-        estimatedCost: cost ? Number(cost) : undefined,
-      });
+  const addMutation = useMutation({
+    mutationFn: () => addSchedule(groupId, {
+      placeId: kind === 'place' ? Number(placeId) : undefined,
+      title: kind === 'empty' ? title.trim() : undefined,
+      scheduleDate: date,
+      startTime: start,
+      endTime: end,
+      memo: memo.trim() || undefined,
+      estimatedCost: cost ? Number(cost) : undefined,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.schedules(groupId) });
       toast.success('일정에 추가했어요');
       onAdded();
       onClose();
-    } catch (e) {
+    },
+    onError: (e) => {
       const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
       toast.error('일정 추가에 실패했어요', message ?? '여행 기간 내 일자인지 확인해 주세요.');
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+  });
+  const saving = addMutation.isPending;
+  const handleSave = () => { if (valid) addMutation.mutate(); };
 
   return (
     <Modal
@@ -180,7 +178,7 @@ export default function ScheduleAddModal({ groupId, defaultDate, defaultStart, o
             <span className="mb-1.5 block text-[13px] font-bold text-foreground">시간</span>
             <div className="flex items-center gap-2">
               <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-              <span className="text-[#C0AE9B]">–</span>
+              <span className="text-[#B6B1C4]">–</span>
               <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
             </div>
             {!timeValid && <p className="mt-1.5 text-[12px] text-danger">종료 시각이 시작보다 빨라요.</p>}

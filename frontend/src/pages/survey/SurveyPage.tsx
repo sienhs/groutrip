@@ -105,7 +105,7 @@ export default function SurveyPage() {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background px-6 py-8">
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <div className="flex size-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#FFCBA6] to-primary text-[44px] shadow-lg">
+          <div className="flex size-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#FFCFEB] to-primary text-[44px] shadow-lg">
             🧭
           </div>
           <h1 className="mt-6 text-[23px] font-extrabold tracking-tight">나의 여행 취향 찾기</h1>
@@ -115,7 +115,7 @@ export default function SurveyPage() {
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             {Object.values(DIMENSION_META).map((m) => (
-              <span key={m.label} className="rounded-full bg-[#FFF1E6] px-3 py-1.5 text-[12px] font-bold text-[#E8742E]">
+              <span key={m.label} className="rounded-full bg-[#FCF0F9] px-3 py-1.5 text-[12px] font-bold text-[#D62E97]">
                 {m.label}
               </span>
             ))}
@@ -143,9 +143,9 @@ export default function SurveyPage() {
             <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#F0E4D6]">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#EEECF6]">
           {/* 동적 진행률 — 런타임 값이라 인라인 style 사용 */}
-          <div className="h-full rounded-full bg-gradient-to-r from-[#FFB585] to-[#FF8A47] transition-[width] duration-300" style={{ width: `${progress}%` }} />
+          <div className="h-full rounded-full bg-gradient-to-r from-[#FFB0DD] to-[#F23BA6] transition-[width] duration-300" style={{ width: `${progress}%` }} />
         </div>
         <span className="min-w-9 text-right text-[13px] font-extrabold text-muted">
           {index + 1}/{total}
@@ -155,7 +155,7 @@ export default function SurveyPage() {
       <div className="flex flex-1 flex-col justify-center px-6 text-center">
         {current && (
           <>
-            <p className="text-[12px] font-extrabold tracking-wide text-[#E8742E]">
+            <p className="text-[12px] font-extrabold tracking-wide text-[#D62E97]">
               {DIMENSION_META[current.dimension].label}
             </p>
             <h2 className="mt-3.5 text-[22px] font-extrabold leading-snug tracking-tight">
@@ -181,10 +181,10 @@ export default function SurveyPage() {
                 className={cn(
                   'flex items-center justify-center rounded-full border-2 transition-colors',
                   SCALE_SIZE[i],
-                  selected ? 'border-primary bg-primary' : 'border-[#E7D7C5] bg-surface hover:border-[#FFCBA6]',
+                  selected ? 'border-primary bg-primary' : 'border-[#E2DFEE] bg-surface hover:border-[#FFCFEB]',
                 )}
               >
-                <span className={cn('size-2.5 rounded-full', selected ? 'bg-white' : 'bg-[#F0E4D6]')} />
+                <span className={cn('size-2.5 rounded-full', selected ? 'bg-white' : 'bg-[#EEECF6]')} />
               </button>
             );
           })}

@@ -42,17 +42,17 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-describedby={describedBy}
           className={cn(
             'w-full rounded-button border bg-surface px-3.5 text-[15px] leading-none text-foreground',
-            'h-11 outline-none transition-colors placeholder:text-[#C0AE9B]',
+            'h-11 outline-none transition-colors placeholder:text-[#B6B1C4]',
             'focus:border-primary focus:ring-2 focus:ring-primary/20',
-            'disabled:cursor-not-allowed disabled:bg-[#F7EFE5] disabled:text-[#A6907B]',
-            error ? 'border-danger bg-[#FFF5F5] focus:ring-danger/20' : 'border-border',
+            'disabled:cursor-not-allowed disabled:bg-[#F4F2FB] disabled:text-[#9A95A8]',
+            error ? 'border-danger bg-[#FFF1FA] focus:ring-danger/20' : 'border-border',
             trailing ? 'pr-11' : null,
             className,
           )}
           {...rest}
         />
         {trailing && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A6907B]">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9A95A8]">
             {trailing}
           </span>
         )}

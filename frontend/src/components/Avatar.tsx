@@ -15,12 +15,12 @@ const SIZE: Record<Size, string> = {
  * 클래스 문자열을 정적으로 나열해 Tailwind JIT 가 인식하도록 한다(인라인 style 미사용).
  */
 const PALETTE = [
-  'bg-[#FF9F66]',
+  'bg-[#FF4FB7]',
   'bg-[#6FB3F2]',
-  'bg-[#C7B299]',
+  'bg-[#B6B1C4]',
   'bg-[#7FC9A6]',
   'bg-[#E8A0C0]',
-  'bg-[#F2B85A]',
+  'bg-[#FFC93C]',
 ];
 function colorClassFor(name: string): string {
   let h = 0;
@@ -97,7 +97,7 @@ export function AvatarGroup({ names, max = 3, size = 'md' }: AvatarGroupProps) {
       {rest > 0 && (
         <span
           className={cn(
-            '-ml-2.5 inline-flex items-center justify-center rounded-full bg-[#F0E4D6] font-extrabold text-[#8A7B6B] ring-2 ring-white',
+            '-ml-2.5 inline-flex items-center justify-center rounded-full bg-[#EEECF6] font-extrabold text-[#8A8699] ring-2 ring-white',
             SIZE[size],
           )}
         >

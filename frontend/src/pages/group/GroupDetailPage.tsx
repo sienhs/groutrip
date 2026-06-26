@@ -168,7 +168,7 @@ export default function GroupDetailPage() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background md:max-w-lg">
       {/* 배너 */}
-      <div className={cn('relative h-[150px] overflow-hidden', group ? gradientForKey(group.coverImageKey) : 'bg-[#F0E4D6]')}>
+      <div className={cn('relative h-[150px] overflow-hidden', group ? gradientForKey(group.coverImageKey) : 'bg-[#EEECF6]')}>
         {group?.coverImageKey === 'CUSTOM' && (
           <img
             src={groupCoverUrl(group.id)}
@@ -236,7 +236,7 @@ export default function GroupDetailPage() {
         <button
           type="button"
           onClick={() => navigate(`/groups/${groupId}/plan`)}
-          className="flex w-full items-center gap-3 border-b border-border bg-gradient-to-r from-[#FF9F66] to-[#FF8A4C] px-4 py-4 text-left text-white shadow-sm active:opacity-95"
+          className="flex w-full items-center gap-3 border-b border-border bg-gradient-to-r from-[#FF4FB7] to-[#F23BA6] px-4 py-4 text-left text-white shadow-sm active:opacity-95"
         >
           <span className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-white/25">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -387,7 +387,7 @@ function MemberTab({
           <button
             type="button"
             onClick={() => setConfirm({ kind: 'regenerate' })}
-            className="mt-2.5 text-[12px] font-semibold text-[#A6907B] underline-offset-2 hover:underline"
+            className="mt-2.5 text-[12px] font-semibold text-[#9A95A8] underline-offset-2 hover:underline"
           >
             초대 코드 재발급(기존 코드 무효화)
           </button>
@@ -406,7 +406,7 @@ function MemberTab({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 text-[15px] font-extrabold">
                     <span className="truncate">{m.name}</span>
-                    {isMe && <span className="shrink-0 text-[11px] font-bold text-[#A6907B]">(나)</span>}
+                    {isMe && <span className="shrink-0 text-[11px] font-bold text-[#9A95A8]">(나)</span>}
                   </div>
                   <div className="text-[12px] text-muted">
                     {m.role === 'OWNER' ? '그룹 생성' : `${m.joinedAt.slice(5, 10).replace('-', '.')} 참여`}
@@ -419,7 +419,7 @@ function MemberTab({
                     <button
                       type="button"
                       onClick={() => setConfirm({ kind: 'transfer', member: m })}
-                      className="rounded-button px-2 py-1 text-[12px] font-bold text-[#E8742E] hover:bg-[#FFF1E6]"
+                      className="rounded-button px-2 py-1 text-[12px] font-bold text-[#D62E97] hover:bg-[#FCF0F9]"
                     >
                       위임
                     </button>

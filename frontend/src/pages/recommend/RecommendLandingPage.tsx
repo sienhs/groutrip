@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import AppLayout from '../../components/AppLayout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { getMyGroups } from '../../api/group';
+import { appQueryKeys } from '../../queryKeys/appQueryKeys';
 import { gradientForKey, dateRange } from '../group/groupUi';
 import { cn } from '../../lib/cn';
-import type { TravelGroup } from '../../types/group';
 
 /**
  * 추천 탭 진입점. 추천은 그룹 목적지 기반(FR-RECOMMEND)이라 그룹을 먼저 고른다.
@@ -16,21 +16,10 @@ import type { TravelGroup } from '../../types/group';
  */
 export default function RecommendLandingPage() {
   const navigate = useNavigate();
-  const [groups, setGroups] = useState<TravelGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        setGroups(await getMyGroups());
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const { data: groups = [], isLoading: loading, isError: error } = useQuery({
+    queryKey: appQueryKeys.myGroups(),
+    queryFn: getMyGroups,
+  });
 
   return (
     <AppLayout title="여행지 추천">

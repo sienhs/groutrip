@@ -138,11 +138,11 @@ export const CATEGORY_LABEL: Record<PlaceCategory, string> = {
 /** 카테고리별 태그 배지 색(보관함·검색 등에서 한눈에 구분). bg/text 한 쌍. */
 export const CATEGORY_BADGE_CLASS: Record<PlaceCategory, string> = {
   LODGING: 'bg-[#DBEAFE] text-[#1D4ED8]',          // 숙소 — 파랑
-  RESTAURANT: 'bg-[#FFE0D2] text-[#D9480F]',       // 맛집 — 주황/빨강
-  CAFE: 'bg-[#F0E6D2] text-[#92600A]',             // 카페 — 갈색
+  RESTAURANT: 'bg-[#FFE4F4] text-[#D6336C]',       // 맛집 — 로즈
+  CAFE: 'bg-[#FEF3C7] text-[#B45309]',             // 카페 — 앰버
   TOURIST_ATTRACTION: 'bg-[#DCFCE7] text-[#15803D]', // 명소 — 초록
   SHOPPING: 'bg-[#F3E8FF] text-[#7E22CE]',         // 쇼핑 — 보라
-  ETC: 'bg-[#ECE7E1] text-[#6B5B4D]',              // 기타 — 회갈색
+  ETC: 'bg-[#ECEAF4] text-[#5A5666]',              // 기타 — 회갈색
 };
 
 /** 가격대 표시 라벨(₩ 개수). FREE 는 "무료". */

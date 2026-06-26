@@ -120,16 +120,16 @@ export default function DestinationAutocomplete({
           onKeyDown={handleKeyDown}
           className={cn(
             'w-full rounded-button border bg-surface px-3.5 pr-10 text-[15px] leading-none text-foreground',
-            'h-11 outline-none transition-colors placeholder:text-[#C0AE9B]',
+            'h-11 outline-none transition-colors placeholder:text-[#B6B1C4]',
             'focus:border-primary focus:ring-2 focus:ring-primary/20',
-            error ? 'border-danger bg-[#FFF5F5] focus:ring-danger/20' : 'border-border',
+            error ? 'border-danger bg-[#FFF1FA] focus:ring-danger/20' : 'border-border',
           )}
         />
         {/* 선택 완료 표시(체크) / 검색 아이콘 */}
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#A6907B]">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9A95A8]">
           {value ? (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M5 13l4 4L19 7" stroke="#FF9F66" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M5 13l4 4L19 7" stroke="#FF4FB7" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           ) : (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -157,11 +157,11 @@ export default function DestinationAutocomplete({
                 }}
                 className={cn(
                   'flex cursor-pointer items-center justify-between gap-2 px-3.5 py-2.5 text-[14px]',
-                  i === active ? 'bg-[#FFF1E6] text-[#3A322B]' : 'text-[#5A4E43]',
+                  i === active ? 'bg-[#FCF0F9] text-[#2C2833]' : 'text-[#4A4654]',
                 )}
               >
                 <span className="font-semibold">{r.label}</span>
-                <span className="text-[12px] text-[#A6907B]">{r.value}</span>
+                <span className="text-[12px] text-[#9A95A8]">{r.value}</span>
               </li>
             ))}
           </ul>

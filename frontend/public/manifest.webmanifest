@@ -1,14 +1,14 @@
 {
-  "name": "enjoy-trip",
-  "short_name": "enjoy-trip",
+  "name": "편돌즈.trip",
+  "short_name": "편돌즈",
   "description": "함께 만드는 우리의 여행 — 그룹 여행 협업 플랫폼",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "lang": "ko",
-  "background_color": "#FFF8F0",
-  "theme_color": "#FF9F66",
+  "background_color": "#FAFAFF",
+  "theme_color": "#FF4FB7",
   "icons": [
     {
       "src": "/pwa-icon.svg",

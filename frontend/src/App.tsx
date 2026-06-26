@@ -1,27 +1,39 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { reissue } from './api/auth';
 import useAuthStore from './store/authStore';
 import { useSettingsStore } from './store/settingsStore';
 import type { User } from './types/auth';
 import ProtectedRoute from './components/ProtectedRoute';
-import LoginPage from './pages/auth/LoginPage';
-import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
-import HomePage from './pages/home/HomePage';
-import SurveyPage from './pages/survey/SurveyPage';
-import SurveyResultPage from './pages/survey/SurveyResultPage';
-import GroupListPage from './pages/group/GroupListPage';
-import GroupCreatePage from './pages/group/GroupCreatePage';
-import GroupDetailPage from './pages/group/GroupDetailPage';
-import JoinGroupPage from './pages/group/JoinGroupPage';
-import RecapPage from './pages/group/RecapPage';
-import TripPlanPage from './pages/group/TripPlanPage';
-import ScheduleMapPage from './pages/schedule/ScheduleMapPage';
-import RecommendPage from './pages/recommend/RecommendPage';
-import RecommendLandingPage from './pages/recommend/RecommendLandingPage';
-import VoteDetailPage from './pages/vote/VoteDetailPage';
-import MyPage from './pages/mypage/MyPage';
-import NotificationsPage from './pages/notifications/NotificationsPage';
+
+// 라우트 단위 코드 스플리팅 — 각 페이지를 별도 청크로 분리해 초기 번들을 가볍게 한다.
+// 페이지 진입 시 해당 청크만 지연 로드되고, 로딩 동안 아래 RouteFallback 을 보여준다.
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const OAuthCallbackPage = lazy(() => import('./pages/auth/OAuthCallbackPage'));
+const HomePage = lazy(() => import('./pages/home/HomePage'));
+const SurveyPage = lazy(() => import('./pages/survey/SurveyPage'));
+const SurveyResultPage = lazy(() => import('./pages/survey/SurveyResultPage'));
+const GroupListPage = lazy(() => import('./pages/group/GroupListPage'));
+const GroupCreatePage = lazy(() => import('./pages/group/GroupCreatePage'));
+const GroupDetailPage = lazy(() => import('./pages/group/GroupDetailPage'));
+const JoinGroupPage = lazy(() => import('./pages/group/JoinGroupPage'));
+const RecapPage = lazy(() => import('./pages/group/RecapPage'));
+const TripPlanPage = lazy(() => import('./pages/group/TripPlanPage'));
+const ScheduleMapPage = lazy(() => import('./pages/schedule/ScheduleMapPage'));
+const RecommendPage = lazy(() => import('./pages/recommend/RecommendPage'));
+const RecommendLandingPage = lazy(() => import('./pages/recommend/RecommendLandingPage'));
+const VoteDetailPage = lazy(() => import('./pages/vote/VoteDetailPage'));
+const MyPage = lazy(() => import('./pages/mypage/MyPage'));
+const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
+
+/** 라우트 청크 로딩 중 표시할 폴백(인증 복원 화면과 동일 톤). */
+function RouteFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <p className="text-muted">불러오는 중...</p>
+    </div>
+  );
+}
 
 function App() {
   const [isRestoring, setIsRestoring] = useState(true);
@@ -54,16 +66,13 @@ function App() {
   }, [setAuth, clearAuth]);
 
   if (isRestoring) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-muted">불러오는 중...</p>
-      </div>
-    );
+    return <RouteFallback />;
   }
 
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
@@ -87,7 +96,8 @@ function App() {
         {/* 마이페이지 */}
         <Route path="/mypage" element={<ProtectedRoute><MyPage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

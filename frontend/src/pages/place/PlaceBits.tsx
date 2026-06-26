@@ -49,7 +49,7 @@ export function PlacePhoto({ photoUrl, category, name, className }: PlacePhotoPr
     );
   }
   return (
-    <div className={cn('flex items-center justify-center bg-[#FFF1E6] text-[#FFB585]', className)}>
+    <div className={cn('flex items-center justify-center bg-[#FCF0F9] text-[#FFB0DD]', className)}>
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
         {CAT_ICON[category]}
       </svg>
@@ -96,15 +96,15 @@ interface StarRatingProps {
 /** 읽기 전용 평점 표시: 별 + 점수 + (리뷰 수). 평점 없으면 "평점 없음". */
 export function StarRating({ value, count, className }: StarRatingProps) {
   if (value == null) {
-    return <span className={cn('text-[12px] text-[#C0AE9B]', className)}>평점 없음</span>;
+    return <span className={cn('text-[12px] text-[#B6B1C4]', className)}>평점 없음</span>;
   }
   return (
     <span className={cn('inline-flex items-center gap-1 text-[12px] font-bold text-muted', className)}>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="#F2B85A" aria-hidden>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#FFC93C" aria-hidden>
         <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.6 1-5.8L3.5 9.7l5.9-.9L12 3.5Z" />
       </svg>
       {value.toFixed(1)}
-      {count != null && <span className="font-medium text-[#A6907B]">({count.toLocaleString()})</span>}
+      {count != null && <span className="font-medium text-[#9A95A8]">({count.toLocaleString()})</span>}
     </span>
   );
 }

@@ -341,7 +341,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
         onClick={() => navigate(`/groups/${groupId}/map`)}
         className="mt-3 flex w-full items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-3 text-left active:scale-[0.99]"
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FFF1E6] text-[#E8742E]">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FCF0F9] text-[#D62E97]">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6 9 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
             <path d="M9 3v15M15 6v15" stroke="currentColor" strokeWidth="1.8" />
@@ -352,20 +352,20 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
           <span className="block text-[12px] text-muted">일정 장소와 숙소를 지도에 핀으로 한눈에</span>
         </span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M9 6l6 6-6 6" stroke="#E8742E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M9 6l6 6-6 6" stroke="#D62E97" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {/* 이 날 묵는 숙소 — 일정 목록과 별개로 상단에 고정 표시 */}
       {stayHere && (
-        <div className="mt-4 flex items-center gap-3 rounded-card border border-[#FFCBA6] bg-surface p-3 shadow-sm">
+        <div className="mt-4 flex items-center gap-3 rounded-card border border-[#FFCFEB] bg-surface p-3 shadow-sm">
           <div className="size-11 shrink-0 overflow-hidden rounded-[8px] bg-skeleton">
             {placePhotoSrc(stayHere.place.photoUrl)
               ? <img src={placePhotoSrc(stayHere.place.photoUrl)!} alt="" loading="lazy" className="h-full w-full object-cover" />
               : <span className="flex h-full w-full items-center justify-center text-[18px]">🏨</span>}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-extrabold text-[#E8742E]">이 날 숙소</div>
+            <div className="text-[11px] font-extrabold text-[#D62E97]">이 날 숙소</div>
             <div className="truncate text-[14px] font-extrabold text-foreground">{stayHere.place.name}</div>
             <div className="text-[11px] text-muted">
               {stayHere.status === 'BOOKED' ? '예약 완료' : '선정됨'}
@@ -391,14 +391,14 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
           <div key={stop.id}>
             <article draggable onDragStart={() => onDragStart(i)} onDragOver={(e) => onDragOver(i, e)} onDragEnd={onDragEnd} className="flex gap-3">
               <div className="flex flex-none flex-col items-center pt-1">
-                <span className="text-[12px] font-extrabold text-[#E8742E]">{stop.startTime}</span>
-                <span className="my-1.5 w-0.5 flex-1 bg-[#F0E4D6]" />
+                <span className="text-[12px] font-extrabold text-[#D62E97]">{stop.startTime}</span>
+                <span className="my-1.5 w-0.5 flex-1 bg-[#EEECF6]" />
               </div>
               <div className="mb-1 flex-1 rounded-card border border-border bg-surface p-3 shadow-sm">
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className={cn('truncate text-[15px] font-extrabold', !stop.placeId && 'text-[#A6907B]')}>
+                      <span className={cn('truncate text-[15px] font-extrabold', !stop.placeId && 'text-[#9A95A8]')}>
                         {stop.placeName ?? stop.title ?? '미정'}
                       </span>
                       {stop.category && <Badge tone="neutral">{stop.category}</Badge>}
@@ -466,9 +466,9 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                         <button
                           type="button"
                           onClick={() => openCostEdit(stop)}
-                          className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-[#E8742E]"
+                          className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-[#D62E97]"
                         >
-                          <span className="text-[#A6907B]">예상 비용</span>
+                          <span className="text-[#9A95A8]">예상 비용</span>
                           <span className="text-foreground">{stop.estimatedCost != null ? formatCost(stop.estimatedCost) : '추가'}</span>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
                             <path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L4 18v2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
@@ -482,7 +482,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                         <button
                           type="button"
                           onClick={() => goVote(stop)}
-                          className="inline-flex items-center gap-1 rounded-button bg-[#FFF1E6] px-2.5 py-1 text-[12px] font-bold text-[#E8742E]"
+                          className="inline-flex items-center gap-1 rounded-button bg-[#FCF0F9] px-2.5 py-1 text-[12px] font-bold text-[#D62E97]"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
                             <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -501,11 +501,11 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                       </div>
                     )}
                   </div>
-                  <span className="cursor-grab text-[#C0AE9B] active:cursor-grabbing" aria-hidden>
+                  <span className="cursor-grab text-[#B6B1C4] active:cursor-grabbing" aria-hidden>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 7h.01M8 12h.01M8 17h.01M15 7h.01M15 12h.01M15 17h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
                   </span>
                   <button type="button" aria-label="삭제" onClick={() => setDeleting(stop)}
-                    className="flex size-7 items-center justify-center rounded-button text-[#8A7B6B] hover:bg-[#FEE2E2] hover:text-danger">
+                    className="flex size-7 items-center justify-center rounded-button text-[#8A8699] hover:bg-[#FEE2E2] hover:text-danger">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 7V5h4v2M6 7l1 13h10l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </button>
                 </div>
@@ -528,7 +528,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
       <Button variant="secondary" fullWidth className="mt-3" onClick={() => setAddOpen(true)}>
         + 장소 추가
       </Button>
-      <p className="mt-3 text-center text-[12px] text-[#BCA48C]">⌁ 카드를 드래그해 순서를 바꿀 수 있어요 · 이동시간은 카카오 모빌리티(자차 기준)</p>
+      <p className="mt-3 text-center text-[12px] text-[#ABA6B8]">⌁ 카드를 드래그해 순서를 바꿀 수 있어요 · 이동시간은 카카오 모빌리티(자차 기준)</p>
 
       <ConfirmModal open={!!deleting} onClose={() => setDeleting(null)} onConfirm={confirmDelete} loading={delLoading} danger
         title="일정에서 삭제할까요?" description={deleting ? `'${deleting.placeName ?? deleting.title ?? '미정'}'을(를) 일정에서 제거합니다.` : undefined} confirmText="삭제" />
@@ -624,21 +624,21 @@ function TransportRow({ mode, leg, from, to, onSelect }: {
 
 function TransportInfo({ leg }: { leg: LegState }) {
   if (leg === undefined || leg === 'loading') {
-    return <div className="mt-1 py-0.5 text-[12px] text-[#C0AE9B]">이동 정보 계산 중…</div>;
+    return <div className="mt-1 py-0.5 text-[12px] text-[#B6B1C4]">이동 정보 계산 중…</div>;
   }
   if (leg === 'error') {
-    return <div className="mt-1 py-0.5 text-[12px] text-[#C0AE9B]">이동 정보를 불러오지 못했어요</div>;
+    return <div className="mt-1 py-0.5 text-[12px] text-[#B6B1C4]">이동 정보를 불러오지 못했어요</div>;
   }
   if (!leg.available) {
     // 대중교통(카카오 공개 API 미지원) 등
-    return <div className="mt-1 py-0.5 text-[12px] text-[#C0AE9B]">{TRANSPORT_META[leg.mode].label} 이동 정보 제공 불가</div>;
+    return <div className="mt-1 py-0.5 text-[12px] text-[#B6B1C4]">{TRANSPORT_META[leg.mode].label} 이동 정보 제공 불가</div>;
   }
   const cost = leg.mode === 'CAR' ? leg.carCost : leg.mode === 'TRANSIT' ? leg.transitFare : 0;
   return (
-    <div className="mt-1 py-0.5 text-[12px] font-semibold text-[#A6907B]">
+    <div className="mt-1 py-0.5 text-[12px] font-semibold text-[#9A95A8]">
       {formatDuration(leg.durationMinutes)} · {formatKm(leg.distanceMeters)}
       {cost > 0 && <> · {formatCost(cost)}</>}
-      {leg.routeSummary && <span className="text-[#C0AE9B]"> · {leg.routeSummary}</span>}
+      {leg.routeSummary && <span className="text-[#B6B1C4]"> · {leg.routeSummary}</span>}
     </div>
   );
 }

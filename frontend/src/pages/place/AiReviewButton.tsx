@@ -54,7 +54,7 @@ export default function AiReviewButton({
           void toggle();
         }}
         className={cn(
-          'inline-flex items-center gap-1 rounded-full border border-[#E7D7C5] bg-[#FFF7F0] font-bold text-[#E8742E] transition-colors hover:bg-[#FFEFE0]',
+          'inline-flex items-center gap-1 rounded-full border border-[#E2DFEE] bg-[#FAFAFF] font-bold text-[#D62E97] transition-colors hover:bg-[#FCEFF9]',
           size === 'xs' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[12px]',
         )}
       >
@@ -83,7 +83,7 @@ export default function AiReviewButton({
           >
             <div className="mb-1.5 flex items-center gap-1.5">
               <Sparkle />
-              <span className="text-[12px] font-extrabold text-[#E8742E]">AI 리뷰 요약</span>
+              <span className="text-[12px] font-extrabold text-[#D62E97]">AI 리뷰 요약</span>
               {data?.rating != null && (
                 <span className="ml-auto text-[11px] font-bold text-muted">
                   ★ {data.rating.toFixed(1)}
@@ -113,7 +113,7 @@ export default function AiReviewButton({
               return data.available && (overall || pros.length > 0 || cons.length > 0) ? (
                 <div className="space-y-2">
                   {overall && (
-                    <p className="rounded-lg bg-[#FFF7F0] px-2.5 py-2 text-[12.5px] font-semibold leading-relaxed text-[#8A4B1E]">
+                    <p className="rounded-lg bg-[#FAFAFF] px-2.5 py-2 text-[12.5px] font-semibold leading-relaxed text-[#8E1768]">
                       {overall}
                     </p>
                   )}
@@ -147,7 +147,7 @@ export default function AiReviewButton({
               );
             })()}
 
-            <p className="mt-2 border-t border-border pt-1.5 text-[10px] text-[#BCA48C]">구글 리뷰 기반 AI 요약 · 참고용</p>
+            <p className="mt-2 border-t border-border pt-1.5 text-[10px] text-[#ABA6B8]">구글 리뷰 기반 AI 요약 · 참고용</p>
           </div>
         </>
       )}

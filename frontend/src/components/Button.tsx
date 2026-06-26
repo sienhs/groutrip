@@ -15,7 +15,7 @@ const VARIANT: Record<Variant, string> = {
   primary:
     'bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-hover',
   secondary:
-    'bg-surface text-[#E8742E] border border-[#FFCBA6] hover:bg-[#FFF4EC] active:bg-[#FFEAD9]',
+    'bg-surface text-[#D62E97] border border-[#FFCFEB] hover:bg-[#FBF2FC] active:bg-[#FFEDF7]',
   danger:
     'bg-danger text-white shadow-sm hover:bg-[#DC2626] active:bg-[#B91C1C]',
   ghost:
@@ -54,7 +54,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
         'inline-flex items-center justify-center whitespace-nowrap rounded-button font-bold leading-none',
         'transition-colors select-none',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        'disabled:cursor-not-allowed disabled:bg-[#F0E4D6] disabled:text-[#C0AE9B] disabled:border-transparent disabled:shadow-none',
+        'disabled:cursor-not-allowed disabled:bg-[#EEECF6] disabled:text-[#B6B1C4] disabled:border-transparent disabled:shadow-none',
         VARIANT[variant],
         SIZE[size],
         fullWidth && 'w-full',

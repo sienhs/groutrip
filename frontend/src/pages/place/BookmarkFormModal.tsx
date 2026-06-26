@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Modal from '../../components/Modal';
 import Button from '../../components/Button';
 import Select from '../../components/Select';
 import { useToast } from '../../components/Toast';
 import { addBookmark, updateBookmark } from '../../api/place';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import {
   PLACE_CATEGORIES,
   type BookmarkResponse,
@@ -40,9 +42,9 @@ export default function BookmarkFormModal(props: Props) {
 
   const placeName = props.mode === 'create' ? props.place.name : props.bookmark.place.name;
 
+  const queryClient = useQueryClient();
   const [categoryTag, setCategoryTag] = useState<PlaceCategory>(initialTag);
   const [memo, setMemo] = useState(initialMemo);
-  const [submitting, setSubmitting] = useState(false);
 
   // 모달이 새로 열릴 때 대상이 바뀌면 폼 초기화
   useEffect(() => {
@@ -52,26 +54,23 @@ export default function BookmarkFormModal(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const body = {
-        categoryTag,
-        memo: memo.trim() ? memo.trim() : undefined,
-      };
-      const saved =
-        props.mode === 'create'
-          ? await addBookmark(groupId, { googlePlaceId: props.place.googlePlaceId, ...body })
-          : await updateBookmark(groupId, props.bookmark.id, body);
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      const body = { categoryTag, memo: memo.trim() ? memo.trim() : undefined };
+      return props.mode === 'create'
+        ? addBookmark(groupId, { googlePlaceId: props.place.googlePlaceId, ...body })
+        : updateBookmark(groupId, props.bookmark.id, body);
+    },
+    onSuccess: (saved) => {
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.bookmarks(groupId) });
       toast.success(props.mode === 'create' ? '보관함에 추가했어요' : '수정했어요', placeName);
       onSaved(saved);
       onClose();
-    } catch {
-      toast.error('저장에 실패했어요', '잠시 후 다시 시도해 주세요.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    onError: () => toast.error('저장에 실패했어요', '잠시 후 다시 시도해 주세요.'),
+  });
+  const submitting = saveMutation.isPending;
+  const handleSubmit = () => saveMutation.mutate();
 
   return (
     <Modal
@@ -113,7 +112,7 @@ export default function BookmarkFormModal(props: Props) {
             onChange={(e) => setMemo(e.target.value)}
             placeholder="예: 오션뷰 자리 미리 예약하기"
             rows={3}
-            className="w-full resize-none rounded-button border border-border bg-surface px-3.5 py-2.5 text-[14px] leading-relaxed text-foreground outline-none transition-colors placeholder:text-[#C0AE9B] focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full resize-none rounded-button border border-border bg-surface px-3.5 py-2.5 text-[14px] leading-relaxed text-foreground outline-none transition-colors placeholder:text-[#B6B1C4] focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
           <p className="mt-1 text-right text-[11px] text-muted">
             {memo.length}/{MEMO_MAX}

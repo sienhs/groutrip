@@ -22,6 +22,10 @@ export const groupQueryKeys = {
   expenses: (groupId: number) => ['expenses', groupId] as const,
   /** 투표 세션 목록. */
   votes: (groupId: number) => ['votes', groupId] as const,
+  /** 숙소 목록(우리 숙소 요약·계획 탭). */
+  accommodations: (groupId: number) => ['accommodations', groupId] as const,
+  /** 그룹 여행 성향(멤버 평균 일치율). SSE 비대상. */
+  persona: (groupId: number) => ['group', groupId, 'persona'] as const,
 } as const;
 
 /**

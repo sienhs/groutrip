@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { getAccommodations } from '../../api/accommodation';
 import { placePhotoSrc } from '../../api/place';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
 import type { Accommodation } from '../../types/accommodation';
 
@@ -52,15 +53,10 @@ export default function GroupAccommodations({
   endDate?: string;
 }) {
   const navigate = useNavigate();
-  const [accs, setAccs] = useState<Accommodation[] | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getAccommodations(groupId)
-      .then((a) => { if (active) setAccs(a); })
-      .catch(() => { if (active) setAccs([]); });
-    return () => { active = false; };
-  }, [groupId]);
+  const { data: accs } = useQuery({
+    queryKey: groupQueryKeys.accommodations(groupId),
+    queryFn: () => getAccommodations(groupId),
+  });
 
   if (!accs) return null; // 로딩 중
 
@@ -103,13 +99,13 @@ export default function GroupAccommodations({
                   {src && <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className={cn('text-[11px] font-bold', noDate ? 'text-[#E8742E]' : 'text-primary')}>{rangeLabel(a)}</div>
+                  <div className={cn('text-[11px] font-bold', noDate ? 'text-[#D62E97]' : 'text-primary')}>{rangeLabel(a)}</div>
                   <div className="truncate text-[13px] font-bold text-foreground">{a.place.name}</div>
                   {noDate ? (
                     <button
                       type="button"
                       onClick={() => navigate(`/groups/${groupId}/plan`)}
-                      className="text-[10px] font-bold text-[#E8742E] underline-offset-2 hover:underline"
+                      className="text-[10px] font-bold text-[#D62E97] underline-offset-2 hover:underline"
                     >
                       날짜 정하기 →
                     </button>
@@ -126,7 +122,7 @@ export default function GroupAccommodations({
         <button
           type="button"
           onClick={() => navigate(`/groups/${groupId}/plan`)}
-          className="mt-2 text-[12px] font-bold text-[#E8742E]"
+          className="mt-2 text-[12px] font-bold text-[#D62E97]"
         >
           아직 숙소 미선택: {missing.map(shortDate).join(', ')} · 숙소 정하기 →
         </button>
