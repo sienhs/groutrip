@@ -1,9 +1,10 @@
 /**
  * 그룹 목적지 자동완성용 지역 데이터.
  *
- * 각 항목의 `value`(저장값)는 항상 백엔드가 추천 areaCode로 매칭할 수 있는
- * 시/도 토큰으로 시작한다(예: "경기도 용인시"). 따라서 목록에서 선택해 만든
- * 그룹은 목적지별 추천(RecommendService.resolveAreaCode)이 항상 정상 동작한다.
+ * 시/도·시/군 항목의 `value`(저장값)는 시/도 토큰으로 시작한다(예: "경기도 용인시").
+ * 인기 지명(LANDMARKS, 예: "대부도")은 시/군이 아니어도 목적지로 쓸 수 있으며,
+ * 백엔드 RecommendService.resolveAreaCode 가 LANDMARK_CODES 로 areaCode를 매칭한다.
+ * 따라서 목록에서 선택해 만든 그룹은 목적지별 추천이 항상 정상 동작한다.
  */
 export interface Region {
   /** 화면 표시 라벨 (예: "용인시 · 경기") */
@@ -83,11 +84,34 @@ const PROVINCES: ProvinceDef[] = [
   },
 ];
 
+/**
+ * 시/군/구가 아닌 인기 지명(섬·해변·관광지·역 등) 별칭.
+ * value 는 화면에 그대로 노출되는 목적지명이며, 백엔드 RecommendService 가
+ * 소속 광역시·도 areaCode 로 매칭(LANDMARK_CODES)하도록 맞춰 둔다.
+ * 새 지명은 여기와 백엔드 LANDMARK_CODES 양쪽에 추가하면 된다.
+ */
+const LANDMARKS: Region[] = [
+  { label: '대부도 · 안산', value: '대부도', keywords: '대부도 daebudo 안산 시화 경기' },
+  { label: '오이도 · 시흥', value: '오이도', keywords: '오이도 시흥 경기' },
+  { label: '안산 중앙역 · 안산', value: '안산 중앙역', keywords: '중앙역 안산 경기' },
+  { label: '을왕리 · 인천', value: '을왕리', keywords: '을왕리 영종도 인천' },
+  { label: '영종도 · 인천', value: '영종도', keywords: '영종도 인천 공항' },
+  { label: '강화도 · 인천', value: '강화도', keywords: '강화 강화도 인천' },
+  { label: '남이섬 · 가평', value: '남이섬', keywords: '남이섬 가평 경기' },
+  { label: '경포대 · 강릉', value: '경포대', keywords: '경포대 강릉 강원' },
+  { label: '해운대 · 부산', value: '해운대', keywords: '해운대 부산' },
+  { label: '광안리 · 부산', value: '광안리', keywords: '광안리 광안 부산' },
+  { label: '협재 · 제주', value: '협재', keywords: '협재 한림 제주' },
+  { label: '명동 · 서울', value: '명동', keywords: '명동 서울' },
+  { label: '홍대 · 서울', value: '홍대', keywords: '홍대 홍대입구 서울' },
+  { label: '강남 · 서울', value: '강남', keywords: '강남 서울' },
+];
+
 /** 접미사(시/군/구)를 떼어 검색 키워드를 늘린다. 예: "용인시" → "용인" */
 const stripSuffix = (city: string) => city.replace(/(특별자치)?(시|군|구)$/u, '');
 
 function buildRegions(): Region[] {
-  const list: Region[] = [...METROS];
+  const list: Region[] = [...METROS, ...LANDMARKS];
   for (const p of PROVINCES) {
     const aliasKeywords = (p.aliases ?? []).join(' ');
     // 시/도 단독 항목

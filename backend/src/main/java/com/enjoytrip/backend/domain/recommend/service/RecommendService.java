@@ -48,6 +48,10 @@ public class RecommendService {
     // 시/도 접두어 없이 시/군 이름만 저장된 destination(예: "용인시")을 areaCode로 매칭하기 위한 보조 맵.
     private static final Map<String, Integer> CITY_CODES = new LinkedHashMap<>();
 
+    // 시/군/구가 아닌 인기 지명(섬·해변·관광지 등) → 소속 광역시·도 areaCode.
+    // 프론트 lib/regions.ts 의 LANDMARKS 와 짝을 이룬다(지명 추가 시 양쪽에 추가).
+    private static final Map<String, Integer> LANDMARK_CODES = new LinkedHashMap<>();
+
     // contentTypeId → 관광지 특성 5차원 벡터(activity, food, pace, urbanNature, timePref). 휴리스틱(튜닝 가능).
     private static final Map<Integer, double[]> ATTRACTION_VECTORS = new LinkedHashMap<>();
     private static final double[] NEUTRAL_VECTOR = {0.5, 0.5, 0.5, 0.5, 0.5};
@@ -112,6 +116,15 @@ public class RecommendService {
         CITY_CODES.put("보성", 38); CITY_CODES.put("해남", 38); CITY_CODES.put("완도", 38);
         CITY_CODES.put("진도", 38); CITY_CODES.put("곡성", 38);
         CITY_CODES.put("서귀포", 39);
+
+        // 인기 지명 → 소속 광역시·도 areaCode (시/도·시/군 매칭 실패 시 보조).
+        LANDMARK_CODES.put("대부도", 31); LANDMARK_CODES.put("오이도", 31);
+        LANDMARK_CODES.put("남이섬", 31);
+        LANDMARK_CODES.put("을왕리", 2); LANDMARK_CODES.put("영종도", 2); LANDMARK_CODES.put("강화도", 2);
+        LANDMARK_CODES.put("경포대", 32);
+        LANDMARK_CODES.put("해운대", 6); LANDMARK_CODES.put("광안리", 6);
+        LANDMARK_CODES.put("협재", 39);
+        LANDMARK_CODES.put("명동", 1); LANDMARK_CODES.put("홍대", 1); LANDMARK_CODES.put("강남", 1);
 
         ATTRACTION_VECTORS.put(12, new double[]{0.55, 0.25, 0.45, 0.35, 0.5}); // 관광지
         ATTRACTION_VECTORS.put(14, new double[]{0.30, 0.25, 0.30, 0.70, 0.5}); // 문화시설
@@ -218,6 +231,12 @@ public class RecommendService {
                 }
             }
             for (Map.Entry<String, Integer> entry : CITY_CODES.entrySet()) {
+                if (firstToken.contains(entry.getKey())) {
+                    return entry.getValue();
+                }
+            }
+            // 시/도·시/군이 아닌 인기 지명(예: "대부도")은 소속 광역시·도 areaCode로 매칭한다.
+            for (Map.Entry<String, Integer> entry : LANDMARK_CODES.entrySet()) {
                 if (firstToken.contains(entry.getKey())) {
                     return entry.getValue();
                 }
