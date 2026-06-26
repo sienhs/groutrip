@@ -11,6 +11,7 @@ import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/Modal';
 import NotificationBell from '../../components/NotificationBell';
 import BottomNav from '../../components/BottomNav';
+import SideNav from '../../components/SideNav';
 import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
@@ -166,7 +167,10 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background md:max-w-lg">
+    // 모바일: 단일 컬럼. 데스크톱(md+): 좌측 사이드바 + 가운데 정렬된 넓은 그룹 컬럼.
+    <div className="mx-auto flex min-h-dvh w-full max-w-md md:max-w-none">
+      <SideNav />
+      <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background md:mx-auto md:max-w-3xl md:border-x md:border-border">
       {/* 배너 */}
       <div className={cn('relative h-[150px] overflow-hidden', group ? gradientForKey(group.coverImageKey) : 'bg-[#EEECF6]')}>
         {group?.coverImageKey === 'CUSTOM' && (
@@ -300,6 +304,7 @@ export default function GroupDetailPage() {
       )}
 
       <BottomNav />
+      </div>
     </div>
   );
 }
