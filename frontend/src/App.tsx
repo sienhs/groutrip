@@ -25,6 +25,8 @@ const RecommendLandingPage = lazy(() => import('./pages/recommend/RecommendLandi
 const VoteDetailPage = lazy(() => import('./pages/vote/VoteDetailPage'));
 const MyPage = lazy(() => import('./pages/mypage/MyPage'));
 const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'));
+const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
 
 /** 라우트 청크 로딩 중 표시할 폴백(인증 복원 화면과 동일 톤). */
 function RouteFallback() {
@@ -75,6 +77,9 @@ function App() {
         <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+        {/* 공개 문서(인증 불필요) */}
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/survey" element={<ProtectedRoute><SurveyPage /></ProtectedRoute>} />
         <Route path="/survey/result" element={<ProtectedRoute><SurveyResultPage /></ProtectedRoute>} />

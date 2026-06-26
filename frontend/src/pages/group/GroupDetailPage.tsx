@@ -190,7 +190,7 @@ export default function GroupDetailPage() {
     // 모바일: 단일 컬럼. 데스크톱(md+): 좌측 사이드바 + 가운데 정렬된 넓은 그룹 컬럼.
     <div className="mx-auto flex min-h-dvh w-full max-w-md md:max-w-none">
       <SideNav />
-      <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background md:mx-auto md:max-w-3xl md:border-x md:border-border lg:max-w-6xl">
+      <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background">
       {/* 배너 */}
       <div className={cn('relative h-[150px] overflow-hidden', group ? gradientForKey(group.coverImageKey) : 'bg-[#EEECF6]')}>
         {group?.coverImageKey === 'CUSTOM' && (
@@ -318,7 +318,7 @@ export default function GroupDetailPage() {
 
         {/* RIGHT: 보관함 — 데스크톱 전용 고정 패널(작업하며 항상 참조·검색·추가) */}
         <aside className="hidden lg:block lg:w-[380px] lg:shrink-0">
-          <div className="sticky top-0 max-h-dvh overflow-y-auto px-4 pb-24 pt-4">
+          <div className="scrollbar-hide sticky top-0 max-h-dvh overflow-y-auto px-4 pb-24 pt-4">
             <h2 className="mb-3 text-[13px] font-extrabold tracking-wide text-muted">보관함</h2>
             <BookmarkListPage groupId={groupId} planExists={planExists} />
           </div>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { getOAuthAuthorizationUrl } from '../../api/auth';
 import { Card } from '../../components';
 import AuthBrand from './AuthBrand';
@@ -46,6 +47,13 @@ export default function LoginPage() {
           </button>
         </div>
       </Card>
+
+      <p className="mt-6 text-center text-[12px] text-muted">
+        시작하면 <Link to="/terms" className="font-semibold underline underline-offset-2">이용약관</Link>
+        {' 및 '}
+        <Link to="/privacy" className="font-semibold underline underline-offset-2">개인정보처리방침</Link>
+        에 동의하는 것으로 간주됩니다.
+      </p>
     </div>
   );
 }

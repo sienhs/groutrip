@@ -212,6 +212,8 @@ export default function MyPage() {
       {/* 메뉴 */}
       <div className="mt-3.5 overflow-hidden rounded-card border border-border bg-surface">
         <MenuRow label="설문 다시하기" onClick={() => navigate('/survey')} border />
+        <MenuRow label="개인정보처리방침" onClick={() => navigate('/privacy')} border />
+        <MenuRow label="이용약관" onClick={() => navigate('/terms')} border />
         <MenuRow label="로그아웃" onClick={handleLogout} />
       </div>
 
