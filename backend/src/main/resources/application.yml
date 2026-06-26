@@ -106,6 +106,9 @@ gemini:
 kakao:
   mobility:
     api-key: ${KAKAO_MOBILITY_API_KEY:}
+  # 카카오 로컬(장소/주소 검색) REST 키. 미설정 시 모빌리티 키로 폴백(동일 앱 REST 키면 그대로 동작).
+  local:
+    api-key: ${KAKAO_LOCAL_API_KEY:${KAKAO_MOBILITY_API_KEY:}}
 
 tourapi:
   service-key: ${TOURAPI_SERVICE_KEY:}

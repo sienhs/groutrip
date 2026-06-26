@@ -4,11 +4,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,7 @@ import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.domain.place.client.GooglePlace;
 import com.enjoytrip.backend.domain.place.client.GooglePlacePage;
 import com.enjoytrip.backend.domain.place.client.GooglePlacesClient;
+import com.enjoytrip.backend.domain.place.client.KakaoLocalClient;
 import com.enjoytrip.backend.domain.place.controller.PlacePhotoController;
 import com.enjoytrip.backend.domain.place.dto.BookmarkCreateRequest;
 import com.enjoytrip.backend.domain.place.dto.BookmarkResponse;
@@ -55,6 +60,7 @@ public class PlaceService {
     private static final int SEARCH_CACHE_HOURS = 24; // NFR-PERF: 검색 결과 24시간 캐시
 
     private final GooglePlacesClient googlePlacesClient;
+    private final KakaoLocalClient kakaoLocalClient;
     private final PlaceRepository placeRepository;
     private final BookmarkRepository bookmarkRepository;
     private final PlaceSearchCacheRepository placeSearchCacheRepository;
@@ -90,9 +96,21 @@ public class PlaceService {
                 ? category.getIncludedType()
                 : null;
         GooglePlacePage raw = googlePlacesClient.searchText(query, includedType, pageToken);
-        List<PlaceSearchResult> results = raw.places().stream()
+        List<PlaceSearchResult> results = new ArrayList<>(raw.places().stream()
                 .map(this::toSearchResult)
-                .toList();
+                .toList());
+        // 첫 페이지에서 Google에 없는 국내 장소를 카카오 로컬 검색으로 보완한다(이름 중복은 제외).
+        if (pageToken == null || pageToken.isBlank()) {
+            Set<String> seen = new HashSet<>();
+            for (PlaceSearchResult r : results) {
+                seen.add(normalizeName(r.name()));
+            }
+            for (PlaceSearchResult k : kakaoLocalClient.searchKeyword(query)) {
+                if (seen.add(normalizeName(k.name()))) {
+                    results.add(k);
+                }
+            }
+        }
         PlaceSearchPage page = new PlaceSearchPage(results, raw.nextPageToken());
 
         String json = serialize(page);
@@ -118,7 +136,8 @@ public class PlaceService {
         TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
 
-        Place place = resolvePlaceWithDetails(request.googlePlaceId());
+        Place place = resolvePlaceWithDetails(request.googlePlaceId(), request.name(),
+                request.address(), request.latitude(), request.longitude());
         if (bookmarkRepository.existsByTravelGroupIdAndPlaceId(groupId, place.getId())) {
             throw new BusinessException(ErrorCode.PLACE_ALREADY_BOOKMARKED);
         }
@@ -213,14 +232,29 @@ public class PlaceService {
     }
 
     // FR-PLACE-02: 기존 마스터가 있으면서 Details 캐시(7일)가 유효하면 재사용하고, 아니면 Place Details로 갱신한다.
-    private Place resolvePlaceWithDetails(String googlePlaceId) {
+    private Place resolvePlaceWithDetails(String placeKey) {
+        return resolvePlaceWithDetails(placeKey, null, null, null, null);
+    }
+
+    /**
+     * 장소 마스터를 확보한다.
+     *  - Google placeId: Place Details로 보강(기존 동작).
+     *  - "kakao:"/"manual:" 접두어: 전달받은 정보(+필요 시 카카오 지오코딩)로 생성 — Google에 없는 국내 장소 지원.
+     */
+    private Place resolvePlaceWithDetails(String placeKey, String name, String address,
+                                          Double lat, Double lng) {
         LocalDateTime now = LocalDateTime.now();
-        Optional<Place> existing = placeRepository.findByGooglePlaceId(googlePlaceId);
+
+        if (placeKey.startsWith("kakao:") || placeKey.startsWith("manual:")) {
+            return resolveNonGooglePlace(placeKey, name, address, lat, lng, now);
+        }
+
+        Optional<Place> existing = placeRepository.findByGooglePlaceId(placeKey);
         if (existing.isPresent() && existing.get().isDetailsFresh(now)) {
             return existing.get();
         }
 
-        GooglePlace detail = googlePlacesClient.getDetails(googlePlaceId);
+        GooglePlace detail = googlePlacesClient.getDetails(placeKey);
         String types = String.join(",", detail.types());
 
         if (existing.isPresent()) {
@@ -248,6 +282,53 @@ public class PlaceService {
                 .websiteUri(detail.websiteUri())
                 .detailsFetchedAt(now)
                 .build());
+    }
+
+    /**
+     * Google이 아닌 장소(카카오 검색 결과 / 직접입력)를 전달받은 정보로 Place로 만든다.
+     * manual은 (이름|주소) 기반 안정 키로 정규화해 중복을 방지하고, 좌표가 없으면 카카오로 지오코딩한다.
+     */
+    private Place resolveNonGooglePlace(String placeKey, String name, String address,
+                                        Double lat, Double lng, LocalDateTime now) {
+        double latitude = lat != null ? lat : 0;
+        double longitude = lng != null ? lng : 0;
+        String key = placeKey;
+
+        if (placeKey.startsWith("manual:")) {
+            if (name == null || name.isBlank()) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT);
+            }
+            key = "manual:" + UUID.nameUUIDFromBytes(
+                    (name + "|" + (address == null ? "" : address)).getBytes(StandardCharsets.UTF_8));
+            if ((latitude == 0 || longitude == 0) && address != null && !address.isBlank()) {
+                Optional<double[]> coords = kakaoLocalClient.geocodeAddress(address);
+                if (coords.isPresent()) {
+                    latitude = coords.get()[0];
+                    longitude = coords.get()[1];
+                }
+            }
+        }
+
+        Optional<Place> existing = placeRepository.findByGooglePlaceId(key);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        if (name == null || name.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        return placeRepository.save(Place.builder()
+                .googlePlaceId(key)
+                .name(name)
+                .address(address)
+                .latitude(latitude)
+                .longitude(longitude)
+                .detailsFetchedAt(now)
+                .build());
+    }
+
+    /** 검색 결과 중복 제거용 이름 정규화(공백 제거 + 소문자). */
+    private String normalizeName(String name) {
+        return name == null ? "" : name.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
     }
 
     private Bookmark findBookmark(Long groupId, Long bookmarkId) {
