@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Tabs, { type TabItem } from '../../components/Tabs';
@@ -51,6 +51,20 @@ const TABS: TabItem[] = [
 
 const TAB_KEYS = TABS.map((t) => t.key) as TabKey[];
 
+/** lg(1024px) 이상 데스크톱 여부 — 그룹 화면 2-pane(좌: 탭 / 우: 보관함) 분기에 사용. */
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isDesktop;
+}
+
 /**
  * 그룹 허브(GroupDetailPage). 커버 배너 + 탭(일정/장소/투표/정산/멤버).
  * 일정·장소·정산은 실제 화면(ScheduleBuilderPage/BookmarkListPage/ExpensePage)을 임베드,
@@ -69,6 +83,12 @@ export default function GroupDetailPage() {
   const tab: TabKey = (TAB_KEYS as string[]).includes(tabParam ?? '') ? (tabParam as TabKey) : 'place';
   const setTab = (k: TabKey) => setSearchParams({ tab: k }, { replace: true });
   const [editOpen, setEditOpen] = useState(false);
+
+  // 데스크톱(lg+): 보관함을 우측 고정 패널로 빼고, 탭은 좌측 메인(일정/투표/정산/사진/멤버)만.
+  // 모바일: 기존 단일 컬럼 + 전체 탭(장소 포함).
+  const isDesktop = useIsDesktop();
+  const visibleTabs = isDesktop ? TABS.filter((t) => t.key !== 'place') : TABS;
+  const leftTab: TabKey = isDesktop && tab === 'place' ? 'schedule' : tab;
 
   // 본인 이벤트 무시용 userId. 로그인 시 user.id = userId 로 저장됨(authStore).
   const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
@@ -170,7 +190,7 @@ export default function GroupDetailPage() {
     // 모바일: 단일 컬럼. 데스크톱(md+): 좌측 사이드바 + 가운데 정렬된 넓은 그룹 컬럼.
     <div className="mx-auto flex min-h-dvh w-full max-w-md md:max-w-none">
       <SideNav />
-      <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background md:mx-auto md:max-w-3xl md:border-x md:border-border">
+      <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background md:mx-auto md:max-w-3xl md:border-x md:border-border lg:max-w-6xl">
       {/* 배너 */}
       <div className={cn('relative h-[150px] overflow-hidden', group ? gradientForKey(group.coverImageKey) : 'bg-[#EEECF6]')}>
         {group?.coverImageKey === 'CUSTOM' && (
@@ -261,37 +281,48 @@ export default function GroupDetailPage() {
       {/* 우리 숙소(날짜별 선정/예약) */}
       <GroupAccommodations groupId={groupId} startDate={group?.startDate} endDate={group?.endDate} />
 
-      {/* 탭 */}
-      <div className="sticky top-0 z-20 bg-surface">
-        <Tabs items={TABS} value={tab} onChange={(k) => setTab(k as TabKey)} />
-      </div>
+      {/* 작업 영역 — 데스크톱(lg+)은 좌(탭 콘텐츠) + 우(보관함 고정 패널) 2-pane */}
+      <div className="flex-1 lg:flex lg:items-start lg:gap-5 lg:px-4">
+        {/* LEFT: 탭 + 콘텐츠 */}
+        <div className="lg:min-w-0 lg:flex-1">
+          <div className="sticky top-0 z-20 bg-surface">
+            <Tabs items={visibleTabs} value={leftTab} onChange={(k) => setTab(k as TabKey)} />
+          </div>
+          <div className="px-4 pb-24 pt-4 lg:px-0">
+            {loading ? (
+              <div className="space-y-3"><SkeletonCard /><SkeletonCard /></div>
+            ) : leftTab === 'schedule' ? (
+              <ScheduleBuilderPage groupId={groupId} isOwner={isOwner} />
+            ) : leftTab === 'place' ? (
+              <BookmarkListPage groupId={groupId} planExists={planExists} />
+            ) : leftTab === 'vote' ? (
+              <VoteTab groupId={groupId} isOwner={isOwner} />
+            ) : leftTab === 'settle' ? (
+              <ExpensePage groupId={groupId} members={members} />
+            ) : leftTab === 'gallery' ? (
+              <GroupGalleryPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
+            ) : leftTab === 'member' ? (
+              <MemberTab
+                groupId={groupId}
+                members={members}
+                currentUserId={currentUserId}
+                isOwner={isOwner}
+                inviteCode={group?.inviteCode ?? ''}
+                onCopyInvite={copyInviteCode}
+                onRefresh={refreshGroupAndMembers}
+                onExit={() => navigate('/groups')}
+              />
+            ) : null}
+          </div>
+        </div>
 
-      {/* 탭 콘텐츠 */}
-      <div className="flex-1 px-4 pb-24 pt-4">
-        {loading ? (
-          <div className="space-y-3"><SkeletonCard /><SkeletonCard /></div>
-        ) : tab === 'schedule' ? (
-          <ScheduleBuilderPage groupId={groupId} isOwner={isOwner} />
-        ) : tab === 'place' ? (
-          <BookmarkListPage groupId={groupId} planExists={planExists} />
-        ) : tab === 'vote' ? (
-          <VoteTab groupId={groupId} isOwner={isOwner} />
-        ) : tab === 'settle' ? (
-          <ExpensePage groupId={groupId} members={members} />
-        ) : tab === 'gallery' ? (
-          <GroupGalleryPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
-        ) : tab === 'member' ? (
-          <MemberTab
-            groupId={groupId}
-            members={members}
-            currentUserId={currentUserId}
-            isOwner={isOwner}
-            inviteCode={group?.inviteCode ?? ''}
-            onCopyInvite={copyInviteCode}
-            onRefresh={refreshGroupAndMembers}
-            onExit={() => navigate('/groups')}
-          />
-        ) : null}
+        {/* RIGHT: 보관함 — 데스크톱 전용 고정 패널(작업하며 항상 참조·검색·추가) */}
+        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0">
+          <div className="sticky top-0 max-h-dvh overflow-y-auto px-4 pb-24 pt-4">
+            <h2 className="mb-3 text-[13px] font-extrabold tracking-wide text-muted">보관함</h2>
+            <BookmarkListPage groupId={groupId} planExists={planExists} />
+          </div>
+        </aside>
       </div>
 
       {editOpen && group && (
