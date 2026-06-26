@@ -233,22 +233,10 @@ public class RecommendService {
     // 시/도 접두어가 없는 경우(예: "용인시")는 보조 시/군 맵으로 다시 매칭한다.
     private int resolveAreaCode(String destination) {
         if (destination != null && !destination.isBlank()) {
-            String firstToken = destination.trim().split("\\s+")[0];
-            for (Map.Entry<String, Integer> entry : AREA_CODES.entrySet()) {
-                if (firstToken.contains(entry.getKey())) {
-                    return entry.getValue();
-                }
-            }
-            for (Map.Entry<String, Integer> entry : CITY_CODES.entrySet()) {
-                if (firstToken.contains(entry.getKey())) {
-                    return entry.getValue();
-                }
-            }
-            // 시/도·시/군이 아닌 인기 지명(예: "대부도")은 소속 광역시·도 areaCode로 매칭한다.
-            for (Map.Entry<String, Integer> entry : LANDMARK_CODES.entrySet()) {
-                if (firstToken.contains(entry.getKey())) {
-                    return entry.getValue();
-                }
+            // 시/군/구 이름이 다른 시/도명을 부분 포함할 수 있어(예: 부산 "해운대구"⊃"대구") 첫 토큰(시/도)만 매칭한다.
+            Integer staticCode = matchAreaCode(destination.trim().split("\\s+")[0]);
+            if (staticCode != null) {
+                return staticCode;
             }
             // 정적 매핑 실패 → 지오코딩 폴백: 임의 지명도 소속 시/도로 해석해 추천이 동작하게 한다.
             Integer geocoded = resolveAreaCodeByGeocoding(destination.trim());
@@ -257,6 +245,29 @@ public class RecommendService {
             }
         }
         throw new BusinessException(ErrorCode.INVALID_INPUT); // 지원하지 않는 지역
+    }
+
+    /**
+     * 주어진 텍스트에 시/도 → 시/군 → 인기 지명 키가 포함되면 그 areaCode를 우선순위 순으로 반환한다(없으면 null).
+     * 그룹 destination 토큰뿐 아니라 지오코딩 결과 주소(예: "안산시 대부도")에도 동일하게 적용한다.
+     */
+    private Integer matchAreaCode(String text) {
+        for (Map.Entry<String, Integer> entry : AREA_CODES.entrySet()) {
+            if (text.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        for (Map.Entry<String, Integer> entry : CITY_CODES.entrySet()) {
+            if (text.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        for (Map.Entry<String, Integer> entry : LANDMARK_CODES.entrySet()) {
+            if (text.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     /**
@@ -276,11 +287,11 @@ public class RecommendService {
                 if (address == null || address.isBlank()) {
                     continue;
                 }
-                for (Map.Entry<String, Integer> entry : AREA_CODES.entrySet()) {
-                    if (address.contains(entry.getKey())) {
-                        geocodeAreaCache.put(destination, entry.getValue());
-                        return entry.getValue();
-                    }
+                // 주소에 시/도가 없고 시/군만 있는 경우(예: "안산시 대부도")도 매칭되도록 시/군·지명까지 스캔한다.
+                Integer code = matchAreaCode(address);
+                if (code != null) {
+                    geocodeAreaCache.put(destination, code);
+                    return code;
                 }
             }
         } catch (Exception e) {
