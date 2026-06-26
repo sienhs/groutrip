@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AppLayout from '../../components/AppLayout';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
@@ -9,6 +10,7 @@ import { useToast } from '../../components/Toast';
 import { getRecommendations } from '../../api/recommend';
 import { getGroupPersona, type GroupPersona } from '../../api/survey';
 import { searchPlaces, addBookmark, getBookmarks } from '../../api/place';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { contentTypeLabel, type RecommendItem } from '../../types/recommend';
 import { cn } from '../../lib/cn';
 import { naverPlaceUrl } from '../../lib/naver';
@@ -37,79 +39,66 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
   const groupId = groupIdProp ?? Number(params.id);
   const toast = useToast();
   const navigate = useNavigate();
-
-  const [items, setItems] = useState<RecommendItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [savingId, setSavingId] = useState<number | null>(null);
-  const [saved, setSaved] = useState<Set<number>>(new Set());
-  const [persona, setPersona] = useState<GroupPersona | null>(null);
+  const queryClient = useQueryClient();
 
   // 추천이 어떤 그룹 성향에 맞춘 것인지 보여주기 위해 그룹 평균 성향을 함께 불러온다.
-  useEffect(() => {
-    let active = true;
-    getGroupPersona(groupId).then((p) => active && setPersona(p)).catch(() => {});
-    return () => { active = false; };
-  }, [groupId]);
+  const { data: persona } = useQuery({
+    queryKey: groupQueryKeys.persona(groupId),
+    queryFn: () => getGroupPersona(groupId),
+  });
 
-  // 재시도 버튼용(이벤트 핸들러).
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(false);
-    getRecommendations(groupId)
-      .then(setItems)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [groupId]);
+  const { data: items = [], isLoading: loading, isError: error, refetch } = useQuery({
+    queryKey: ['recommend', groupId],
+    queryFn: () => getRecommendations(groupId),
+  });
+  const load = () => { void refetch(); };
 
-  // 진입/그룹 변경 시 로드. 추천 + 보관함을 함께 불러와 '이미 담은 장소'를 표시한다.
+  // 보관함과 비교해 '이미 담은 장소'를 표시한다(이름 기반 근사 매칭).
+  const { data: bookmarks = [] } = useQuery({
+    queryKey: groupQueryKeys.bookmarks(groupId),
+    queryFn: () => getBookmarks(groupId),
+  });
+  const [saved, setSaved] = useState<Set<number>>(new Set());
+  // 추천·보관함이 로드/갱신되면 이미 담긴 항목을 합집합으로 반영(수동 추가분은 유지).
   useEffect(() => {
-    let active = true;
-    Promise.all([getRecommendations(groupId), getBookmarks(groupId).catch(() => [])])
-      .then(([recs, bookmarks]) => {
-        if (!active) return;
-        setItems(recs);
-        setError(false);
-        // 보관함 장소명과 추천 제목을 정규화 비교해 이미 담긴 항목을 표시(이름 기반, 근사치).
-        const names = bookmarks.map((b) => normalizeName(b.place.name)).filter(Boolean);
-        const already = new Set<number>();
-        for (const r of recs) {
-          const t = normalizeName(r.title);
-          if (t && names.some((n) => n === t || (t.length >= 3 && (n.includes(t) || t.includes(n))))) {
-            already.add(r.contentId);
-          }
-        }
-        setSaved(already);
-      })
-      .catch(() => { if (active) setError(true); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [groupId]);
+    if (items.length === 0) return;
+    const names = bookmarks.map((b) => normalizeName(b.place.name)).filter(Boolean);
+    setSaved((prev) => {
+      const next = new Set(prev);
+      for (const r of items) {
+        const t = normalizeName(r.title);
+        if (t && names.some((n) => n === t || (t.length >= 3 && (n.includes(t) || t.includes(n))))) next.add(r.contentId);
+      }
+      return next;
+    });
+  }, [items, bookmarks]);
 
   // 추천 장소명으로 검색 → 첫 결과를 보관함에 추가(Google 단일 소스 규칙)
-  const onSave = async (item: RecommendItem) => {
-    setSavingId(item.contentId);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (item: RecommendItem) => {
       const { items: found } = await searchPlaces(groupId, item.title);
-      if (found.length === 0) {
+      if (found.length === 0) return { ok: false as const };
+      await addBookmark(groupId, { googlePlaceId: found[0].googlePlaceId, categoryTag: found[0].category });
+      return { ok: true as const, contentId: item.contentId };
+    },
+    onSuccess: (res) => {
+      if (!res.ok) {
         toast.warning('보관함에 담지 못했어요', '장소 검색 결과가 없어요. 직접 검색해 추가해 주세요.');
         return;
       }
-      await addBookmark(groupId, { googlePlaceId: found[0].googlePlaceId, categoryTag: found[0].category });
-      // 버튼이 '담음' 상태로 바뀌므로 확인 토스트는 생략(불필요한 알림 제거).
-      setSaved((prev) => new Set(prev).add(item.contentId));
-    } catch (e) {
+      // 버튼이 '담음' 상태로 바뀌므로 확인 토스트는 생략.
+      setSaved((prev) => new Set(prev).add(res.contentId));
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.bookmarks(groupId) });
+    },
+    onError: (e, item) => {
       // 이미 담긴 장소(409)면 에러 대신 '담음'으로 표시.
       const status = (e as { response?: { status?: number } })?.response?.status;
-      if (status === 409) {
-        setSaved((prev) => new Set(prev).add(item.contentId));
-      } else {
-        toast.error('담기에 실패했어요', '잠시 후 다시 시도해 주세요.');
-      }
-    } finally {
-      setSavingId(null);
-    }
-  };
+      if (status === 409) setSaved((prev) => new Set(prev).add(item.contentId));
+      else toast.error('담기에 실패했어요', '잠시 후 다시 시도해 주세요.');
+    },
+  });
+  const savingId = saveMutation.isPending ? saveMutation.variables.contentId : null;
+  const onSave = (item: RecommendItem) => saveMutation.mutate(item);
 
   return (
     <AppLayout title="맞춤 추천" showBack>

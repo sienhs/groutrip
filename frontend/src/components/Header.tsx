@@ -40,7 +40,7 @@ export default function Header({ title, showBack = false, actions, sticky = true
       {title ? (
         <h1 className="truncate text-[16px] font-extrabold tracking-tight text-foreground">{title}</h1>
       ) : (
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 md:hidden">
           <span className="flex size-7 items-center justify-center rounded-lg bg-primary">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M12 21s-7-5.2-7-10.5A7 7 0 0 1 12 3.5a7 7 0 0 1 7 7C19 15.8 12 21 12 21Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />

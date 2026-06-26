@@ -31,6 +31,10 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
   const [deleting, setDeleting] = useState<Expense | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // 지출이 많아질 때 한 번에 전부 그리지 않도록 "더보기"로 점진 렌더(보관함과 동일 패턴).
+  const PAGE_SIZE = 8;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
   // 지출 내역 + 정산 요약을 한 키로 묶어 관리. EXPENSE_* SSE 이벤트가 이 키를 무효화한다.
   const expenseQuery = useQuery({
     queryKey: groupQueryKeys.expenses(groupId),
@@ -100,7 +104,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
               <EmptyState title="아직 지출이 없어요" description="+ 버튼으로 첫 지출을 추가해 보세요." />
             ) : (
               <div className="space-y-2.5">
-                {expenses.map((e) => (
+                {expenses.slice(0, visibleCount).map((e) => (
                   <div key={e.id} className="flex items-center gap-3 rounded-card border border-border bg-surface px-3.5 py-3">
                     <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#FCF0F9] text-[17px]">{expenseIcon(e.category)}</span>
                     <button type="button" onClick={() => { setEditing(e); setFormOpen(true); }} className="min-w-0 flex-1 text-left">
@@ -131,6 +135,15 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
                     </button>
                   </div>
                 ))}
+                {expenses.length > visibleCount && (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                    className="w-full rounded-card border border-border bg-surface py-2.5 text-[13px] font-bold text-muted active:bg-background"
+                  >
+                    더보기 ({expenses.length - visibleCount}개 더)
+                  </button>
+                )}
               </div>
             )}
           </section>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import AppLayout from '../../components/AppLayout';
 import EmptyState from '../../components/EmptyState';
 import Button from '../../components/Button';
@@ -33,33 +34,26 @@ export default function RecapPage() {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [data, setData] = useState<RecapData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    Promise.all([
-      getGroup(groupId),
-      getGroupMembers(groupId),
-      getBookmarks(groupId).catch(() => []),
-      getGroupPhotos(groupId).catch(() => []),
-      getExpenses(groupId).catch(() => []),
-    ])
-      .then(([group, members, bookmarks, photos, expenses]) => {
-        if (!active) return;
-        setData({
-          group,
-          memberCount: members.length,
-          bookmarks,
-          photos,
-          totalSpending: expenses.reduce((sum, e) => sum + e.amount, 0),
-        });
-      })
-      .catch(() => active && setError(true))
-      .finally(() => active && setLoading(false));
-    return () => { active = false; };
-  }, [groupId]);
+  // 리캡은 여러 그룹 API를 모아 한 화면에 보여주므로 복합 queryFn 하나로 묶는다.
+  const { data, isLoading: loading, isError: error } = useQuery({
+    queryKey: ['recap', groupId],
+    queryFn: async (): Promise<RecapData> => {
+      const [group, members, bookmarks, photos, expenses] = await Promise.all([
+        getGroup(groupId),
+        getGroupMembers(groupId),
+        getBookmarks(groupId).catch(() => []),
+        getGroupPhotos(groupId).catch(() => []),
+        getExpenses(groupId).catch(() => []),
+      ]);
+      return {
+        group,
+        memberCount: members.length,
+        bookmarks,
+        photos,
+        totalSpending: expenses.reduce((sum, e) => sum + e.amount, 0),
+      };
+    },
+  });
 
   const share = async () => {
     if (!data) return;

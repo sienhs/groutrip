@@ -26,6 +26,8 @@ export const groupQueryKeys = {
   accommodations: (groupId: number) => ['accommodations', groupId] as const,
   /** 그룹 여행 성향(멤버 평균 일치율). SSE 비대상. */
   persona: (groupId: number) => ['group', groupId, 'persona'] as const,
+  /** 그룹 사진 갤러리. */
+  photos: (groupId: number) => ['group', groupId, 'photos'] as const,
 } as const;
 
 /**

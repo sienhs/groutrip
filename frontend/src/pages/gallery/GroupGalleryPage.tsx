@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import { getGroupPhotos, uploadGroupPhoto, deleteGroupPhoto, fetchPhotoObjectUrl, type GroupPhoto } from '../../api/gallery';
+import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 
 const MAX_PHOTOS = 30;
 
@@ -19,34 +21,43 @@ export default function GroupGalleryPage({
   isOwner: boolean;
 }) {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [photos, setPhotos] = useState<GroupPhoto[]>([]);
-  const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading');
-  const [uploading, setUploading] = useState(false);
   const [viewer, setViewer] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<GroupPhoto | null>(null);
-  const [delLoading, setDelLoading] = useState(false);
 
-  const load = () => {
-    setStatus('loading');
-    getGroupPhotos(groupId)
-      .then((p) => {
-        setPhotos(p);
-        setStatus('done');
-      })
-      .catch(() => setStatus('error'));
-  };
+  const { data: photos = [], isLoading, isError, refetch } = useQuery({
+    queryKey: groupQueryKeys.photos(groupId),
+    queryFn: () => getGroupPhotos(groupId),
+  });
+  const status: 'loading' | 'done' | 'error' = isLoading ? 'loading' : isError ? 'error' : 'done';
+  const load = () => { void refetch(); };
 
-  useEffect(() => {
-    getGroupPhotos(groupId)
-      .then((p) => {
-        setPhotos(p);
-        setStatus('done');
-      })
-      .catch(() => setStatus('error'));
-  }, [groupId]);
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadGroupPhoto(groupId, file),
+    onSuccess: () => {
+      toast.success('사진을 올렸어요');
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.photos(groupId) });
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error('업로드에 실패했어요', message ?? '5MB 이하 이미지인지 확인해 주세요.');
+    },
+  });
+  const uploading = uploadMutation.isPending;
 
-  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const deleteMutation = useMutation({
+    mutationFn: (photo: GroupPhoto) => deleteGroupPhoto(groupId, photo.id),
+    onSuccess: () => {
+      toast.success('사진을 삭제했어요');
+      setDeleting(null);
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.photos(groupId) });
+    },
+    onError: () => toast.error('삭제에 실패했어요', '권한이 없거나 일시적 오류일 수 있어요.'),
+  });
+  const delLoading = deleteMutation.isPending;
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -54,33 +65,10 @@ export default function GroupGalleryPage({
       toast.error('더 올릴 수 없어요', `사진은 그룹당 최대 ${MAX_PHOTOS}장까지예요.`);
       return;
     }
-    setUploading(true);
-    try {
-      await uploadGroupPhoto(groupId, file);
-      toast.success('사진을 올렸어요');
-      load();
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error('업로드에 실패했어요', message ?? '5MB 이하 이미지인지 확인해 주세요.');
-    } finally {
-      setUploading(false);
-    }
+    uploadMutation.mutate(file);
   };
 
-  const confirmDelete = async () => {
-    if (!deleting) return;
-    setDelLoading(true);
-    try {
-      await deleteGroupPhoto(groupId, deleting.id);
-      toast.success('사진을 삭제했어요');
-      setPhotos((prev) => prev.filter((p) => p.id !== deleting.id));
-      setDeleting(null);
-    } catch {
-      toast.error('삭제에 실패했어요', '권한이 없거나 일시적 오류일 수 있어요.');
-    } finally {
-      setDelLoading(false);
-    }
-  };
+  const confirmDelete = () => { if (deleting) deleteMutation.mutate(deleting); };
 
   return (
     <div>
