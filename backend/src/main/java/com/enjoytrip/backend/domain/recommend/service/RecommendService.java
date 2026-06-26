@@ -5,11 +5,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
+import com.enjoytrip.backend.domain.place.client.GooglePlace;
+import com.enjoytrip.backend.domain.place.client.GooglePlacePage;
+import com.enjoytrip.backend.domain.place.client.GooglePlacesClient;
 import com.enjoytrip.backend.domain.group.entity.TravelGroup;
 import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
@@ -28,11 +32,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * FR-RECOMMEND-01/02 (SHOULD): TourAPI 지역 기반 추천을 그룹 평균 성향과의 코사인 유사도로 정렬한다.
  * (지역 + 카테고리) 결과는 24시간 캐시한다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -142,6 +148,9 @@ public class RecommendService {
     private final GroupPersonaService groupPersonaService;
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
+    private final GooglePlacesClient googlePlacesClient;
+    // 정적 매핑이 안 되는 임의 지명의 지오코딩 결과(지명 → areaCode)를 메모리에 캐시해 반복 호출을 막는다.
+    private final Map<String, Integer> geocodeAreaCache = new ConcurrentHashMap<>();
     // 내부 캐시 JSON 직렬화 전용. Spring Boot 4는 Jackson 3 ObjectMapper 빈만 제공하므로 직접 생성한다.
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -241,8 +250,43 @@ public class RecommendService {
                     return entry.getValue();
                 }
             }
+            // 정적 매핑 실패 → 지오코딩 폴백: 임의 지명도 소속 시/도로 해석해 추천이 동작하게 한다.
+            Integer geocoded = resolveAreaCodeByGeocoding(destination.trim());
+            if (geocoded != null) {
+                return geocoded;
+            }
         }
         throw new BusinessException(ErrorCode.INVALID_INPUT); // 지원하지 않는 지역
+    }
+
+    /**
+     * 정적 매핑(시/도·시/군·인기 지명)이 실패한 임의 지명을 Google 텍스트 검색으로 해석한다.
+     * 결과 주소 문자열에서 시/도명을 찾아 areaCode로 변환하고, 같은 지명은 메모리에 캐시한다.
+     * 검색 실패/키 미설정/해석 불가 시 null 을 돌려준다(호출부가 INVALID_INPUT 처리).
+     */
+    private Integer resolveAreaCodeByGeocoding(String destination) {
+        Integer cached = geocodeAreaCache.get(destination);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            GooglePlacePage page = googlePlacesClient.searchText(destination, null, null);
+            for (GooglePlace place : page.places()) {
+                String address = place.address();
+                if (address == null || address.isBlank()) {
+                    continue;
+                }
+                for (Map.Entry<String, Integer> entry : AREA_CODES.entrySet()) {
+                    if (address.contains(entry.getKey())) {
+                        geocodeAreaCache.put(destination, entry.getValue());
+                        return entry.getValue();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("목적지 지오코딩 폴백 실패 '{}': {}", destination, e.getMessage());
+        }
+        return null;
     }
 
     private double[] attractionVector(int contentTypeId) {

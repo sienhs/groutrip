@@ -97,8 +97,8 @@ export default function GroupCreatePage() {
             label="목적지"
             value={destination}
             onChange={setDestination}
-            placeholder="지역명을 입력하세요 (예: 용인, 제주)"
-            helper="목록에서 지역을 선택하면 목적지별 추천이 정확해져요."
+            placeholder="지역·지명을 입력하세요 (예: 제주, 대부도)"
+            helper="목록에서 고르거나, 원하는 지명을 직접 입력해도 돼요."
           />
 
           <div>

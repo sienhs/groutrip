@@ -26,6 +26,9 @@ import com.enjoytrip.backend.domain.group.entity.TravelGroup;
 import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
+import com.enjoytrip.backend.domain.place.client.GooglePlace;
+import com.enjoytrip.backend.domain.place.client.GooglePlacePage;
+import com.enjoytrip.backend.domain.place.client.GooglePlacesClient;
 import com.enjoytrip.backend.domain.recommend.client.TourApiClient;
 import com.enjoytrip.backend.domain.recommend.client.TourSpot;
 import com.enjoytrip.backend.domain.recommend.dto.RecommendationResponse;
@@ -46,6 +49,7 @@ class RecommendServiceTest {
     private GroupPersonaService groupPersonaService;
     private CurrentUserResolver currentUserResolver;
     private GroupAccessValidator groupAccessValidator;
+    private GooglePlacesClient googlePlacesClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private RecommendService recommendService;
 
@@ -57,9 +61,10 @@ class RecommendServiceTest {
         groupPersonaService = mock(GroupPersonaService.class);
         currentUserResolver = mock(CurrentUserResolver.class);
         groupAccessValidator = mock(GroupAccessValidator.class);
+        googlePlacesClient = mock(GooglePlacesClient.class);
         recommendService = new RecommendService(
                 tourApiClient, recommendationCacheRepository, travelGroupRepository,
-                groupPersonaService, currentUserResolver, groupAccessValidator);
+                groupPersonaService, currentUserResolver, groupAccessValidator, googlePlacesClient);
     }
 
     @Test
@@ -128,6 +133,25 @@ class RecommendServiceTest {
         List<RecommendationResponse> result = recommendService.recommend(1L, null);
 
         assertThat(result).extracting(RecommendationResponse::contentId).containsExactly("a");
+    }
+
+    @Test
+    void resolvesArbitraryPlaceNameViaGeocodingFallback() {
+        // 정적 매핑에 없는 임의 지명은 Google 검색 주소의 시/도("서울특별시")로 areaCode(1)를 해석한다.
+        when(currentUserResolver.getCurrentUser()).thenReturn(user());
+        when(travelGroupRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(group("잠실한강공원")));
+        when(recommendationCacheRepository.findByCacheKey(anyString())).thenReturn(Optional.empty());
+        GooglePlace place = new GooglePlace("g1", "잠실한강공원", "대한민국 서울특별시 송파구 잠실동", 37.5, 127.0,
+                List.of(), null, null, null, null, null, null, null, null);
+        when(googlePlacesClient.searchText(eq("잠실한강공원"), any(), any()))
+                .thenReturn(new GooglePlacePage(List.of(place), null));
+        when(tourApiClient.getAreaBasedList(eq(1), any(), anyInt())).thenReturn(List.of(spot("a", "한강", 12)));
+        when(groupPersonaService.getGroupPersona(1L)).thenReturn(persona(null));
+
+        List<RecommendationResponse> result = recommendService.recommend(1L, null);
+
+        assertThat(result).extracting(RecommendationResponse::contentId).containsExactly("a");
+        verify(tourApiClient).getAreaBasedList(eq(1), any(), anyInt());
     }
 
     @Test

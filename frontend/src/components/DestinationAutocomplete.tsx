@@ -37,6 +37,11 @@ export default function DestinationAutocomplete({
   const [active, setActive] = useState(0);
 
   const results = open ? searchRegions(query) : [];
+  // 목록에 없는 임의 지명도 그대로 목적지로 쓸 수 있게 "직접 입력" 옵션을 제공한다.
+  // (백엔드 추천이 지오코딩으로 임의 지명의 소속 시/도를 해석한다.)
+  const trimmed = query.trim();
+  const showFreeText = open && trimmed.length > 0 && !results.some((r) => r.value === trimmed);
+  const optionCount = results.length + (showFreeText ? 1 : 0);
 
   // 외부에서 새 value 가 들어오면(편집 진입/리셋) 입력 텍스트를 렌더 중 동기화한다.
   // (React 권장 "이전 prop 저장" 패턴 — 같은 컴포넌트 렌더 중 setState 는 허용된다.)
@@ -64,6 +69,14 @@ export default function DestinationAutocomplete({
     setOpen(false);
   };
 
+  // 입력한 텍스트를 그대로 목적지로 확정(목록에 없는 지명용).
+  const commitFreeText = () => {
+    if (!trimmed) return;
+    onChange(trimmed);
+    setQuery(trimmed);
+    setOpen(false);
+  };
+
   const handleChange = (text: string) => {
     setQuery(text);
     setActive(0);
@@ -78,14 +91,17 @@ export default function DestinationAutocomplete({
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActive((i) => Math.min(i + 1, results.length - 1));
+      setActive((i) => Math.min(i + 1, optionCount - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActive((i) => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
-      if (open && results[active]) {
+      if (open && active < results.length && results[active]) {
         e.preventDefault();
         select(results[active]);
+      } else if (open && showFreeText && active === results.length) {
+        e.preventDefault();
+        commitFreeText();
       }
     } else if (e.key === 'Escape') {
       setOpen(false);
@@ -139,7 +155,7 @@ export default function DestinationAutocomplete({
           )}
         </span>
 
-        {open && results.length > 0 && (
+        {open && optionCount > 0 && (
           <ul
             id={listId}
             role="listbox"
@@ -164,6 +180,27 @@ export default function DestinationAutocomplete({
                 <span className="text-[12px] text-[#9A95A8]">{r.value}</span>
               </li>
             ))}
+            {showFreeText && (
+              <li
+                role="option"
+                aria-selected={active === results.length}
+                onMouseEnter={() => setActive(results.length)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  commitFreeText();
+                }}
+                className={cn(
+                  'flex cursor-pointer items-center gap-2 px-3.5 py-2.5 text-[14px]',
+                  results.length > 0 && 'border-t border-border',
+                  active === results.length ? 'bg-[#FCF0F9] text-[#2C2833]' : 'text-[#4A4654]',
+                )}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden className="text-[#9A95A8]">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+                <span className="font-semibold">‘{trimmed}’ 직접 사용</span>
+              </li>
+            )}
           </ul>
         )}
       </div>
