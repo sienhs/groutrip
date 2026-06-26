@@ -129,7 +129,7 @@ export default function DestinationAutocomplete({
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9A95A8]">
           {value ? (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M5 13l4 4L19 7" stroke="#FF4FB7" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M5 13l4 4L19 7" stroke="#E86A92" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           ) : (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>

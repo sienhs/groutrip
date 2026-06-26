@@ -199,7 +199,7 @@ export default function MyPage() {
           <div className="text-[14px] font-extrabold">내 여행 페르소나</div>
           <div className="text-[12px] text-muted">설문 결과 보기</div>
         </div>
-        <span className="text-[12px] font-bold text-[#D62E97]">결과 보기 ›</span>
+        <span className="text-[12px] font-bold text-[#C25478]">결과 보기 ›</span>
       </button>
 
       {/* 앱 설정 (기기 단위) */}

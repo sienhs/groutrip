@@ -451,14 +451,14 @@ function CandidateCard({ candidate, maxScore, winner, closed, busy, onScore }: {
           <div className="mt-0.5 text-[11px] text-muted">{candidate.registeredByName} 등록{candidate.memo ? ` · ${candidate.memo}` : ''}</div>
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-[15px] font-extrabold text-[#D62E97]">{candidate.totalScore}점</div>
+          <div className="text-[15px] font-extrabold text-[#C25478]">{candidate.totalScore}점</div>
           <div className="text-[11px] text-muted">{candidate.voteCount}명</div>
         </div>
       </div>
 
       {/* 득점 막대 — 동적 width 인라인 style */}
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-skeleton">
-        <div className={cn('h-full rounded-full', winner ? 'bg-primary' : 'bg-gradient-to-r from-[#FFB0DD] to-[#F23BA6]')} style={{ width: `${pct}%` }} />
+        <div className={cn('h-full rounded-full', winner ? 'bg-primary' : 'bg-gradient-to-r from-[#F3B9CB] to-[#D9577F]')} style={{ width: `${pct}%` }} />
       </div>
 
       {/* 점수 투표 1~5 */}
@@ -467,7 +467,7 @@ function CandidateCard({ candidate, maxScore, winner, closed, busy, onScore }: {
           <span className="mr-1 text-[12px] font-bold text-muted">내 점수</span>
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} type="button" disabled={busy} aria-label={`${n}점`} onClick={() => onScore(candidate.id, n)}
-              className="flex size-8 items-center justify-center rounded-full border-2 border-[#E2DFEE] text-[13px] font-extrabold text-muted transition-colors hover:border-primary hover:text-[#D62E97] disabled:opacity-50">
+              className="flex size-8 items-center justify-center rounded-full border-2 border-[#E2DFEE] text-[13px] font-extrabold text-muted transition-colors hover:border-primary hover:text-[#C25478] disabled:opacity-50">
               {n}
             </button>
           ))}

@@ -49,7 +49,7 @@ export function PlacePhoto({ photoUrl, category, name, className }: PlacePhotoPr
     );
   }
   return (
-    <div className={cn('flex items-center justify-center bg-[#FCF0F9] text-[#FFB0DD]', className)}>
+    <div className={cn('flex items-center justify-center bg-[#FCF0F9] text-[#F3B9CB]', className)}>
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
         {CAT_ICON[category]}
       </svg>

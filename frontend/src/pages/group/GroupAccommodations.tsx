@@ -99,13 +99,13 @@ export default function GroupAccommodations({
                   {src && <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className={cn('text-[11px] font-bold', noDate ? 'text-[#D62E97]' : 'text-primary')}>{rangeLabel(a)}</div>
+                  <div className={cn('text-[11px] font-bold', noDate ? 'text-[#C25478]' : 'text-primary')}>{rangeLabel(a)}</div>
                   <div className="truncate text-[13px] font-bold text-foreground">{a.place.name}</div>
                   {noDate ? (
                     <button
                       type="button"
                       onClick={() => navigate(`/groups/${groupId}/plan`)}
-                      className="text-[10px] font-bold text-[#D62E97] underline-offset-2 hover:underline"
+                      className="text-[10px] font-bold text-[#C25478] underline-offset-2 hover:underline"
                     >
                       날짜 정하기 →
                     </button>
@@ -122,7 +122,7 @@ export default function GroupAccommodations({
         <button
           type="button"
           onClick={() => navigate(`/groups/${groupId}/plan`)}
-          className="mt-2 text-[12px] font-bold text-[#D62E97]"
+          className="mt-2 text-[12px] font-bold text-[#C25478]"
         >
           아직 숙소 미선택: {missing.map(shortDate).join(', ')} · 숙소 정하기 →
         </button>

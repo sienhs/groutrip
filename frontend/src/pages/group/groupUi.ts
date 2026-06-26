@@ -6,12 +6,12 @@ import type { CoverPreset, GroupStatus } from '../../types/group';
  */
 
 export const COVER_GRADIENT: Record<CoverPreset, string> = {
-  SUNSET: 'bg-gradient-to-br from-[#FF4FB7] to-[#F23BA6]',
+  SUNSET: 'bg-gradient-to-br from-[#E86A92] to-[#D9577F]',
   OCEAN: 'bg-gradient-to-br from-[#6FB3F2] to-[#4A90D9]',
   FOREST: 'bg-gradient-to-br from-[#7FC9A6] to-[#4FAE86]',
   NIGHT: 'bg-gradient-to-br from-[#3A4A6B] to-[#1F2A44]',
   SAKURA: 'bg-gradient-to-br from-[#F2A0C0] to-[#E87BA6]',
-  TROPICAL: 'bg-gradient-to-br from-[#FFC93C] to-[#E84FA8]',
+  TROPICAL: 'bg-gradient-to-br from-[#FFC93C] to-[#D56F92]',
   LAVENDER: 'bg-gradient-to-br from-[#B6A0E8] to-[#9579D9]',
   EARTH: 'bg-gradient-to-br from-[#B6B1C4] to-[#9A95A8]',
 };

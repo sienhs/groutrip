@@ -40,7 +40,7 @@ export default function GroupPersonaCard({ groupId }: { groupId: number }) {
         <div className="h-full rounded-full bg-primary" style={{ width: `${rate}%` }} />
       </div>
       {data.conflictMessage && (
-        <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[12px] font-semibold text-[#C23C95]">
+        <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[12px] font-semibold text-[#AD5575]">
           <span aria-hidden>💡</span>
           <span>{data.conflictMessage} 일정에 서로의 취향을 번갈아 반영해 보세요.</span>
         </p>

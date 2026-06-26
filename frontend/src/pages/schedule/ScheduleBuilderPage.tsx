@@ -341,7 +341,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
         onClick={() => navigate(`/groups/${groupId}/map`)}
         className="mt-3 flex w-full items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-3 text-left active:scale-[0.99]"
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FCF0F9] text-[#D62E97]">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FCF0F9] text-[#C25478]">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6 9 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
             <path d="M9 3v15M15 6v15" stroke="currentColor" strokeWidth="1.8" />
@@ -352,7 +352,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
           <span className="block text-[12px] text-muted">일정 장소와 숙소를 지도에 핀으로 한눈에</span>
         </span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M9 6l6 6-6 6" stroke="#D62E97" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M9 6l6 6-6 6" stroke="#C25478" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
@@ -365,7 +365,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
               : <span className="flex h-full w-full items-center justify-center text-[18px]">🏨</span>}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-extrabold text-[#D62E97]">이 날 숙소</div>
+            <div className="text-[11px] font-extrabold text-[#C25478]">이 날 숙소</div>
             <div className="truncate text-[14px] font-extrabold text-foreground">{stayHere.place.name}</div>
             <div className="text-[11px] text-muted">
               {stayHere.status === 'BOOKED' ? '예약 완료' : '선정됨'}
@@ -391,7 +391,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
           <div key={stop.id}>
             <article draggable onDragStart={() => onDragStart(i)} onDragOver={(e) => onDragOver(i, e)} onDragEnd={onDragEnd} className="flex gap-3">
               <div className="flex flex-none flex-col items-center pt-1">
-                <span className="text-[12px] font-extrabold text-[#D62E97]">{stop.startTime}</span>
+                <span className="text-[12px] font-extrabold text-[#C25478]">{stop.startTime}</span>
                 <span className="my-1.5 w-0.5 flex-1 bg-[#EEECF6]" />
               </div>
               <div className="mb-1 flex-1 rounded-card border border-border bg-surface p-3 shadow-sm">
@@ -466,7 +466,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                         <button
                           type="button"
                           onClick={() => openCostEdit(stop)}
-                          className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-[#D62E97]"
+                          className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-[#C25478]"
                         >
                           <span className="text-[#9A95A8]">예상 비용</span>
                           <span className="text-foreground">{stop.estimatedCost != null ? formatCost(stop.estimatedCost) : '추가'}</span>
@@ -482,7 +482,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                         <button
                           type="button"
                           onClick={() => goVote(stop)}
-                          className="inline-flex items-center gap-1 rounded-button bg-[#FCF0F9] px-2.5 py-1 text-[12px] font-bold text-[#D62E97]"
+                          className="inline-flex items-center gap-1 rounded-button bg-[#FCF0F9] px-2.5 py-1 text-[12px] font-bold text-[#C25478]"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
                             <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

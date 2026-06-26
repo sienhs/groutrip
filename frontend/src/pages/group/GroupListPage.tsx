@@ -73,7 +73,7 @@ export default function GroupListPage() {
       type="button"
       aria-label="그룹 만들기"
       onClick={() => navigate('/groups/new')}
-      className="flex size-9 items-center justify-center rounded-[9px] bg-[#FCF0F9] text-[#D62E97]"
+      className="flex size-9 items-center justify-center rounded-[9px] bg-[#FCF0F9] text-[#C25478]"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
@@ -110,7 +110,7 @@ export default function GroupListPage() {
       <button
         type="button"
         onClick={() => setJoinOpen(true)}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#D62E97] active:bg-[#FCEFF9]"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#C25478] active:bg-[#FCEFF9]"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M9 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.5 19c0-3 2.5-5 5.5-5M16 11h6M19 8v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

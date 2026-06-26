@@ -112,7 +112,7 @@ export default function BookmarkListPage({
       <button
         type="button"
         onClick={() => navigate(`/groups/${groupId}/plan`)}
-        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#D62E97] active:bg-[#FCEFF9]"
+        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#C25478] active:bg-[#FCEFF9]"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />

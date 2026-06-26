@@ -15,7 +15,7 @@ const SIZE: Record<Size, string> = {
  * 클래스 문자열을 정적으로 나열해 Tailwind JIT 가 인식하도록 한다(인라인 style 미사용).
  */
 const PALETTE = [
-  'bg-[#FF4FB7]',
+  'bg-[#E86A92]',
   'bg-[#6FB3F2]',
   'bg-[#B6B1C4]',
   'bg-[#7FC9A6]',

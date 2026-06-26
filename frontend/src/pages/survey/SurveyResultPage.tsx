@@ -83,11 +83,11 @@ export default function SurveyResultPage() {
               <div key={dim}>
                 <div className="mb-1.5 flex justify-between text-[13px] font-bold">
                   <span>{meta.label}</span>
-                  <span className="text-[#D62E97]">{pct}%</span>
+                  <span className="text-[#C25478]">{pct}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-skeleton">
                   {/* 동적 값 — 인라인 style 사용 */}
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#FFB0DD] to-[#F23BA6]" style={{ width: `${pct}%` }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#F3B9CB] to-[#D9577F]" style={{ width: `${pct}%` }} />
                 </div>
               </div>
             );

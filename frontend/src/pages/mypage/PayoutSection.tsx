@@ -83,7 +83,7 @@ export default function PayoutSection() {
         <span
           className={cn(
             'flex-none rounded-full px-2 py-0.5 text-[11px] font-bold',
-            payoutRegistered ? 'bg-[#E9F8EE] text-[#22A964]' : 'bg-[#FFF1FA] text-[#D62E97]',
+            payoutRegistered ? 'bg-[#E9F8EE] text-[#22A964]' : 'bg-[#FFF1FA] text-[#C25478]',
           )}
         >
           {payoutRegistered ? '완료' : '필요'}
@@ -108,7 +108,7 @@ export default function PayoutSection() {
           <div>
             <label htmlFor="payout-link" className="mb-1 flex items-center gap-1.5 text-[12px] font-bold text-muted">
               송금 링크 (토스·카카오페이)
-              <span className="rounded-full bg-[#FFF1FA] px-1.5 py-0.5 text-[10px] font-bold text-[#D62E97]">권장</span>
+              <span className="rounded-full bg-[#FFF1FA] px-1.5 py-0.5 text-[10px] font-bold text-[#C25478]">권장</span>
             </label>
             <input
               id="payout-link"
@@ -134,7 +134,7 @@ export default function PayoutSection() {
             />
           </div>
           <p className="rounded-button bg-background px-3 py-2 text-[11px] leading-relaxed text-muted">
-            🔒 편돌즈.trip은 결제·송금을 직접 처리하지 않고, 입력하신 정보는 정산 시 멤버에게 표시되는 용도로만 쓰여요. 계좌 정보는 암호화되어 저장되며, 탈퇴 시 함께 삭제돼요.
+            🔒 GrouTrip 편돌즈는 결제·송금을 직접 처리하지 않고, 입력하신 정보는 정산 시 멤버에게 표시되는 용도로만 쓰여요. 계좌 정보는 암호화되어 저장되며, 탈퇴 시 함께 삭제돼요.
           </p>
         </div>
       </Modal>

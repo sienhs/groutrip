@@ -88,7 +88,7 @@ function apiMessage(err: unknown): string {
 }
 
 const STATUS: Record<SettlementStatus, { label: string; cls: string }> = {
-  PENDING: { label: '대기', cls: 'bg-[#FCF0F9] text-[#D62E97]' },
+  PENDING: { label: '대기', cls: 'bg-[#FCF0F9] text-[#C25478]' },
   SENT: { label: '송금됨', cls: 'bg-[#EAF2FF] text-[#3182F6]' },
   COMPLETED: { label: '완료', cls: 'bg-[#EAF9EF] text-success' },
 };
@@ -101,7 +101,7 @@ function FromTo({ from, to, amount }: { from: string; to: string; amount: number
         <path d="M5 12h14M13 6l6 6-6 6" stroke="#9A95A8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span>{to}</span>
-      <span className="ml-auto font-extrabold text-[#D62E97]">{formatWon(amount)}</span>
+      <span className="ml-auto font-extrabold text-[#C25478]">{formatWon(amount)}</span>
     </div>
   );
 }
@@ -348,7 +348,7 @@ export default function SettlementPanel({
                     )}
                   </div>
                 ) : (
-                  <p className="rounded-card border border-[#FFE4F4] bg-[#FAFAFF] px-3 py-2.5 text-[12px] font-semibold leading-snug text-[#B02080]">
+                  <p className="rounded-card border border-[#FFE4F4] bg-[#FAFAFF] px-3 py-2.5 text-[12px] font-semibold leading-snug text-[#9A4869]">
                     {t.toName}님이 아직 정산 받을 링크·계좌를 등록하지 않았어요. 아래 앱으로 직접 보내거나, {t.toName}님께 마이페이지 등록을 요청해 주세요.
                   </p>
                 )}

@@ -461,9 +461,9 @@ export default function TripPlanPage() {
       {step === 'start' && (
         <div className="space-y-4">
           <div className="rounded-card border border-[#FFCFEB] bg-[#FAFAFF] p-4">
-            <p className="text-[12px] font-extrabold text-[#D62E97]">STEP 1 · 숙소 선정</p>
+            <p className="text-[12px] font-extrabold text-[#C25478]">STEP 1 · 숙소 선정</p>
             <p className="mt-1 text-[16px] font-extrabold text-foreground">먼저 묵을 숙소를 정해요</p>
-            <p className="mt-1 text-[13px] text-[#B02080]">목적지 · {destination} · 숙소부터 정하고 갈 곳을 모아요.</p>
+            <p className="mt-1 text-[13px] text-[#9A4869]">목적지 · {destination} · 숙소부터 정하고 갈 곳을 모아요.</p>
           </div>
           <p className="text-[13px] font-bold text-foreground">어떻게 숙소를 정해볼까요?</p>
           <ChoiceCard
@@ -708,7 +708,7 @@ export default function TripPlanPage() {
                   <label
                     className={cn(
                       'flex cursor-pointer items-center justify-center rounded-button border border-dashed border-[#FFCFEB] bg-[#FAFAFF]',
-                      'px-3 py-3 text-[13px] font-bold text-[#D62E97]',
+                      'px-3 py-3 text-[13px] font-bold text-[#C25478]',
                     )}
                   >
                     <input
@@ -827,7 +827,7 @@ export default function TripPlanPage() {
                     {r.thumbnailUrl ? (
                       <img src={r.thumbnailUrl} alt={r.title} loading="lazy" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-[#FCF0F9] text-[11px] text-[#FFB0DD]">
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-[#FCF0F9] text-[11px] text-[#F3B9CB]">
                         {contentTypeLabel(r.contentTypeId)}
                         <span className="text-[9px] font-bold text-[#03C75A]">사진 보기</span>
                       </div>
@@ -839,7 +839,7 @@ export default function TripPlanPage() {
                     <div className="mt-0.5 text-[12px] text-muted">{contentTypeLabel(r.contentTypeId)}</div>
                     <div className="mt-auto flex items-center justify-between gap-2 pt-1.5">
                       {r.matchScore != null ? (
-                        <span className="text-[12px] font-bold text-[#D62E97]">성향 일치 {r.matchScore}%</span>
+                        <span className="text-[12px] font-bold text-[#C25478]">성향 일치 {r.matchScore}%</span>
                       ) : (
                         <span />
                       )}
@@ -968,7 +968,7 @@ function ChoiceCard({ title, desc, onClick }: { title: string; desc: string; onC
       <div className="flex items-center justify-between">
         <span className="text-[16px] font-extrabold text-foreground">{title}</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M9 6l6 6-6 6" stroke="#D62E97" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M9 6l6 6-6 6" stroke="#C25478" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
       <p className="mt-1.5 text-[13px] text-muted">{desc}</p>

@@ -66,7 +66,7 @@ export default function MultiSelect({
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
                 selected
                   ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-surface text-muted hover:border-[#FFCFEB] hover:text-[#D62E97]',
+                  : 'border-border bg-surface text-muted hover:border-[#FFCFEB] hover:text-[#C25478]',
                 reachedMax && 'cursor-not-allowed opacity-40',
               )}
             >

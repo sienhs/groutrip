@@ -5,7 +5,7 @@ type Tone = 'primary' | 'neutral' | 'success' | 'danger' | 'info' | 'warning';
 
 const TONE: Record<Tone, string> = {
   primary: 'bg-primary text-primary-foreground',
-  neutral: 'bg-[#FCF0F9] text-[#D62E97]',
+  neutral: 'bg-[#FCF0F9] text-[#C25478]',
   success: 'bg-[#DCFCE7] text-[#15803D]',
   danger: 'bg-[#FEE2E2] text-[#B91C1C]',
   info: 'bg-[#DBEAFE] text-[#1D4ED8]',

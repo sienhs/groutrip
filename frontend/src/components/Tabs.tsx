@@ -39,7 +39,7 @@ export default function Tabs({ items, value, onChange, className }: TabsProps) {
               'flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3.5 py-3 text-[14px] font-bold transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
               active
-                ? 'border-primary text-[#D62E97]'
+                ? 'border-primary text-[#C25478]'
                 : 'border-transparent text-muted hover:text-muted',
             )}
           >

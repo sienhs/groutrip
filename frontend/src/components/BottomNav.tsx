@@ -20,7 +20,7 @@ export default function BottomNav() {
             <span
               className={cn(
                 'flex flex-col items-center gap-1',
-                isActive ? 'text-[#D62E97]' : 'text-[#ABA6B8]',
+                isActive ? 'text-[#C25478]' : 'text-[#ABA6B8]',
               )}
             >
               {item.icon(isActive)}

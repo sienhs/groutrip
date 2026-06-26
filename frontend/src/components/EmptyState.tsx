@@ -16,7 +16,7 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
       <div className="mb-3.5 flex size-14 items-center justify-center rounded-2xl bg-[#FCF0F9]">
         {icon ?? (
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M4 7h16M4 12h16M4 17h10" stroke="#FFB0DD" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M4 7h16M4 12h16M4 17h10" stroke="#F3B9CB" strokeWidth="2.2" strokeLinecap="round" />
           </svg>
         )}
       </div>

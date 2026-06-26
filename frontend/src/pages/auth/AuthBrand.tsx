@@ -1,6 +1,6 @@
 /**
  * 로그인/회원가입 공용 상단 브랜드 블록과 비밀번호 표시 토글.
- * 헤더 로고(편돌즈.trip 핀)와 동일한 모티프를 크게 사용한다.
+ * 헤더 로고(GrouTrip 편돌즈 핀)와 동일한 모티프를 크게 사용한다.
  */
 
 interface AuthBrandProps {
@@ -21,7 +21,7 @@ export default function AuthBrand({ subtitle }: AuthBrandProps) {
           <circle cx="12" cy="10.5" r="2.2" fill="#fff" />
         </svg>
       </span>
-      <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">편돌즈<span className="text-muted">.trip</span></h1>
+      <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">GrouTrip <span className="text-muted">편돌즈</span></h1>
       <p className="mt-1 text-sm text-muted">{subtitle}</p>
     </div>
   );

@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────
-   편돌즈.trip 디자인 토큰 (Tailwind v4 @theme)
+   GrouTrip 편돌즈 디자인 토큰 (Tailwind v4 @theme)
    v4는 tailwind.config.js 대신 CSS @theme 블록으로 토큰을 정의한다.
    토큰 → 유틸: bg-primary / text-primary / rounded-card / rounded-button ...
-   팔레트: 화이트·연라벤더 베이스 + 핫핑크 주색 + 시안·옐로우 포인트(캔디톤).
+   팔레트: 화이트·연라벤더 베이스 + 편안한 로즈 주색 + 시안·옐로우 포인트.
    ────────────────────────────────────────────── */
 @theme {
-  /* color — 주색(핫핑크) */
-  --color-primary: #FF4FB7;            /* 메인 핫핑크 */
-  --color-primary-hover: #F23BA6;
+  /* color — 주색(편안한 로즈) */
+  --color-primary: #E86A92;            /* 메인 로즈 */
+  --color-primary-hover: #D9577F;
   --color-primary-foreground: #FFFFFF;
 
   /* 포인트 컬러(보조 강조) */

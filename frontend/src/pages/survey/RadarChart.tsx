@@ -45,12 +45,12 @@ export default function RadarChart({ data, size = 260 }: RadarChartProps) {
       <polygon
         points={join(dataPts)}
         fill="rgba(255,159,102,.28)"
-        stroke="#F23BA6"
+        stroke="#D9577F"
         strokeWidth="2.5"
         strokeLinejoin="round"
       />
       {dataPts.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="3.5" fill="#F23BA6" />
+        <circle key={i} cx={x} cy={y} r="3.5" fill="#D9577F" />
       ))}
       {data.map((d, i) => {
         const lx = cx + labelR * Math.cos(angle(i));

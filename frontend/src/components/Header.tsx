@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
 interface HeaderProps {
-  /** 미지정 시 편돌즈.trip 로고 표시 */
+  /** 미지정 시 GrouTrip 편돌즈 로고 표시 */
   title?: ReactNode;
   /** 뒤로가기 버튼 표시 */
   showBack?: boolean;
@@ -47,7 +47,7 @@ export default function Header({ title, showBack = false, actions, sticky = true
               <circle cx="12" cy="10.5" r="2.2" fill="#fff" />
             </svg>
           </span>
-          <span className="text-[16px] font-extrabold tracking-tight">편돌즈<span className="text-muted">.trip</span></span>
+          <span className="text-[16px] font-extrabold tracking-tight">GrouTrip <span className="text-muted">편돌즈</span></span>
         </div>
       )}
 

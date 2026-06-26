@@ -81,7 +81,7 @@ export default function VoteTab({ groupId }: { groupId: number; isOwner?: boolea
         type="button"
         onClick={openCreate}
         disabled={schedules.length === 0 && status === 'done'}
-        className="mb-3.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#D62E97] active:bg-[#FCEFF9] disabled:cursor-not-allowed disabled:opacity-60"
+        className="mb-3.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#C25478] active:bg-[#FCEFF9] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

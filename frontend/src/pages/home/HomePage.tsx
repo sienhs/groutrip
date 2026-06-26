@@ -43,7 +43,7 @@ export default function HomePage() {
       {home && (home.notification.unsettledAmount > 0 || home.notification.pendingVoteCount > 0) && (
         <div className="mt-3 flex gap-2">
           {home.notification.unsettledAmount > 0 && (
-            <span className="rounded-full bg-[#FCF0F9] px-3 py-1.5 text-[12px] font-bold text-[#D62E97]">
+            <span className="rounded-full bg-[#FCF0F9] px-3 py-1.5 text-[12px] font-bold text-[#C25478]">
               미정산 ₩{home.notification.unsettledAmount.toLocaleString('ko-KR')}
             </span>
           )}
@@ -128,7 +128,7 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   {
-    label: '새 그룹', to: '/groups/new', bg: 'bg-[#FFE9F6]', fg: 'text-[#D62E97]',
+    label: '새 그룹', to: '/groups/new', bg: 'bg-[#FFE9F6]', fg: 'text-[#C25478]',
     icon: <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />,
   },
   {
@@ -244,7 +244,7 @@ function CompletedRow({ g, onClick }: { g: HomeGroupSummary; onClick: () => void
         <div className="truncate text-[14px] font-extrabold">{g.title}</div>
         <div className="text-[12px] text-muted">{g.destination} · {g.memberCount}명</div>
       </div>
-      <span className="flex items-center gap-1 text-[12px] font-bold text-[#D62E97]">
+      <span className="flex items-center gap-1 text-[12px] font-bold text-[#C25478]">
         회고 보기
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </span>

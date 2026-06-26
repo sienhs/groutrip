@@ -128,7 +128,7 @@ export default function GroupCreatePage() {
                 aria-pressed={!!customFile}
                 onClick={() => coverInputRef.current?.click()}
                 className={cn(
-                  'flex h-[52px] items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] text-[#D62E97] transition-transform active:scale-95',
+                  'flex h-[52px] items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] text-[#C25478] transition-transform active:scale-95',
                   customFile && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                 )}
               >

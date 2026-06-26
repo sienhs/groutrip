@@ -236,7 +236,7 @@ export default function GroupDetailPage() {
         <button
           type="button"
           onClick={() => navigate(`/groups/${groupId}/plan`)}
-          className="flex w-full items-center gap-3 border-b border-border bg-gradient-to-r from-[#FF4FB7] to-[#F23BA6] px-4 py-4 text-left text-white shadow-sm active:opacity-95"
+          className="flex w-full items-center gap-3 border-b border-border bg-gradient-to-r from-[#E86A92] to-[#D9577F] px-4 py-4 text-left text-white shadow-sm active:opacity-95"
         >
           <span className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-white/25">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -419,7 +419,7 @@ function MemberTab({
                     <button
                       type="button"
                       onClick={() => setConfirm({ kind: 'transfer', member: m })}
-                      className="rounded-button px-2 py-1 text-[12px] font-bold text-[#D62E97] hover:bg-[#FCF0F9]"
+                      className="rounded-button px-2 py-1 text-[12px] font-bold text-[#C25478] hover:bg-[#FCF0F9]"
                     >
                       위임
                     </button>

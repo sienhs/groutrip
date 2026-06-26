@@ -87,7 +87,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
       {!loading && !error && (
         <div className="space-y-5">
           {/* 총 지출 */}
-          <div className="rounded-card bg-gradient-to-br from-[#FF4FB7] to-[#F23BA6] p-4 text-white">
+          <div className="rounded-card bg-gradient-to-br from-[#E86A92] to-[#D9577F] p-4 text-white">
             <p className="text-[12px] opacity-90">총 지출</p>
             <p className="mt-0.5 text-[25px] font-extrabold">{formatWon(summary?.totalExpenseAmount ?? 0)}</p>
             {summary && (
@@ -117,7 +117,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
                       type="button"
                       aria-label="수정"
                       onClick={() => { setEditing(e); setFormOpen(true); }}
-                      className="flex size-8 items-center justify-center rounded-button text-[#8A8699] hover:bg-[#FCF0F9] hover:text-[#D62E97]"
+                      className="flex size-8 items-center justify-center rounded-button text-[#8A8699] hover:bg-[#FCF0F9] hover:text-[#C25478]"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
                         <path d="M4 20h4L18 10l-4-4L4 16v4ZM14 6l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

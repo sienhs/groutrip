@@ -16,7 +16,7 @@ import { formatDuration, formatKm, type Schedule } from '../../types/schedule';
 import type { Accommodation, BookingStatus } from '../../types/accommodation';
 
 // 일자별 핀·경로 색(반복).
-const DAY_COLORS = ['#D62E97', '#3182F6', '#22C55E', '#A855F7', '#EC4899', '#F59E0B', '#06B6D4', '#EF4444'];
+const DAY_COLORS = ['#C25478', '#3182F6', '#22C55E', '#A855F7', '#EC4899', '#F59E0B', '#06B6D4', '#EF4444'];
 
 const addDay = (ymd: string): string => {
   const d = new Date(`${ymd}T12:00:00`);
@@ -371,7 +371,7 @@ export default function ScheduleMapPage() {
 
               {/* 범례 */}
               <div className="flex items-center gap-3 px-1 text-[11px] text-muted">
-                <span className="inline-flex items-center gap-1"><span className="size-3 rounded-full border-2 border-white bg-[#D62E97] shadow" />일정(순번)</span>
+                <span className="inline-flex items-center gap-1"><span className="size-3 rounded-full border-2 border-white bg-[#C25478] shadow" />일정(순번)</span>
                 <span className="inline-flex items-center gap-1"><StayGlyph small />숙소</span>
                 <span className="inline-flex items-center gap-1"><span className="h-0.5 w-4 bg-[#3182F6]" />이동 경로</span>
               </div>
@@ -432,7 +432,7 @@ function StayGlyph({ small }: { small?: boolean }) {
   const s = small ? 14 : 16;
   return (
     <span
-      className="inline-flex items-center justify-center rounded-[5px] border-2 border-white bg-[#D62E97] shadow"
+      className="inline-flex items-center justify-center rounded-[5px] border-2 border-white bg-[#C25478] shadow"
       style={{ width: s, height: s }}
     >
       <svg width={s - 5} height={s - 5} viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -492,7 +492,7 @@ function ModeIcon({ kind }: { kind: 'car' | 'transit' }) {
     ? 'M5 11l2-5h10l2 5M5 11h14v5H5v-5ZM7 16v2M17 16v2'
     : 'M6 4h12v11H6zM6 15l-1 4M18 15l1 4M9 18h6M9 8h6';
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="text-[#D62E97]">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="text-[#C25478]">
       <path d={d} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -526,8 +526,8 @@ function DetailCard({ pin, onClose }: { pin: Pin; onClose: () => void }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {pin.isStay
-              ? <span className="rounded-full bg-[#FCF0F9] px-2 py-0.5 text-[11px] font-extrabold text-[#D62E97]">숙소</span>
-              : <span className="rounded-full bg-[#FCF0F9] px-2 py-0.5 text-[11px] font-extrabold text-[#D62E97]">{pin.order}번째 일정</span>}
+              ? <span className="rounded-full bg-[#FCF0F9] px-2 py-0.5 text-[11px] font-extrabold text-[#C25478]">숙소</span>
+              : <span className="rounded-full bg-[#FCF0F9] px-2 py-0.5 text-[11px] font-extrabold text-[#C25478]">{pin.order}번째 일정</span>}
             <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-foreground">{pin.name}</span>
           </div>
           {pin.address && <p className="mt-1 line-clamp-1 text-[12px] text-muted">{pin.address}</p>}
@@ -587,7 +587,7 @@ function DetailCard({ pin, onClose }: { pin: Pin; onClose: () => void }) {
 function MapFallback({ pins, message }: { pins: Pin[]; message: string }) {
   return (
     <div className="space-y-2.5">
-      <p className="rounded-card border border-[#FFCFEB] bg-[#FAFAFF] px-3.5 py-2.5 text-[12px] font-semibold text-[#B02080]">
+      <p className="rounded-card border border-[#FFCFEB] bg-[#FAFAFF] px-3.5 py-2.5 text-[12px] font-semibold text-[#9A4869]">
         {message} 지도를 켜려면 카카오 JavaScript 키를 설정해 주세요. 우선 장소 목록으로 보여드려요.
       </p>
       {pins.map((p, i) => (
@@ -600,7 +600,7 @@ function MapFallback({ pins, message }: { pins: Pin[]; message: string }) {
         >
           {p.isStay
             ? <StayGlyph />
-            : <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#FCF0F9] text-[12px] font-extrabold text-[#D62E97]">{p.order}</span>}
+            : <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#FCF0F9] text-[12px] font-extrabold text-[#C25478]">{p.order}</span>}
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-bold text-foreground">{p.name}</div>
             <div className="text-[11px] text-muted">{p.isStay ? '숙소' : p.date ? `${shortDate(p.date)} 일정` : '일정'} · 네이버 지도에서 보기 ↗</div>

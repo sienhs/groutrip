@@ -115,7 +115,7 @@ export default function SurveyPage() {
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             {Object.values(DIMENSION_META).map((m) => (
-              <span key={m.label} className="rounded-full bg-[#FCF0F9] px-3 py-1.5 text-[12px] font-bold text-[#D62E97]">
+              <span key={m.label} className="rounded-full bg-[#FCF0F9] px-3 py-1.5 text-[12px] font-bold text-[#C25478]">
                 {m.label}
               </span>
             ))}
@@ -145,7 +145,7 @@ export default function SurveyPage() {
         </button>
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#EEECF6]">
           {/* 동적 진행률 — 런타임 값이라 인라인 style 사용 */}
-          <div className="h-full rounded-full bg-gradient-to-r from-[#FFB0DD] to-[#F23BA6] transition-[width] duration-300" style={{ width: `${progress}%` }} />
+          <div className="h-full rounded-full bg-gradient-to-r from-[#F3B9CB] to-[#D9577F] transition-[width] duration-300" style={{ width: `${progress}%` }} />
         </div>
         <span className="min-w-9 text-right text-[13px] font-extrabold text-muted">
           {index + 1}/{total}
@@ -155,7 +155,7 @@ export default function SurveyPage() {
       <div className="flex flex-1 flex-col justify-center px-6 text-center">
         {current && (
           <>
-            <p className="text-[12px] font-extrabold tracking-wide text-[#D62E97]">
+            <p className="text-[12px] font-extrabold tracking-wide text-[#C25478]">
               {DIMENSION_META[current.dimension].label}
             </p>
             <h2 className="mt-3.5 text-[22px] font-extrabold leading-snug tracking-tight">
