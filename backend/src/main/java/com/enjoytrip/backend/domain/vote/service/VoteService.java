@@ -167,6 +167,24 @@ public class VoteService {
     }
 
     /**
+     * 일정 삭제 시 해당 일정에 연동된 투표 세션·후보·투표를 함께 정리한다.
+     * FK가 모두 NO ACTION이라 votes → candidates → sessions 순서로 삭제해 제약 위반(500)을 막는다.
+     * (권한 검증은 호출부인 ScheduleService.delete에서 이미 수행한다.)
+     */
+    public void deleteBySchedule(Long scheduleId) {
+        List<VoteSession> sessions = voteSessionRepository.findByScheduleIdOrderByIdDesc(scheduleId);
+        for (VoteSession session : sessions) {
+            List<VoteCandidate> candidates = voteCandidateRepository.findByVoteSessionIdOrderByIdAsc(session.getId());
+            if (!candidates.isEmpty()) {
+                List<Long> candidateIds = candidates.stream().map(VoteCandidate::getId).toList();
+                voteRepository.deleteAll(voteRepository.findByCandidateIdIn(candidateIds));
+                voteCandidateRepository.deleteAll(candidates);
+            }
+        }
+        voteSessionRepository.deleteAll(sessions);
+    }
+
+    /**
      * FR-VOTE-03: 투표 마감/채택.
      * candidateId가 있으면 수동 채택, 없으면 최다 득표 후보를 자동 채택(동점이면 수동 선택 필요)한다.
      * Owner 또는 세션 생성자/후보 등록자만 마감할 수 있다.

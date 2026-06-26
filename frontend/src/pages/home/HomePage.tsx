@@ -87,7 +87,7 @@ export default function HomePage() {
           {home.inProgress.length > 0 && (
             <section>
               <SectionTitle>진행 중인 여행</SectionTitle>
-              <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2">
                 {home.inProgress.map((g) => <OngoingCard key={g.id} g={g} onClick={() => navigate(`/groups/${g.id}`)} />)}
               </div>
             </section>
@@ -95,7 +95,7 @@ export default function HomePage() {
           {home.upcoming.length > 0 && (
             <section>
               <SectionTitle>예정된 여행</SectionTitle>
-              <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2">
                 {home.upcoming.map((g) => <UpcomingCard key={g.id} g={g} onClick={() => navigate(`/groups/${g.id}`)} />)}
               </div>
             </section>
@@ -103,7 +103,7 @@ export default function HomePage() {
           {home.completed.length > 0 && (
             <section>
               <SectionTitle>완료된 여행</SectionTitle>
-              <div className="space-y-2.5">
+              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
                 {home.completed.map((g) => <CompletedRow key={g.id} g={g} onClick={() => navigate(`/groups/${g.id}/recap`)} />)}
               </div>
             </section>

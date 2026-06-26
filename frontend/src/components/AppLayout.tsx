@@ -32,14 +32,16 @@ export default function AppLayout({
   hideHeader = false,
 }: AppLayoutProps) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md md:max-w-5xl">
+    // 모바일: max-w-md 단일 컬럼 중앙 정렬. 데스크톱(md+): 사이드바 + 본문이 창 전체 너비를 채운다.
+    <div className="mx-auto flex min-h-dvh w-full max-w-md md:max-w-none">
       {/* 데스크톱 사이드바 — 풀스크린(hideBottomNav)에서는 숨김 */}
       {!hideBottomNav && <SideNav />}
 
       {/* 본문 컬럼 */}
       <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background shadow-sm md:shadow-none">
         {!hideHeader && <Header title={title} showBack={showBack} actions={headerActions} />}
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-5 md:py-8">{children}</main>
+        {/* 본문 폭은 창 크기에 따라 단계적으로 넓어진다(가독성을 위해 상한은 둔다). */}
+        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-5 md:px-6 md:py-8 lg:max-w-4xl lg:px-8 2xl:max-w-5xl">{children}</main>
         {!hideBottomNav && <BottomNav />}
       </div>
     </div>

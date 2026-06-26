@@ -45,6 +45,8 @@ class ScheduleServiceTest {
     private CurrentUserResolver currentUserResolver;
     private GroupAccessValidator groupAccessValidator;
     private ApplicationEventPublisher eventPublisher;
+    private com.enjoytrip.backend.domain.expense.service.ExpenseService expenseService;
+    private com.enjoytrip.backend.domain.vote.service.VoteService voteService;
     private ScheduleService scheduleService;
 
     @BeforeEach
@@ -55,10 +57,12 @@ class ScheduleServiceTest {
         currentUserResolver = mock(CurrentUserResolver.class);
         groupAccessValidator = mock(GroupAccessValidator.class);
         eventPublisher = mock(ApplicationEventPublisher.class);
+        expenseService = mock(com.enjoytrip.backend.domain.expense.service.ExpenseService.class);
+        voteService = mock(com.enjoytrip.backend.domain.vote.service.VoteService.class);
         scheduleService = new ScheduleService(
                 scheduleRepository, placeRepository, travelGroupRepository,
                 currentUserResolver, groupAccessValidator, eventPublisher,
-                mock(com.enjoytrip.backend.domain.expense.service.ExpenseService.class));
+                expenseService, voteService);
     }
 
     @Test
@@ -151,7 +155,10 @@ class ScheduleServiceTest {
 
         scheduleService.delete(1L, 11L);
 
-        verify(scheduleRepository).delete(s1);
+        // 연동된 투표 세션·후보·투표를 함께 정리한 뒤(스케줄 삭제 전) 일정을 삭제해야 FK 위반(500)이 없다.
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(voteService, scheduleRepository);
+        inOrder.verify(voteService).deleteBySchedule(11L);
+        inOrder.verify(scheduleRepository).delete(s1);
         verify(eventPublisher).publishEvent(any(DomainEvent.class));
     }
 

@@ -16,6 +16,7 @@ import com.enjoytrip.backend.domain.place.controller.PlacePhotoController;
 import com.enjoytrip.backend.domain.place.entity.Place;
 import com.enjoytrip.backend.domain.place.repository.PlaceRepository;
 import com.enjoytrip.backend.domain.expense.service.ExpenseService;
+import com.enjoytrip.backend.domain.vote.service.VoteService;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleCostRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleCreateRequest;
 import com.enjoytrip.backend.domain.schedule.dto.ScheduleReorderRequest;
@@ -48,6 +49,7 @@ public class ScheduleService {
     private final GroupAccessValidator groupAccessValidator;
     private final ApplicationEventPublisher eventPublisher;
     private final ExpenseService expenseService;
+    private final VoteService voteService;
 
     /**
      * FR-SCHEDULE-01: 일정 추가. 새 항목은 해당 일자의 마지막 순서로 배치한다.
@@ -157,6 +159,8 @@ public class ScheduleService {
 
         // 일정에 연동된 예상 비용 지출도 함께 정리(고아 지출 방지).
         expenseService.syncScheduleCostExpense(groupId, scheduleId, null, null, null, null);
+        // 일정에 연동된 투표 세션·후보·투표도 함께 정리(FK 위반 500 방지).
+        voteService.deleteBySchedule(scheduleId);
         scheduleRepository.delete(schedule);
         eventPublisher.publishEvent(DomainEvent.of(EventType.SCHEDULE_DELETED, groupId, user.getId(), scheduleId));
     }
