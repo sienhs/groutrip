@@ -36,6 +36,16 @@ public class UserAvatarController {
         return ResponseEntity.ok(ApiResponse.success("프로필 사진을 등록했습니다."));
     }
 
+    @GetMapping("/me/avatar")
+    @Operation(summary = "내 프로필 사진 조회", description = "현재 로그인한 사용자의 프로필 사진을 조회한다(없으면 404).")
+    public ResponseEntity<byte[]> myAvatar() {
+        AvatarData data = userAvatarService.loadMyAvatar();
+        MediaType mediaType = data.contentType() == null
+                ? MediaType.IMAGE_JPEG
+                : MediaType.parseMediaType(data.contentType());
+        return ResponseEntity.ok().contentType(mediaType).body(data.data());
+    }
+
     @GetMapping("/{userId}/avatar")
     @Operation(summary = "프로필 사진 조회", description = "사용자 프로필 사진을 조회한다(없으면 404).")
     public ResponseEntity<byte[]> avatar(@PathVariable Long userId) {

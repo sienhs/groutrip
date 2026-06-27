@@ -46,6 +46,16 @@ public class UserAvatarService {
         objectStorage.delete(previousKey);
     }
 
+    /** 현재 로그인 사용자의 프로필 사진 로드. 없으면 404. */
+    @Transactional(readOnly = true)
+    public AvatarData loadMyAvatar() {
+        User user = currentUserResolver.getCurrentUser();
+        if (!user.hasAvatar()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+        return new AvatarData(objectStorage.download(user.getAvatarKey()), user.getAvatarContentType());
+    }
+
     /** 프로필 사진 바이트 로드(공개 조회). 없으면 404. */
     @Transactional(readOnly = true)
     public AvatarData loadAvatar(Long userId) {
