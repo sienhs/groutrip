@@ -461,11 +461,11 @@ export default function TripPlanPage() {
       {step === 'start' && (
         <div className="space-y-4">
           <div className="rounded-card border border-[#FFCFEB] bg-[#FAFAFF] p-4">
-            <p className="text-[12px] font-extrabold text-[#C25478]">STEP 1 · 숙소 선정</p>
-            <p className="mt-1 text-[16px] font-extrabold text-foreground">먼저 묵을 숙소를 정해요</p>
-            <p className="mt-1 text-[13px] text-[#9A4869]">목적지 · {destination} · 숙소부터 정하고 갈 곳을 모아요.</p>
+            <p className="text-[12px] font-extrabold text-[#C25478]">여행 계획 시작</p>
+            <p className="mt-1 text-[16px] font-extrabold text-foreground">무엇부터 시작할까요?</p>
+            <p className="mt-1 text-[13px] text-[#9A4869]">목적지 · {destination}</p>
           </div>
-          <p className="text-[13px] font-bold text-foreground">어떻게 숙소를 정해볼까요?</p>
+          <p className="text-[13px] font-bold text-foreground">숙소를 정해볼까요?</p>
           <ChoiceCard
             title="지역만 정해서 추천받기"
             desc="시·군·구를 단계별로 고르면 그 지역 숙소를 바로 보여드려요."
@@ -475,6 +475,16 @@ export default function TripPlanPage() {
             title="상세주소 입력하기"
             desc="숙소나 가고 싶은 곳을 이미 정했다면, 바로 검색해서 장소를 정해요."
             onClick={chooseAddress}
+          />
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 border-t border-border" />
+            <span className="text-[12px] text-muted">또는</span>
+            <div className="flex-1 border-t border-border" />
+          </div>
+          <ChoiceCard
+            title="장소만 먼저 모아보기"
+            desc="숙소는 나중에 정해도 돼요. 맛집·명소를 바로 보관함에 담기 시작해요."
+            onClick={() => setStep('hub')}
           />
         </div>
       )}
@@ -743,33 +753,43 @@ export default function TripPlanPage() {
         </div>
       )}
 
-      {step === 'hub' && current && (
+      {step === 'hub' && (
         <div className="space-y-4">
-          <div className="rounded-card border border-[#CDE9C7] bg-[#F2FBF0] p-4">
-            {/* 고정 라이트 배경이라 다크모드에서도 읽히도록 고정 다크색 사용(토큰 X) */}
-            <div className="text-[14px] font-extrabold text-[#2E3A28]">숙소 예약 완료 ✓</div>
-            <div className="mt-1 text-[13px] text-[#5A6B54]">
-              {current.place.name}
-              {current.reservationPrice != null && ` · ${current.reservationPrice.toLocaleString()}원`}
-              {current.reservationPrice == null && current.bookingPhotoUrl && ' · 예약 사진 첨부됨'}
-            </div>
-            {current.reservationPrice != null && (
-              <div className="mt-1 text-[12px] font-semibold text-[#7FAE6B]">
-                숙박비가 정산(균등 분담)에 자동 추가됐어요 · 보관함에도 담겼어요
+          {/* 숙소가 있을 때만 완료 배너 */}
+          {current && (
+            <div className="rounded-card border border-[#CDE9C7] bg-[#F2FBF0] p-4">
+              {/* 고정 라이트 배경이라 다크모드에서도 읽히도록 고정 다크색 사용(토큰 X) */}
+              <div className="text-[14px] font-extrabold text-[#2E3A28]">숙소 예약 완료 ✓</div>
+              <div className="mt-1 text-[13px] text-[#5A6B54]">
+                {current.place.name}
+                {current.reservationPrice != null && ` · ${current.reservationPrice.toLocaleString()}원`}
+                {current.reservationPrice == null && current.bookingPhotoUrl && ' · 예약 사진 첨부됨'}
               </div>
-            )}
-          </div>
+              {current.reservationPrice != null && (
+                <div className="mt-1 text-[12px] font-semibold text-[#7FAE6B]">
+                  숙박비가 정산(균등 분담)에 자동 추가됐어요 · 보관함에도 담겼어요
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
-            <p className="mb-2 text-[13px] font-bold text-foreground">다음으로 무엇을 해볼까요?</p>
+            <p className="mb-2 text-[13px] font-bold text-foreground">무엇을 해볼까요?</p>
             <div className="space-y-2.5">
-              {nights.some((n) => !coveredByDate.has(n)) && (
+              {/* 숙소가 없거나 아직 비어있는 날이 있을 때 */}
+              {!current ? (
+                <ChoiceCard
+                  title="숙소 정하기"
+                  desc="숙소를 정하면 가격 비교·예약·정산이 자동 연동돼요."
+                  onClick={() => setStep('start')}
+                />
+              ) : nights.some((n) => !coveredByDate.has(n)) ? (
                 <ChoiceCard
                   title="다른 날 숙소 추가하기"
                   desc={`아직 숙소가 없는 날: ${nights.filter((n) => !coveredByDate.has(n)).map(shortDate).join(', ')}`}
                   onClick={addAnotherAccommodation}
                 />
-              )}
+              ) : null}
               <ChoiceCard
                 title="갈 만한 곳 추천받기"
                 desc="목적지와 그룹 성향에 맞는 관광지를 추천해 드려요."

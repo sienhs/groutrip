@@ -97,6 +97,11 @@ export interface BookmarkCreateRequest {
   memo?: string;
   /** 1~5 */
   personalRating?: number;
+  /** 비(非)Google 장소(kakao:/manual:)용 — Google 장소는 BE가 Place Details로 보강하므로 무시됨 */
+  name?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 /** ⑤ 보관함 수정 요청(작성자/Owner). */

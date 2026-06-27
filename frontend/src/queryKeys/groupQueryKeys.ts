@@ -28,6 +28,10 @@ export const groupQueryKeys = {
   persona: (groupId: number) => ['group', groupId, 'persona'] as const,
   /** 그룹 사진 갤러리. */
   photos: (groupId: number) => ['group', groupId, 'photos'] as const,
+  /** 게시판 글 목록. */
+  posts: (groupId: number) => ['board', groupId] as const,
+  /** 그룹 장보기 목록. */
+  shoppingItems: (groupId: number) => ['shopping', groupId] as const,
 } as const;
 
 /**
@@ -64,6 +68,11 @@ export function invalidationKeysForEvent(
       return [groupQueryKeys.members(groupId), groupQueryKeys.detail(groupId)];
     case 'GROUP_UPDATED':
       return [groupQueryKeys.detail(groupId), groupQueryKeys.members(groupId)];
+    case 'CHAT_MESSAGE':
+      return [];
+    case 'POST_CREATED':
+    case 'COMMENT_ADDED':
+      return [groupQueryKeys.posts(groupId)];
     default: {
       // 전수 처리 보장: 새 이벤트 타입 추가 시 컴파일 에러.
       const _exhaustive: never = type;

@@ -20,6 +20,9 @@ import GroupGalleryPage from '../gallery/GroupGalleryPage';
 import GroupEditModal from './GroupEditModal';
 import GroupPersonaCard from './GroupPersonaCard';
 import GroupAccommodations from './GroupAccommodations';
+import GroupChatPage from '../chat/GroupChatPage';
+import GroupBoardPage from '../board/GroupBoardPage';
+import ShoppingListCard from '../../components/ShoppingListCard';
 import {
   getGroup,
   getGroupMembers,
@@ -38,7 +41,7 @@ import { gradientForKey, ddayLabel, dateRange } from './groupUi';
 import { cn } from '../../lib/cn';
 import { type GroupMember } from '../../types/group';
 
-type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'gallery' | 'member';
+type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'gallery' | 'chat' | 'board' | 'member';
 
 const TABS: TabItem[] = [
   { key: 'schedule', label: '일정' },
@@ -46,6 +49,8 @@ const TABS: TabItem[] = [
   { key: 'vote', label: '투표' },
   { key: 'settle', label: '정산' },
   { key: 'gallery', label: '사진' },
+  { key: 'chat', label: '채팅' },
+  { key: 'board', label: '게시판' },
   { key: 'member', label: '멤버' },
 ];
 
@@ -281,6 +286,11 @@ export default function GroupDetailPage() {
       {/* 우리 숙소(날짜별 선정/예약) */}
       <GroupAccommodations groupId={groupId} startDate={group?.startDate} endDate={group?.endDate} />
 
+      {/* 장보기 목록 — 항목이 있으면 자동 펼침, 없으면 접힌 채 대기 */}
+      {!loading && (
+        <ShoppingListCard groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
+      )}
+
       {/* 작업 영역 — 데스크톱(lg+)은 좌(탭 콘텐츠) + 우(보관함 고정 패널) 2-pane */}
       <div className="flex-1 lg:flex lg:items-start lg:gap-5 lg:px-4">
         {/* LEFT: 탭 + 콘텐츠 */}
@@ -301,6 +311,10 @@ export default function GroupDetailPage() {
               <ExpensePage groupId={groupId} members={members} />
             ) : leftTab === 'gallery' ? (
               <GroupGalleryPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
+            ) : leftTab === 'chat' ? (
+              <GroupChatPage groupId={groupId} />
+            ) : leftTab === 'board' ? (
+              <GroupBoardPage groupId={groupId} />
             ) : leftTab === 'member' ? (
               <MemberTab
                 groupId={groupId}

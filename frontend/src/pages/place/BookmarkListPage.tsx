@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
+import Modal, { ConfirmModal } from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
-import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import { NaverThumb, StarRating, PriceTag } from './PlaceBits';
 import AiReviewButton from './AiReviewButton';
 import BookmarkFormModal from './BookmarkFormModal';
-import { getBookmarks, deleteBookmark } from '../../api/place';
+import { getBookmarks, deleteBookmark, addBookmark } from '../../api/place';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
 import { naverPlaceUrl } from '../../lib/naver';
@@ -65,6 +65,7 @@ export default function BookmarkListPage({
     setVisibleCount(PAGE_SIZE);
   };
 
+  const [directInputOpen, setDirectInputOpen] = useState(false);
   const [editing, setEditing] = useState<BookmarkResponse | null>(null);
   const [deleting, setDeleting] = useState<BookmarkResponse | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -108,17 +109,30 @@ export default function BookmarkListPage({
 
   return (
     <div className="flex flex-col">
-      {/* 장소 추가하기 — 여행 계획 플로우(숙소/맛집/명소 선정)로 진입. 계획이 있으면 '이어가기'로 합쳐 노출. */}
-      <button
-        type="button"
-        onClick={() => navigate(`/groups/${groupId}/plan`)}
-        className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#C25478] active:bg-[#FCEFF9]"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        {planExists ? '여행 계획 이어가기 · 장소 추가' : '장소 추가하기'}
-      </button>
+      {/* 장소 추가 버튼 영역 */}
+      <div className="mb-3 flex gap-2">
+        <button
+          type="button"
+          onClick={() => navigate(`/groups/${groupId}/plan`)}
+          className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] py-3 text-[14px] font-bold text-[#C25478] active:bg-[#FCEFF9]"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          {planExists ? '여행 계획 이어가기' : '장소 검색'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setDirectInputOpen(true)}
+          className="flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] px-3 py-3 text-[13px] font-bold text-[#C25478] active:bg-[#FCEFF9]"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M11 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M18 2l4 4-9 9H9v-4l9-9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          직접 입력
+        </button>
+      </div>
 
       {/* 검색 */}
       <div className="mb-2">
@@ -130,7 +144,7 @@ export default function BookmarkListPage({
       </div>
 
       {/* 필터 + 정렬 */}
-      <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
         <FilterChip active={category === null} onClick={() => changeCategory(null)}>전체</FilterChip>
         {PLACE_CATEGORIES.map((c) => (
           <FilterChip key={c.value} active={category === c.value} onClick={() => changeCategory(c.value)}>
@@ -220,6 +234,14 @@ export default function BookmarkListPage({
         description={deleting ? `'${deleting.place.name}'을(를) 보관함에서 제거합니다.` : undefined}
         confirmText="삭제"
       />
+
+      {directInputOpen && (
+        <DirectInputModal
+          groupId={groupId}
+          onClose={() => setDirectInputOpen(false)}
+          onSaved={() => invalidateBookmarks()}
+        />
+      )}
     </div>
   );
 }
@@ -334,5 +356,95 @@ function BookmarkCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function DirectInputModal({
+  groupId,
+  onClose,
+  onSaved,
+}: {
+  groupId: number;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [category, setCategory] = useState<PlaceCategory>('ETC');
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      addBookmark(groupId, {
+        googlePlaceId: 'manual:',
+        categoryTag: category,
+        name: name.trim(),
+        address: address.trim() || undefined,
+      }),
+    onSuccess: (res) => {
+      toast.success('보관함에 추가했어요', res.place.name);
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.bookmarks(groupId) });
+      onSaved();
+      onClose();
+    },
+    onError: (e: { response?: { data?: { message?: string } } }) => {
+      const message = e?.response?.data?.message;
+      toast.error('추가하지 못했어요', message ?? '잠시 후 다시 시도해 주세요.');
+    },
+  });
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="장소 직접 입력"
+      description="검색에 없는 장소를 이름과 주소로 직접 추가해요."
+      footer={
+        <div className="flex gap-2">
+          <Button variant="ghost" fullWidth onClick={onClose} disabled={mutation.isPending}>취소</Button>
+          <Button
+            fullWidth
+            loading={mutation.isPending}
+            disabled={!name.trim()}
+            onClick={() => mutation.mutate()}
+          >
+            보관함에 추가
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        <div>
+          <label className="mb-1 block text-[13px] font-bold text-foreground">
+            장소 이름 <span className="text-danger">*</span>
+          </label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="예: 대부도 조개구이 명가"
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[13px] font-bold text-foreground">
+            주소 <span className="text-[#9A95A8] font-normal">(선택 — 지도 연동에 사용)</span>
+          </label>
+          <Input
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="예: 경기도 안산시 단원구 대부황금로 124"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[13px] font-bold text-foreground">카테고리</label>
+          <Select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as PlaceCategory)}
+            options={PLACE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
+          />
+        </div>
+      </div>
+    </Modal>
   );
 }

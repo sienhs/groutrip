@@ -59,9 +59,18 @@ export default function PlacePickerModal({ groupId, title = '장소 선택', des
     setBusyKey(p.googlePlaceId);
     try {
       let placeId: number;
+      const isNonGoogle = p.googlePlaceId.startsWith('kakao:') || p.googlePlaceId.startsWith('manual:');
       try {
-        placeId = (await addBookmark(groupId, { googlePlaceId: p.googlePlaceId, categoryTag: p.category })).place.placeId;
-        // 검색 선택으로 보관함에 새로 담겼으면 목록 캐시를 무효화.
+        placeId = (await addBookmark(groupId, {
+          googlePlaceId: p.googlePlaceId,
+          categoryTag: p.category,
+          ...(isNonGoogle ? {
+            name: p.name,
+            address: p.address ?? undefined,
+            latitude: p.latitude,
+            longitude: p.longitude,
+          } : {}),
+        })).place.placeId;
         queryClient.invalidateQueries({ queryKey: groupQueryKeys.bookmarks(groupId) });
       } catch {
         const found = (await getBookmarks(groupId)).find((b) => b.place.googlePlaceId === p.googlePlaceId);

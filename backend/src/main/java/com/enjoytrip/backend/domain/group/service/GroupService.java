@@ -34,7 +34,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class GroupService {
 
-    private static final int MAX_MEMBER_COUNT = 8;
+    private static final int MAX_MEMBER_COUNT = 40;
     private static final int MAX_INVITE_CODE_RETRY = 10;
     private static final int MAX_TRIP_DAYS = 30;
 

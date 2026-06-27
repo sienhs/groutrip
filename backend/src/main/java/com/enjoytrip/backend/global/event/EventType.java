@@ -22,5 +22,10 @@ public enum EventType {
 
     MEMBER_JOINED,
     MEMBER_LEFT,
-    GROUP_UPDATED
+    GROUP_UPDATED,
+
+    // 채팅 / 게시판 (WebSocket 전환 후 추가)
+    CHAT_MESSAGE,
+    POST_CREATED,
+    COMMENT_ADDED
 }

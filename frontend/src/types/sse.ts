@@ -18,7 +18,10 @@ export type GroupEventType =
   | 'SETTLEMENT_UPDATED'
   | 'MEMBER_JOINED'
   | 'MEMBER_LEFT'
-  | 'GROUP_UPDATED';
+  | 'GROUP_UPDATED'
+  | 'CHAT_MESSAGE'
+  | 'POST_CREATED'
+  | 'COMMENT_ADDED';
 
 export interface GroupEvent<T = unknown> {
   type: GroupEventType;
@@ -35,7 +38,7 @@ export interface GroupEvent<T = unknown> {
 import type { ToastType } from '../components/Toast';
 
 /** 무효화할 React Query 키 도메인. 실제 키는 [domain, groupId]. */
-type QueryDomain = 'schedules' | 'votes' | 'bookmarks' | 'expenses' | 'group';
+type QueryDomain = 'schedules' | 'votes' | 'bookmarks' | 'expenses' | 'group' | 'board';
 
 interface EventMeta {
   /** "{actor}님이 {text}" 로 합성. */
@@ -61,6 +64,9 @@ export const EVENT_META: Record<GroupEventType, EventMeta> = {
   MEMBER_JOINED: { text: '그룹에 참여했습니다', toast: 'success', domain: 'group' },
   MEMBER_LEFT: { text: '그룹에서 나갔습니다', toast: 'warning', domain: 'group' },
   GROUP_UPDATED: { text: '그룹 정보를 변경했습니다', toast: 'info', domain: 'group' },
+  CHAT_MESSAGE: { text: '채팅 메시지를 보냈습니다', toast: 'info', domain: 'group' },
+  POST_CREATED: { text: '게시글을 작성했습니다', toast: 'info', domain: 'board' },
+  COMMENT_ADDED: { text: '댓글을 달았습니다', toast: 'info', domain: 'board' },
 };
 
 /** 알림 목록/드롭다운에서 쓰는 정규화된 알림 항목. */

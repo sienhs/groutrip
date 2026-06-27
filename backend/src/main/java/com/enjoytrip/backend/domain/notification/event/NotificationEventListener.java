@@ -34,8 +34,9 @@ public class NotificationEventListener {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onDomainEvent(DomainEvent<?> event) {
-        // 정산 변화는 SSE로 화면만 실시간 갱신하고, 벨 알림은 남기지 않는다(잦은 송금/수령 확인 소음 방지).
-        if (event.type() == EventType.SETTLEMENT_UPDATED) {
+        // 정산/채팅은 벨 알림 없이 화면만 갱신.
+        if (event.type() == EventType.SETTLEMENT_UPDATED
+                || event.type() == EventType.CHAT_MESSAGE) {
             return;
         }
         boolean groupDissolved = isGroupDissolved(event);
@@ -92,6 +93,9 @@ public class NotificationEventListener {
             case MEMBER_JOINED -> actorName + "님이 그룹에 참여했습니다.";
             case MEMBER_LEFT -> "그룹 멤버가 나갔습니다.";
             case GROUP_UPDATED -> actorName + "님이 그룹 정보를 변경했습니다.";
+            case POST_CREATED -> actorName + "님이 게시글을 작성했습니다.";
+            case COMMENT_ADDED -> actorName + "님이 댓글을 달았습니다.";
+            case CHAT_MESSAGE -> ""; // early-return 처리됨
         };
     }
 
@@ -104,6 +108,8 @@ public class NotificationEventListener {
             case EXPENSE_ADDED, EXPENSE_UPDATED, EXPENSE_DELETED, SETTLEMENT_UPDATED -> groupPath + "/expenses";
             case MEMBER_JOINED, MEMBER_LEFT -> groupPath + "/members";
             case GROUP_UPDATED -> groupPath;
+            case POST_CREATED, COMMENT_ADDED -> groupPath + "?tab=board";
+            case CHAT_MESSAGE -> groupPath + "?tab=chat";
         };
     }
 }
