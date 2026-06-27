@@ -152,6 +152,18 @@ public class AccommodationService {
         expenseService.create(groupId, request);
     }
 
+    /** 숙소 선정 취소(삭제). 선정자 본인 또는 그룹 멤버(Owner 권한은 GroupAccessValidator에서 검증). */
+    public void delete(Long groupId, Long accommodationId) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, user.getId());
+        Accommodation acc = accommodationRepository.findByIdAndTravelGroupId(accommodationId, groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        if (acc.getBookingPhotoKey() != null) {
+            objectStorage.delete(acc.getBookingPhotoKey());
+        }
+        accommodationRepository.delete(acc);
+    }
+
     /** 예약완료 사진 바이트 로드(그룹 멤버 전용). 컨트롤러가 이미지로 스트리밍한다. */
     @Transactional(readOnly = true)
     public BookingPhoto loadPhoto(Long groupId, Long accommodationId) {

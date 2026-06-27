@@ -44,6 +44,11 @@ export const confirmBooking = async (
   return res.data.data;
 };
 
+/** 숙소 선정 취소(삭제). */
+export const deleteAccommodation = async (groupId: number, accommodationId: number): Promise<void> => {
+  await instance.delete(`/api/groups/${groupId}/accommodations/${accommodationId}`);
+};
+
 /**
  * 예약완료 사진을 인증(Authorization 헤더) 포함 blob으로 받아 object URL로 변환.
  * <img src>는 헤더를 못 실으므로 이 방식으로 표시한다. 사용 후 URL.revokeObjectURL 권장.

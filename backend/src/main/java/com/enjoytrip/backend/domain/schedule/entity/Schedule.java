@@ -147,4 +147,10 @@ public class Schedule extends BaseEntity {
         this.status = ScheduleStatus.PLANNED;
         this.updatedBy = editor;
     }
+
+    // 보관함 장소 삭제 시 이 일정 슬롯에서 장소만 제거하고 status는 유지한다.
+    public void clearPlace(User editor) {
+        this.place = null;
+        this.updatedBy = editor;
+    }
 }

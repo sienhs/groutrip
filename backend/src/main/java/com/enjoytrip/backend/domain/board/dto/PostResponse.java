@@ -12,6 +12,7 @@ public record PostResponse(
         String title,
         String content,
         int commentCount,
+        boolean isNotice,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         List<CommentResponse> comments
@@ -24,6 +25,7 @@ public record PostResponse(
                 p.getTitle(),
                 p.getContent(),
                 p.getCommentCount(),
+                p.isNotice(),
                 p.getCreatedAt(),
                 p.getUpdatedAt(),
                 comments
@@ -38,6 +40,7 @@ public record PostResponse(
                 p.getTitle(),
                 null,
                 p.getCommentCount(),
+                p.isNotice(),
                 p.getCreatedAt(),
                 p.getUpdatedAt(),
                 null

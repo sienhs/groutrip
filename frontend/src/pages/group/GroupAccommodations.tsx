@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { getAccommodations } from '../../api/accommodation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAccommodations, deleteAccommodation } from '../../api/accommodation';
 import { placePhotoSrc } from '../../api/place';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
@@ -53,9 +53,18 @@ export default function GroupAccommodations({
   endDate?: string;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: accs } = useQuery({
     queryKey: groupQueryKeys.accommodations(groupId),
     queryFn: () => getAccommodations(groupId),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => deleteAccommodation(groupId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.accommodations(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.plan(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.schedules(groupId) });
+    },
   });
 
   if (!accs) return null; // 로딩 중
@@ -94,7 +103,7 @@ export default function GroupAccommodations({
             const src = placePhotoSrc(a.place.photoUrl);
             const noDate = !a.stayDate;
             return (
-              <div key={a.id} className="flex w-44 shrink-0 items-center gap-2 rounded-card border border-border bg-background p-2">
+              <div key={a.id} className="relative flex w-44 shrink-0 items-center gap-2 rounded-card border border-border bg-background p-2">
                 <div className="size-11 shrink-0 overflow-hidden rounded-[8px] bg-skeleton">
                   {src && <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />}
                 </div>
@@ -113,6 +122,17 @@ export default function GroupAccommodations({
                     <div className="text-[10px] text-muted">{a.status === 'BOOKED' ? '예약 완료' : '선정됨'}</div>
                   )}
                 </div>
+                <button
+                  type="button"
+                  aria-label="숙소 제거"
+                  onClick={() => deleteMut.mutate(a.id)}
+                  disabled={deleteMut.isPending}
+                  className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/20 text-white hover:bg-black/40 disabled:opacity-40"
+                >
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </button>
               </div>
             );
           })}

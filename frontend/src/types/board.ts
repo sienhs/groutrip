@@ -5,6 +5,7 @@ export interface PostSummary {
   title: string;
   content: null;
   commentCount: number;
+  isNotice: boolean;
   createdAt: string;
   updatedAt: string;
   comments: null;
@@ -25,6 +26,7 @@ export interface PostDetail {
   title: string;
   content: string;
   commentCount: number;
+  isNotice: boolean;
   createdAt: string;
   updatedAt: string;
   comments: CommentItem[];

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -69,6 +70,16 @@ public class AccommodationController {
     ) {
         AccommodationResponse response = accommodationService.confirmBooking(groupId, accommodationId, reservationPrice, photo);
         return ResponseEntity.ok(ApiResponse.success("예약 완료를 기록했습니다.", response));
+    }
+
+    @RequiredGroupMember
+    @DeleteMapping("/{accommodationId}")
+    @Operation(summary = "숙소 선정 취소", description = "선정/예약한 숙소를 그룹에서 제거한다.")
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable Long groupId,
+            @PathVariable Long accommodationId) {
+        accommodationService.delete(groupId, accommodationId);
+        return ResponseEntity.ok(ApiResponse.success("숙소를 삭제했습니다.", null));
     }
 
     @RequiredGroupMember

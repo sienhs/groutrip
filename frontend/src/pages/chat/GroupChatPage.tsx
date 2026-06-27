@@ -12,6 +12,15 @@ const WS_URL = (() => {
   return base.replace(/^http/, 'ws') + '/ws';
 })();
 
+const EMOJI_LIST = [
+  '😀','😄','😁','😆','😅','🤣','😂','🙂','😊','😇',
+  '😍','🥰','😘','😎','🤩','🥳','😏','😒','😔','😢',
+  '😭','😤','😠','🤯','😱','🥺','🙏','👍','👎','👏',
+  '🤝','✌️','🤞','💪','🫶','❤️','🧡','💛','💚','💙',
+  '💜','🖤','💔','💯','🔥','✨','🎉','🎊','🎁','🍕',
+  '🍔','🍣','☕','🍺','🥂','🚀','🌈','⭐','🌙','☀️',
+];
+
 interface Props {
   groupId: number;
 }
@@ -21,10 +30,12 @@ export default function GroupChatPage({ groupId }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [connected, setConnected] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const clientRef = useRef<Client | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
 
-  // 초기 히스토리 (최신 50개)
   const historyQuery = useQuery({
     queryKey: ['chat', groupId, 'history'],
     queryFn: () => getChatMessages(groupId),
@@ -37,7 +48,6 @@ export default function GroupChatPage({ groupId }: Props) {
     }
   }, [historyQuery.data]);
 
-  // STOMP 연결 및 실시간 수신
   useEffect(() => {
     const client = new Client({
       brokerURL: WS_URL,
@@ -61,10 +71,38 @@ export default function GroupChatPage({ groupId }: Props) {
     return () => { client.deactivate(); };
   }, [groupId]);
 
-  // 새 메시지 도착 시 스크롤 하단
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // 이모지 패널 바깥 클릭 시 닫기
+  useEffect(() => {
+    if (!showEmoji) return;
+    const handler = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setShowEmoji(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showEmoji]);
+
+  const insertEmoji = (emoji: string) => {
+    const el = inputRef.current;
+    if (!el) {
+      setInput((v) => v + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? input.length;
+    const end = el.selectionEnd ?? input.length;
+    const next = input.slice(0, start) + emoji + input.slice(end);
+    setInput(next);
+    // 커서를 이모지 뒤로 이동
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  };
 
   const send = () => {
     const content = input.trim();
@@ -74,6 +112,7 @@ export default function GroupChatPage({ groupId }: Props) {
       body: JSON.stringify({ content }),
     });
     setInput('');
+    setShowEmoji(false);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -117,12 +156,45 @@ export default function GroupChatPage({ groupId }: Props) {
       </div>
 
       {/* 입력창 */}
-      <div className="border-t border-border bg-background px-3 pb-4 pt-2">
+      <div className="relative border-t border-border bg-background px-3 pb-4 pt-2">
+        {/* 이모지 피커 */}
+        {showEmoji && (
+          <div
+            ref={emojiRef}
+            className="absolute bottom-full left-3 mb-2 grid w-72 grid-cols-10 gap-0.5 rounded-[14px] border border-border bg-surface p-2 shadow-lg"
+          >
+            {EMOJI_LIST.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => insertEmoji(emoji)}
+                className="flex size-[26px] items-center justify-center rounded-md text-[18px] hover:bg-background"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+
         {!connected && (
           <p className="mb-1.5 text-center text-[11px] text-muted">연결 중...</p>
         )}
         <div className="flex items-center gap-2">
+          {/* 이모지 버튼 */}
+          <button
+            type="button"
+            onClick={() => setShowEmoji((v) => !v)}
+            className={cn(
+              'flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-[20px] transition-colors',
+              showEmoji && 'border-[#C25478] bg-[#FCF0F9]',
+            )}
+            aria-label="이모지"
+          >
+            😊
+          </button>
+
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}

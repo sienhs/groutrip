@@ -42,6 +42,7 @@ import com.enjoytrip.backend.domain.place.entity.PlaceSearchCache;
 import com.enjoytrip.backend.domain.place.repository.BookmarkRepository;
 import com.enjoytrip.backend.domain.place.repository.PlaceRepository;
 import com.enjoytrip.backend.domain.place.repository.PlaceSearchCacheRepository;
+import com.enjoytrip.backend.domain.schedule.repository.ScheduleRepository;
 import com.enjoytrip.backend.global.event.DomainEvent;
 import com.enjoytrip.backend.global.event.EventType;
 import com.enjoytrip.backend.global.exception.BusinessException;
@@ -68,6 +69,7 @@ public class PlaceService {
     private final CurrentUserResolver currentUserResolver;
     private final GroupAccessValidator groupAccessValidator;
     private final ApplicationEventPublisher eventPublisher;
+    private final ScheduleRepository scheduleRepository;
     // 내부 캐시 JSON 직렬화 전용. Spring Boot 4는 Jackson 3 ObjectMapper 빈만 제공하므로 직접 생성한다.
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -198,6 +200,10 @@ public class PlaceService {
         Bookmark bookmark = findBookmark(groupId, bookmarkId);
         validateWriterOrOwner(bookmark, actor, user.getId());
 
+        // 이 장소를 참조하는 그룹 일정의 place를 null로 초기화해 일정 목록에서 비워준다.
+        scheduleRepository.findByTravelGroupIdOrderByScheduleDateAscOrderIndexAsc(groupId).stream()
+                .filter(s -> s.getPlace() != null && s.getPlace().getId().equals(bookmark.getPlace().getId()))
+                .forEach(s -> s.clearPlace(user));
         bookmarkRepository.delete(bookmark);
         // FR-SSE-02: 삭제도 PLACE_REMOVED로 발행해 다른 멤버 화면과 동기화한다.
         eventPublisher.publishEvent(

@@ -49,6 +49,9 @@ public class Post {
     @Column(nullable = false)
     private int commentCount = 0;
 
+    @Column(nullable = false)
+    private boolean isNotice = false;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -58,16 +61,18 @@ public class Post {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Post(TravelGroup group, User author, String title, String content) {
+    public Post(TravelGroup group, User author, String title, String content, boolean isNotice) {
         this.group = group;
         this.author = author;
         this.title = title;
         this.content = content;
+        this.isNotice = isNotice;
     }
 
-    public void update(String title, String content) {
+    public void update(String title, String content, boolean isNotice) {
         this.title = title;
         this.content = content;
+        this.isNotice = isNotice;
     }
 
     public void incrementCommentCount() { this.commentCount++; }

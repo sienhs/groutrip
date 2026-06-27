@@ -21,8 +21,7 @@ import GroupEditModal from './GroupEditModal';
 import GroupPersonaCard from './GroupPersonaCard';
 import GroupAccommodations from './GroupAccommodations';
 import GroupChatPage from '../chat/GroupChatPage';
-import GroupBoardPage from '../board/GroupBoardPage';
-import ShoppingListCard from '../../components/ShoppingListCard';
+import GroupBoardPage, { getReadNoticeIds, markNoticesRead } from '../board/GroupBoardPage';
 import {
   getGroup,
   getGroupMembers,
@@ -34,6 +33,7 @@ import {
   groupCoverUrl,
 } from '../../api/group';
 import { getAccommodations } from '../../api/accommodation';
+import { getPosts } from '../../api/board';
 import { useGroupStream } from '../../hooks/useGroupStream';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import useAuthStore from '../../store/authStore';
@@ -43,7 +43,7 @@ import { type GroupMember } from '../../types/group';
 
 type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'gallery' | 'chat' | 'board' | 'member';
 
-const TABS: TabItem[] = [
+const BASE_TABS: TabItem[] = [
   { key: 'schedule', label: '일정' },
   { key: 'place', label: '장소' },
   { key: 'vote', label: '투표' },
@@ -54,7 +54,7 @@ const TABS: TabItem[] = [
   { key: 'member', label: '멤버' },
 ];
 
-const TAB_KEYS = TABS.map((t) => t.key) as TabKey[];
+const TAB_KEYS = BASE_TABS.map((t) => t.key) as TabKey[];
 
 /** lg(1024px) 이상 데스크톱 여부 — 그룹 화면 2-pane(좌: 탭 / 우: 보관함) 분기에 사용. */
 function useIsDesktop(): boolean {
@@ -92,7 +92,6 @@ export default function GroupDetailPage() {
   // 데스크톱(lg+): 보관함을 우측 고정 패널로 빼고, 탭은 좌측 메인(일정/투표/정산/사진/멤버)만.
   // 모바일: 기존 단일 컬럼 + 전체 탭(장소 포함).
   const isDesktop = useIsDesktop();
-  const visibleTabs = isDesktop ? TABS.filter((t) => t.key !== 'place') : TABS;
   const leftTab: TabKey = isDesktop && tab === 'place' ? 'schedule' : tab;
 
   // 본인 이벤트 무시용 userId. 로그인 시 user.id = userId 로 저장됨(authStore).
@@ -117,6 +116,41 @@ export default function GroupDetailPage() {
     enabled: Number.isFinite(groupId),
     retry: false,
   });
+
+  // 공지 읽음 배지용 — board 탭과 같은 query key라 캐시 공유, 추가 요청 없음.
+  const postsQuery = useQuery({
+    queryKey: groupQueryKeys.posts(groupId),
+    queryFn: () => getPosts(groupId),
+    enabled: Number.isFinite(groupId),
+  });
+
+  // board 탭이 활성화되면 공지를 읽음 처리하고 배지를 없앤다.
+  const [noticeReadTick, setNoticeReadTick] = useState(0);
+  useEffect(() => {
+    if (leftTab === 'board' && postsQuery.data) {
+      const ids = postsQuery.data.filter((p) => p.isNotice).map((p) => p.id);
+      if (ids.length > 0) {
+        markNoticesRead(groupId, currentUserId, ids);
+        setNoticeReadTick((t) => t + 1);
+      }
+    }
+  }, [leftTab, postsQuery.data, groupId, currentUserId]);
+
+  const unreadNoticeCount = useMemo(() => {
+    if (!postsQuery.data) return 0;
+    const readIds = getReadNoticeIds(groupId, currentUserId);
+    return postsQuery.data.filter((p) => p.isNotice && !readIds.has(p.id)).length;
+  // noticeReadTick이 바뀌면 재계산
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postsQuery.data, groupId, currentUserId, noticeReadTick]);
+
+  const TABS = useMemo<TabItem[]>(() => BASE_TABS.map((t) =>
+    t.key === 'board' && unreadNoticeCount > 0
+      ? { ...t, badge: unreadNoticeCount }
+      : t
+  ), [unreadNoticeCount]);
+
+  const visibleTabs = isDesktop ? TABS.filter((t) => t.key !== 'place') : TABS;
 
   const group = groupQuery.data ?? null;
   // useMemo로 참조를 안정화해 resolveActorName(useCallback)이 매 렌더 재생성되지 않게 한다.
@@ -286,11 +320,6 @@ export default function GroupDetailPage() {
       {/* 우리 숙소(날짜별 선정/예약) */}
       <GroupAccommodations groupId={groupId} startDate={group?.startDate} endDate={group?.endDate} />
 
-      {/* 장보기 목록 — 항목이 있으면 자동 펼침, 없으면 접힌 채 대기 */}
-      {!loading && (
-        <ShoppingListCard groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
-      )}
-
       {/* 작업 영역 — 데스크톱(lg+)은 좌(탭 콘텐츠) + 우(보관함 고정 패널) 2-pane */}
       <div className="flex-1 lg:flex lg:items-start lg:gap-5 lg:px-4">
         {/* LEFT: 탭 + 콘텐츠 */}
@@ -314,7 +343,7 @@ export default function GroupDetailPage() {
             ) : leftTab === 'chat' ? (
               <GroupChatPage groupId={groupId} />
             ) : leftTab === 'board' ? (
-              <GroupBoardPage groupId={groupId} />
+              <GroupBoardPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
             ) : leftTab === 'member' ? (
               <MemberTab
                 groupId={groupId}

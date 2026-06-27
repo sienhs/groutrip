@@ -12,13 +12,13 @@ export const getPost = async (groupId: number, postId: number): Promise<PostDeta
   return res.data.data;
 };
 
-export const createPost = async (groupId: number, title: string, content: string): Promise<PostDetail> => {
-  const res = await instance.post<ApiResponse<PostDetail>>(`/api/groups/${groupId}/posts`, { title, content });
+export const createPost = async (groupId: number, title: string, content: string, isNotice = false): Promise<PostDetail> => {
+  const res = await instance.post<ApiResponse<PostDetail>>(`/api/groups/${groupId}/posts`, { title, content, isNotice });
   return res.data.data;
 };
 
-export const updatePost = async (groupId: number, postId: number, title: string, content: string): Promise<PostDetail> => {
-  const res = await instance.put<ApiResponse<PostDetail>>(`/api/groups/${groupId}/posts/${postId}`, { title, content });
+export const updatePost = async (groupId: number, postId: number, title: string, content: string, isNotice = false): Promise<PostDetail> => {
+  const res = await instance.put<ApiResponse<PostDetail>>(`/api/groups/${groupId}/posts/${postId}`, { title, content, isNotice });
   return res.data.data;
 };
 

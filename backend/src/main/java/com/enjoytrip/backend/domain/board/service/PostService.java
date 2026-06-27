@@ -67,6 +67,7 @@ public class PostService {
                 .author(user)
                 .title(request.title())
                 .content(request.content())
+                .isNotice(request.isNotice())
                 .build());
 
         eventPublisher.publishEvent(DomainEvent.of(EventType.POST_CREATED, groupId, user.getId(), post.getId()));
@@ -81,7 +82,7 @@ public class PostService {
         if (!post.isOwnedBy(user.getId())) {
             throw new BusinessException(ErrorCode.POST_FORBIDDEN);
         }
-        post.update(request.title(), request.content());
+        post.update(request.title(), request.content(), request.isNotice());
         List<CommentResponse> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId)
                 .stream().map(CommentResponse::from).toList();
         return PostResponse.from(post, comments);

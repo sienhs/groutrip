@@ -100,6 +100,8 @@ export default function BookmarkListPage({
       toast.success('삭제했어요', deleting.place.name);
       setDeleting(null);
       invalidateBookmarks();
+      // 이 장소가 일정에도 연결되어 있을 수 있으므로 일정 캐시도 무효화한다.
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.schedules(groupId) });
     } catch {
       toast.error('삭제에 실패했어요', '권한이 없거나 일시적 오류일 수 있어요.');
     } finally {

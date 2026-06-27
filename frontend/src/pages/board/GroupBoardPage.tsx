@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPosts, getPost, createPost, updatePost, deletePost, createComment, deleteComment } from '../../api/board';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
@@ -7,19 +7,63 @@ import type { PostDetail, PostSummary } from '../../types/board';
 import EmptyState from '../../components/EmptyState';
 import Button from '../../components/Button';
 import { SkeletonCard } from '../../components/Skeleton';
+import ShoppingListCard from '../../components/ShoppingListCard';
 
 interface Props {
   groupId: number;
+  currentUserId: number;
+  isOwner: boolean;
 }
 
-export default function GroupBoardPage({ groupId }: Props) {
+// ── 읽은 공지 ID를 localStorage에서 관리 ──────────────────────────────────────
+
+function readNoticeKey(groupId: number, userId: number) {
+  return `groutrip_read_notices_${groupId}_${userId}`;
+}
+
+export function getReadNoticeIds(groupId: number, userId: number): Set<number> {
+  try {
+    const raw = localStorage.getItem(readNoticeKey(groupId, userId));
+    return new Set(raw ? (JSON.parse(raw) as number[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function markNoticesRead(groupId: number, userId: number, ids: number[]) {
+  try {
+    const existing = getReadNoticeIds(groupId, userId);
+    ids.forEach((id) => existing.add(id));
+    localStorage.setItem(readNoticeKey(groupId, userId), JSON.stringify([...existing]));
+  } catch {
+    // ignore
+  }
+}
+
+// ── 컴포넌트 ─────────────────────────────────────────────────────────────────
+
+export default function GroupBoardPage({ groupId, currentUserId, isOwner }: Props) {
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [composing, setComposing] = useState(false);
+
+  // 게시판 탭이 마운트되면 현재 공지를 모두 읽음 처리
+  const postsQuery = useQuery({
+    queryKey: groupQueryKeys.posts(groupId),
+    queryFn: () => getPosts(groupId),
+  });
+
+  useEffect(() => {
+    const notices = (postsQuery.data ?? []).filter((p) => p.isNotice).map((p) => p.id);
+    if (notices.length > 0) {
+      markNoticesRead(groupId, currentUserId, notices);
+    }
+  }, [postsQuery.data, groupId, currentUserId]);
 
   if (composing) {
     return (
       <PostCompose
         groupId={groupId}
+        isOwner={isOwner}
         onDone={() => setComposing(false)}
         onCancel={() => setComposing(false)}
       />
@@ -31,41 +75,44 @@ export default function GroupBoardPage({ groupId }: Props) {
       <PostDetailView
         groupId={groupId}
         postId={selectedPostId}
+        isOwner={isOwner}
         onBack={() => setSelectedPostId(null)}
       />
     );
   }
 
   return (
-    <PostList
-      groupId={groupId}
-      onSelectPost={setSelectedPostId}
-      onNewPost={() => setComposing(true)}
-    />
+    <div>
+      <ShoppingListCard groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
+      <PostList
+        posts={postsQuery.data ?? []}
+        loading={postsQuery.isLoading}
+        onSelectPost={setSelectedPostId}
+        onNewPost={() => setComposing(true)}
+      />
+    </div>
   );
 }
 
 // ─── Post List ───────────────────────────────────────────────────────────────
 
 function PostList({
-  groupId,
+  posts,
+  loading,
   onSelectPost,
   onNewPost,
 }: {
-  groupId: number;
+  posts: PostSummary[];
+  loading: boolean;
   onSelectPost: (id: number) => void;
   onNewPost: () => void;
 }) {
-  const postsQuery = useQuery({
-    queryKey: groupQueryKeys.posts(groupId),
-    queryFn: () => getPosts(groupId),
-  });
-
-  if (postsQuery.isLoading) {
+  if (loading) {
     return <div className="space-y-3"><SkeletonCard /><SkeletonCard /></div>;
   }
 
-  const posts: PostSummary[] = postsQuery.data ?? [];
+  const notices = posts.filter((p) => p.isNotice);
+  const regular = posts.filter((p) => !p.isNotice);
 
   return (
     <div>
@@ -73,31 +120,48 @@ function PostList({
         <h2 className="text-[15px] font-extrabold">게시판</h2>
         <Button size="sm" onClick={onNewPost}>글쓰기</Button>
       </div>
+
       {posts.length === 0 ? (
         <EmptyState title="게시글이 없어요" description="첫 번째 글을 남겨보세요." />
       ) : (
         <div className="space-y-2">
-          {posts.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => onSelectPost(p.id)}
-              className="w-full rounded-card border border-border bg-surface px-4 py-3.5 text-left"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="line-clamp-1 flex-1 text-[15px] font-bold text-foreground">{p.title}</span>
-                <span className="shrink-0 text-[12px] text-muted">댓글 {p.commentCount}</span>
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-[12px] text-muted">
-                <span>{p.authorName}</span>
-                <span>·</span>
-                <span>{new Date(p.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
-              </div>
-            </button>
-          ))}
+          {/* 공지 먼저 */}
+          {notices.map((p) => <PostRow key={p.id} post={p} onClick={() => onSelectPost(p.id)} />)}
+          {/* 구분선 */}
+          {notices.length > 0 && regular.length > 0 && (
+            <div className="my-1 border-t border-dashed border-border" />
+          )}
+          {regular.map((p) => <PostRow key={p.id} post={p} onClick={() => onSelectPost(p.id)} />)}
         </div>
       )}
     </div>
+  );
+}
+
+function PostRow({ post, onClick }: { post: PostSummary; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-card border border-border bg-surface px-4 py-3.5 text-left"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {post.isNotice && (
+            <span className="shrink-0 rounded-full bg-[#C25478] px-2 py-0.5 text-[10px] font-extrabold text-white">
+              공지
+            </span>
+          )}
+          <span className="line-clamp-1 text-[15px] font-bold text-foreground">{post.title}</span>
+        </div>
+        <span className="shrink-0 text-[12px] text-muted">댓글 {post.commentCount}</span>
+      </div>
+      <div className="mt-1 flex items-center gap-2 text-[12px] text-muted">
+        <span>{post.authorName}</span>
+        <span>·</span>
+        <span>{new Date(post.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
+      </div>
+    </button>
   );
 }
 
@@ -106,10 +170,12 @@ function PostList({
 function PostDetailView({
   groupId,
   postId,
+  isOwner,
   onBack,
 }: {
   groupId: number;
   postId: number;
+  isOwner: boolean;
   onBack: () => void;
 }) {
   const qc = useQueryClient();
@@ -156,7 +222,8 @@ function PostDetailView({
     return (
       <PostCompose
         groupId={groupId}
-        initial={{ title: post.title, content: post.content }}
+        isOwner={isOwner}
+        initial={{ title: post.title, content: post.content, isNotice: post.isNotice }}
         postId={postId}
         onDone={() => {
           qc.invalidateQueries({ queryKey: ['board', groupId, postId] });
@@ -184,7 +251,14 @@ function PostDetailView({
 
       <div className="rounded-card border border-border bg-surface p-4">
         <div className="mb-1 flex items-start justify-between gap-2">
-          <h2 className="text-[17px] font-extrabold leading-snug">{post.title}</h2>
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            {post.isNotice && (
+              <span className="mt-0.5 shrink-0 rounded-full bg-[#C25478] px-2 py-0.5 text-[10px] font-extrabold text-white">
+                공지
+              </span>
+            )}
+            <h2 className="text-[17px] font-extrabold leading-snug">{post.title}</h2>
+          </div>
           {isAuthor && (
             <div className="flex shrink-0 gap-1">
               <button
@@ -238,7 +312,6 @@ function PostDetailView({
           ))}
         </div>
 
-        {/* 댓글 입력 */}
         <div className="mt-3 flex gap-2">
           <input
             type="text"
@@ -272,25 +345,28 @@ function PostDetailView({
 function PostCompose({
   groupId,
   postId,
+  isOwner,
   initial,
   onDone,
   onCancel,
 }: {
   groupId: number;
   postId?: number;
-  initial?: { title: string; content: string };
+  isOwner: boolean;
+  initial?: { title: string; content: string; isNotice: boolean };
   onDone: () => void;
   onCancel: () => void;
 }) {
   const qc = useQueryClient();
   const [title, setTitle] = useState(initial?.title ?? '');
   const [content, setContent] = useState(initial?.content ?? '');
+  const [isNotice, setIsNotice] = useState(initial?.isNotice ?? false);
 
   const saveMut = useMutation({
     mutationFn: () =>
       postId != null
-        ? updatePost(groupId, postId, title.trim(), content.trim())
-        : createPost(groupId, title.trim(), content.trim()),
+        ? updatePost(groupId, postId, title.trim(), content.trim(), isNotice)
+        : createPost(groupId, title.trim(), content.trim(), isNotice),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: groupQueryKeys.posts(groupId) });
       onDone();
@@ -320,6 +396,31 @@ function PostCompose({
         rows={10}
         className="scrollbar-hide w-full resize-none rounded-card border border-border bg-surface px-4 py-3 text-[14px] leading-relaxed outline-none focus:border-[#C25478]"
       />
+      {/* 공지 체크박스 — Owner만 표시 */}
+      {isOwner && (
+        <label className="mt-3 flex cursor-pointer items-center gap-2">
+          <span
+            className={`flex size-5 items-center justify-center rounded border-2 transition-colors ${
+              isNotice ? 'border-[#C25478] bg-[#C25478]' : 'border-border bg-surface'
+            }`}
+            onClick={() => setIsNotice((v) => !v)}
+          >
+            {isNotice && (
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden>
+                <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </span>
+          <input
+            type="checkbox"
+            className="sr-only"
+            checked={isNotice}
+            onChange={(e) => setIsNotice(e.target.checked)}
+          />
+          <span className="text-[13px] font-semibold text-foreground">공지사항으로 등록</span>
+          <span className="text-[12px] text-muted">게시판 최상단에 고정돼요</span>
+        </label>
+      )}
       <div className="mt-3">
         <Button
           fullWidth
