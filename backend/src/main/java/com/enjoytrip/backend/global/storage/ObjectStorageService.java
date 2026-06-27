@@ -51,9 +51,18 @@ public class ObjectStorageService {
 
 	private volatile boolean bucketReady = false;
 
+	@Value("${storage.s3.endpoint:}")
+	private String endpoint;
+
+	@Value("${storage.s3.access-key:}")
+	private String accessKeyHint; // 로그용: 앞 4자리만 노출
+
 	@PostConstruct
 	void init() {
-		// 부팅 시 버킷을 확인하고 없으면 생성 시도(best-effort). 실패해도 부팅은 계속한다.
+		log.info("[storage] S3 설정 — bucket={} region={} endpoint={} credentials={}",
+				bucket, region,
+				(endpoint == null || endpoint.isBlank()) ? "AWS S3 (기본)" : endpoint,
+				(accessKeyHint == null || accessKeyHint.isBlank()) ? "DefaultCredentialsProvider" : accessKeyHint.substring(0, Math.min(4, accessKeyHint.length())) + "****");
 		ensureBucket();
 	}
 
@@ -133,6 +142,33 @@ public class ObjectStorageService {
 			log.error("[storage] 다운로드 실패 key={}: {}", key, e.getMessage());
 			throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
 		}
+	}
+
+	/**
+	 * S3 연결 상태를 진단한다. 테스트 파일을 업로드 → 다운로드 → 삭제해 전체 I/O를 검증.
+	 * @return 상태 정보 맵 (status, bucket, endpoint, detail)
+	 */
+	public java.util.Map<String, String> diagnose() {
+		java.util.Map<String, String> result = new java.util.LinkedHashMap<>();
+		result.put("bucket", bucket);
+		result.put("region", region);
+		result.put("endpoint", (endpoint == null || endpoint.isBlank()) ? "AWS S3 (기본)" : endpoint);
+		result.put("credentials", (accessKeyHint == null || accessKeyHint.isBlank())
+				? "DefaultCredentialsProvider" : accessKeyHint.substring(0, Math.min(4, accessKeyHint.length())) + "****");
+		result.put("bucketReady", String.valueOf(bucketReady));
+		String testKey = "health-check/" + java.util.UUID.randomUUID().toString().replace("-", "");
+		try {
+			byte[] payload = "groutrip-s3-health-ok".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+			String uploadedKey = upload("health-check", payload, "text/plain");
+			String downloaded = new String(download(uploadedKey), java.nio.charset.StandardCharsets.UTF_8);
+			delete(uploadedKey);
+			result.put("status", "OK");
+			result.put("detail", "업로드→다운로드→삭제 성공: " + downloaded);
+		} catch (Exception e) {
+			result.put("status", "ERROR");
+			result.put("detail", e.getMessage());
+		}
+		return result;
 	}
 
 	/** 객체 삭제(best-effort). 실패해도 호출자 흐름은 막지 않는다. */
