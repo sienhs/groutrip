@@ -14,7 +14,11 @@ public record GroupResponse(
         LocalDate endDate,
         String coverImageKey,
         String inviteCode,
-        GroupStatus status
+        GroupStatus status,
+        // 채팅 허브 상단 고정 공지(미고정이면 모두 null). type: "POST" | "VOTE".
+        String pinnedType,
+        Long pinnedRefId,
+        String pinnedTitle
 ) {
     // Entity를 외부 응답 DTO로 변환해 도메인 객체 노출을 막는다.
     public static GroupResponse from(TravelGroup group) {
@@ -26,7 +30,10 @@ public record GroupResponse(
                 group.getEndDate(),
                 group.getCoverImageKey(),
                 group.getInviteCode(),
-                group.getStatus()
+                group.getStatus(),
+                group.getPinnedType(),
+                group.getPinnedRefId(),
+                group.getPinnedTitle()
         );
     }
 }

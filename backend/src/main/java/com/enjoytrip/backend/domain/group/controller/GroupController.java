@@ -21,6 +21,7 @@ import com.enjoytrip.backend.domain.group.aop.RequiredGroupOwner;
 import com.enjoytrip.backend.domain.group.service.GroupService.CoverData;
 import com.enjoytrip.backend.domain.group.dto.GroupCreateRequest;
 import com.enjoytrip.backend.domain.group.dto.GroupMemberResponse;
+import com.enjoytrip.backend.domain.group.dto.GroupPinRequest;
 import com.enjoytrip.backend.domain.group.dto.GroupResponse;
 import com.enjoytrip.backend.domain.group.dto.GroupUpdateRequest;
 import com.enjoytrip.backend.domain.group.service.GroupService;
@@ -241,6 +242,26 @@ public class GroupController {
     ) {
         groupService.dissolveGroup(groupId);
         return ResponseEntity.ok(ApiResponse.success("Group dissolved."));
+    }
+
+    // 채팅 허브 상단 고정 공지 설정(Owner 전용). 게시판 공지글 또는 진행중 투표를 고정한다.
+    @RequiredGroupOwner
+    @PatchMapping("/{groupId}/pin")
+    @Operation(summary = "상단 고정 공지 설정", description = "Owner가 게시판 공지글(POST) 또는 진행중 투표(VOTE)를 채팅 상단에 고정한다.")
+    public ResponseEntity<ApiResponse<GroupResponse>> pinNotice(
+            @PathVariable Long groupId,
+            @RequestBody @Valid GroupPinRequest request
+    ) {
+        GroupResponse response = groupService.pinNotice(groupId, request.type(), request.refId(), request.title());
+        return ResponseEntity.ok(ApiResponse.success("공지를 고정했습니다.", response));
+    }
+
+    // 상단 고정 공지 해제(Owner 전용).
+    @RequiredGroupOwner
+    @DeleteMapping("/{groupId}/pin")
+    @Operation(summary = "상단 고정 공지 해제", description = "Owner가 채팅 상단 고정 공지를 해제한다.")
+    public ResponseEntity<ApiResponse<GroupResponse>> clearPinnedNotice(@PathVariable Long groupId) {
+        return ResponseEntity.ok(ApiResponse.success("공지 고정을 해제했습니다.", groupService.clearPinnedNotice(groupId)));
     }
 
     // FR-GROUP-07: Owner가 초대 코드를 재발급한다.

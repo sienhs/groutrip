@@ -30,6 +30,9 @@ export interface GroupMember {
   joinedAt: string; // ISO
 }
 
+/** 채팅 허브 상단 고정 공지 종류. */
+export type PinnedType = 'POST' | 'VOTE';
+
 /** GroupResponse. */
 export interface TravelGroup {
   id: number;
@@ -40,6 +43,10 @@ export interface TravelGroup {
   coverImageKey: string;
   inviteCode: string;
   status: GroupStatus;
+  // 채팅 허브 상단 고정 공지(미고정이면 모두 null).
+  pinnedType: PinnedType | null;
+  pinnedRefId: number | null;
+  pinnedTitle: string | null;
 }
 
 /** GroupCreateRequest. */

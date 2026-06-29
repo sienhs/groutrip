@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPosts, getPost, createPost, updatePost, deletePost, createComment, deleteComment } from '../../api/board';
+import { pinNotice } from '../../api/group';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import useAuthStore from '../../store/authStore';
+import { useToast } from '../../components/Toast';
 import type { PostDetail, PostSummary } from '../../types/board';
 import EmptyState from '../../components/EmptyState';
 import Button from '../../components/Button';
@@ -179,6 +181,7 @@ function PostDetailView({
   onBack: () => void;
 }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const currentUser = useAuthStore((s) => s.user);
   const [commentInput, setCommentInput] = useState('');
   const [editing, setEditing] = useState(false);
@@ -259,24 +262,43 @@ function PostDetailView({
             )}
             <h2 className="text-[17px] font-extrabold leading-snug">{post.title}</h2>
           </div>
-          {isAuthor && (
-            <div className="flex shrink-0 gap-1">
+          <div className="flex shrink-0 gap-2">
+            {/* 방장만: 이 글을 채팅 상단 공지로 고정 */}
+            {isOwner && (
               <button
                 type="button"
-                onClick={() => setEditing(true)}
-                className="text-[12px] font-semibold text-muted hover:text-foreground"
+                onClick={async () => {
+                  try {
+                    await pinNotice(groupId, { type: 'POST', refId: postId, title: post.title });
+                    toast.success('채팅 상단에 고정했어요', '');
+                  } catch {
+                    toast.error('고정하지 못했어요', '잠시 후 다시 시도해 주세요.');
+                  }
+                }}
+                className="text-[12px] font-semibold text-[#C25478] hover:opacity-80"
               >
-                수정
+                📌 고정
               </button>
-              <button
-                type="button"
-                onClick={() => deleteMut.mutate()}
-                className="text-[12px] font-semibold text-danger hover:opacity-80"
-              >
-                삭제
-              </button>
-            </div>
-          )}
+            )}
+            {isAuthor && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="text-[12px] font-semibold text-muted hover:text-foreground"
+                >
+                  수정
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteMut.mutate()}
+                  className="text-[12px] font-semibold text-danger hover:opacity-80"
+                >
+                  삭제
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <div className="mb-3 text-[12px] text-muted">
           {post.authorName} · {new Date(post.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}

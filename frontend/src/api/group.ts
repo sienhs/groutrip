@@ -1,6 +1,6 @@
 import instance from './instance';
 import type { ApiResponse } from '../types/auth';
-import type { TravelGroup, GroupCreateRequest, GroupUpdateRequest, GroupMember } from '../types/group';
+import type { TravelGroup, GroupCreateRequest, GroupUpdateRequest, GroupMember, PinnedType } from '../types/group';
 
 /** 내 그룹 목록. */
 export const getMyGroups = async (): Promise<TravelGroup[]> => {
@@ -80,5 +80,20 @@ export const dissolveGroup = async (groupId: number): Promise<void> => {
 /** FR-GROUP-07: 초대 코드 재발급(Owner). 기존 코드는 즉시 무효화. */
 export const regenerateInviteCode = async (groupId: number): Promise<TravelGroup> => {
   const res = await instance.patch<ApiResponse<TravelGroup>>(`/api/groups/${groupId}/invite-code`);
+  return res.data.data;
+};
+
+/** 채팅 허브 상단 고정 공지 설정(Owner). type: 게시판 공지글(POST) 또는 진행중 투표(VOTE). */
+export const pinNotice = async (
+  groupId: number,
+  body: { type: PinnedType; refId: number; title: string },
+): Promise<TravelGroup> => {
+  const res = await instance.patch<ApiResponse<TravelGroup>>(`/api/groups/${groupId}/pin`, body);
+  return res.data.data;
+};
+
+/** 상단 고정 공지 해제(Owner). */
+export const clearPinnedNotice = async (groupId: number): Promise<TravelGroup> => {
+  const res = await instance.delete<ApiResponse<TravelGroup>>(`/api/groups/${groupId}/pin`);
   return res.data.data;
 };

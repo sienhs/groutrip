@@ -11,7 +11,7 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getVoteSession, castVote, closeVoteSession, addCandidate } from '../../api/vote';
 import { getBookmarks, addBookmark, searchPlaces } from '../../api/place';
-import { getGroupMembers } from '../../api/group';
+import { getGroupMembers, pinNotice } from '../../api/group';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { useGroupStream } from '../../hooks/useGroupStream';
 import useAuthStore from '../../store/authStore';
@@ -127,6 +127,16 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
     }
   };
 
+  // 진행중 투표를 채팅 허브 상단에 고정(Owner). 멤버들이 누르면 이 투표로 바로 이동.
+  const onPin = async () => {
+    try {
+      await pinNotice(groupId, { type: 'VOTE', refId: sessionId, title: session?.title ?? '장소 투표' });
+      toast.success('채팅 상단에 고정했어요', '멤버들이 바로 투표로 이동할 수 있어요.');
+    } catch {
+      toast.error('고정하지 못했어요', '잠시 후 다시 시도해 주세요.');
+    }
+  };
+
   // 마감 요청: 동점(최고점 후보가 2개 이상)이면 owner가 직접 후보를 고르도록 모달을 띄운다.
   const onClose = () => {
     if (!session) return;
@@ -228,8 +238,10 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
           session={session}
           busy={busy}
           canClose={session.createdById === currentUserId || isOwner}
+          isOwner={isOwner}
           onScore={onScore}
           onClose={onClose}
+          onPin={onPin}
           onAddCandidate={openAddCandidate}
           onGoSchedule={() => navigate(`/groups/${groupId}?tab=schedule`)}
         />
@@ -382,7 +394,7 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   );
 }
 
-function SessionBody({ session, busy, canClose, onScore, onClose, onAddCandidate, onGoSchedule }: { session: VoteSession; busy: boolean; canClose: boolean; onScore: (c: number, s: number) => void; onClose: () => void; onAddCandidate: () => void; onGoSchedule: () => void }) {
+function SessionBody({ session, busy, canClose, isOwner, onScore, onClose, onPin, onAddCandidate, onGoSchedule }: { session: VoteSession; busy: boolean; canClose: boolean; isOwner: boolean; onScore: (c: number, s: number) => void; onClose: () => void; onPin: () => void; onAddCandidate: () => void; onGoSchedule: () => void }) {
   const closed = session.status === 'CLOSED';
   const maxScore = Math.max(1, ...session.candidates.map((c) => c.totalScore));
   const winner = closed && session.winnerCandidateId != null
@@ -436,6 +448,12 @@ function SessionBody({ session, busy, canClose, onScore, onClose, onAddCandidate
           <Button variant="secondary" fullWidth className="mt-3" onClick={onAddCandidate}>
             + 후보 추가
           </Button>
+          {/* 방장만: 이 투표를 채팅 상단 공지로 고정 */}
+          {isOwner && (
+            <Button variant="secondary" fullWidth className="mt-2" onClick={onPin}>
+              📌 채팅 상단에 고정
+            </Button>
+          )}
           {/* 투표 마감은 작성자 또는 Owner만(FR-VOTE). 일반 멤버에겐 버튼을 숨긴다. */}
           {canClose && (
             <Button fullWidth className="mt-2" loading={busy} disabled={session.candidates.length === 0} onClick={onClose}>

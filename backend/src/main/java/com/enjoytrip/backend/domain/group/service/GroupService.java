@@ -234,6 +234,34 @@ public class GroupService {
         return response;
     }
 
+    /** 채팅 허브 상단 고정 공지 설정(Owner 전용). 게시판 공지글 또는 진행중 투표를 고정한다. */
+    public GroupResponse pinNotice(Long groupId, String type, Long refId, String title) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateOwner(groupId, user.getId());
+
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        group.pinNotice(type, refId, title);
+
+        GroupResponse response = GroupResponse.from(group);
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), response);
+        return response;
+    }
+
+    /** 상단 고정 공지 해제(Owner 전용). */
+    public GroupResponse clearPinnedNotice(Long groupId) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateOwner(groupId, user.getId());
+
+        TravelGroup group = travelGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_NOT_FOUND));
+        group.clearPinnedNotice();
+
+        GroupResponse response = GroupResponse.from(group);
+        publish(EventType.GROUP_UPDATED, groupId, user.getId(), response);
+        return response;
+    }
+
     /**
      * FR-GROUP-05: 그룹 나가기.
      * Owner는 바로 나갈 수 없고 Owner 이전 또는 그룹 해체가 선행되어야 한다.

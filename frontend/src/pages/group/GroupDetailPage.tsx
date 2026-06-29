@@ -16,10 +16,8 @@ import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
 import VoteTab from '../vote/VoteTab';
-import GroupGalleryPage from '../gallery/GroupGalleryPage';
 import GroupEditModal from './GroupEditModal';
 import GroupAccommodations from './GroupAccommodations';
-import GroupBoardPage, { getReadNoticeIds, markNoticesRead } from '../board/GroupBoardPage';
 import {
   getGroup,
   getGroupMembers,
@@ -31,7 +29,6 @@ import {
   groupCoverUrl,
 } from '../../api/group';
 import { getAccommodations } from '../../api/accommodation';
-import { getPosts } from '../../api/board';
 import { useGroupStream } from '../../hooks/useGroupStream';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import useAuthStore from '../../store/authStore';
@@ -39,15 +36,13 @@ import { gradientForKey, ddayLabel, dateRange } from './groupUi';
 import { cn } from '../../lib/cn';
 import { type GroupMember } from '../../types/group';
 
-type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'gallery' | 'board' | 'member';
+type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'member';
 
 const BASE_TABS: TabItem[] = [
   { key: 'schedule', label: '일정' },
   { key: 'place', label: '장소' },
   { key: 'vote', label: '투표' },
   { key: 'settle', label: '정산' },
-  { key: 'gallery', label: '사진' },
-  { key: 'board', label: '게시판' },
   { key: 'member', label: '멤버' },
 ];
 
@@ -114,40 +109,7 @@ export default function GroupDetailPage() {
     retry: false,
   });
 
-  // 공지 읽음 배지용 — board 탭과 같은 query key라 캐시 공유, 추가 요청 없음.
-  const postsQuery = useQuery({
-    queryKey: groupQueryKeys.posts(groupId),
-    queryFn: () => getPosts(groupId),
-    enabled: Number.isFinite(groupId),
-  });
-
-  // board 탭이 활성화되면 공지를 읽음 처리하고 배지를 없앤다.
-  const [noticeReadTick, setNoticeReadTick] = useState(0);
-  useEffect(() => {
-    if (leftTab === 'board' && postsQuery.data) {
-      const ids = postsQuery.data.filter((p) => p.isNotice).map((p) => p.id);
-      if (ids.length > 0) {
-        markNoticesRead(groupId, currentUserId, ids);
-        setNoticeReadTick((t) => t + 1);
-      }
-    }
-  }, [leftTab, postsQuery.data, groupId, currentUserId]);
-
-  const unreadNoticeCount = useMemo(() => {
-    if (!postsQuery.data) return 0;
-    const readIds = getReadNoticeIds(groupId, currentUserId);
-    return postsQuery.data.filter((p) => p.isNotice && !readIds.has(p.id)).length;
-  // noticeReadTick이 바뀌면 재계산
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postsQuery.data, groupId, currentUserId, noticeReadTick]);
-
-  const TABS = useMemo<TabItem[]>(() => BASE_TABS.map((t) =>
-    t.key === 'board' && unreadNoticeCount > 0
-      ? { ...t, badge: unreadNoticeCount }
-      : t
-  ), [unreadNoticeCount]);
-
-  const visibleTabs = isDesktop ? TABS.filter((t) => t.key !== 'place') : TABS;
+  const visibleTabs = isDesktop ? BASE_TABS.filter((t) => t.key !== 'place') : BASE_TABS;
 
   const group = groupQuery.data ?? null;
   // useMemo로 참조를 안정화해 resolveActorName(useCallback)이 매 렌더 재생성되지 않게 한다.
@@ -358,10 +320,6 @@ export default function GroupDetailPage() {
               <VoteTab groupId={groupId} isOwner={isOwner} />
             ) : leftTab === 'settle' ? (
               <ExpensePage groupId={groupId} members={members} />
-            ) : leftTab === 'gallery' ? (
-              <GroupGalleryPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
-            ) : leftTab === 'board' ? (
-              <GroupBoardPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
             ) : leftTab === 'member' ? (
               <MemberTab
                 groupId={groupId}

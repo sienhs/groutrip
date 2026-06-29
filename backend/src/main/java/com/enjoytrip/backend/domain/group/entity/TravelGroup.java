@@ -62,6 +62,16 @@ public class TravelGroup {
     @Column(nullable = false, length = 20)
     private GroupStatus status;
 
+    // 채팅 허브 상단 고정 공지. type은 "POST"(게시판 공지글) 또는 "VOTE"(진행중 투표), 미고정이면 null.
+    @Column(name = "pinned_type", length = 10)
+    private String pinnedType;
+
+    @Column(name = "pinned_ref_id")
+    private Long pinnedRefId;
+
+    @Column(name = "pinned_title", length = 200)
+    private String pinnedTitle;
+
     private LocalDateTime deletedAt;
 
     @CreatedDate
@@ -122,6 +132,20 @@ public class TravelGroup {
     // FR-GROUP-07: 새 초대코드를 저장하면 기존 초대코드는 즉시 더 이상 조회되지 않는다.
     public void regenerateInviteCode(String inviteCode) {
         this.inviteCode = inviteCode;
+    }
+
+    // 채팅 허브 상단 고정 공지를 설정한다(방장 전용). type="POST"|"VOTE".
+    public void pinNotice(String type, Long refId, String title) {
+        this.pinnedType = type;
+        this.pinnedRefId = refId;
+        this.pinnedTitle = title;
+    }
+
+    // 상단 고정 공지를 해제한다.
+    public void clearPinnedNotice() {
+        this.pinnedType = null;
+        this.pinnedRefId = null;
+        this.pinnedTitle = null;
     }
 
     // FR-GROUP-06: 그룹 해체는 즉시 hard delete하지 않고 삭제 상태와 삭제 시각만 기록한다.
