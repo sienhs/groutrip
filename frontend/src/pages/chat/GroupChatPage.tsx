@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import { useQuery } from '@tanstack/react-query';
-import { getChatMessages, deleteChatMessage } from '../../api/chat';
+import { getChatMessages, deleteChatMessage, getChatReads } from '../../api/chat';
 import { getAccessToken } from '../../api/instance';
 import useAuthStore from '../../store/authStore';
-import type { ChatMessage } from '../../types/chat';
+import type { ChatMessage, ChatRead } from '../../types/chat';
 import { useToast } from '../../components/Toast';
 import { cn } from '../../lib/cn';
 
@@ -28,14 +28,39 @@ interface Props {
 
 export default function GroupChatPage({ groupId }: Props) {
   const currentUser = useAuthStore((s) => s.user);
+  const myId = currentUser?.id;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [connected, setConnected] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  // 멤버별 마지막으로 읽은 메시지 id (userId → lastReadMessageId). 메시지별 "안 읽은 인원 수" 계산용.
+  const [reads, setReads] = useState<Record<number, number>>({});
   const clientRef = useRef<Client | null>(null);
+  const lastSentReadRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
+
+  // 내가 messageId까지 읽었음을 서버에 알림(더 최신일 때만). 내 읽음 위치는 낙관적으로 즉시 반영.
+  const publishRead = useCallback((messageId: number) => {
+    if (!messageId || messageId <= lastSentReadRef.current) return;
+    const client = clientRef.current;
+    if (!client?.connected) return;
+    lastSentReadRef.current = messageId;
+    client.publish({
+      destination: `/app/groups/${groupId}/chat/read`,
+      body: JSON.stringify({ lastReadMessageId: messageId }),
+    });
+    if (myId != null) {
+      setReads((prev) => ({ ...prev, [myId]: Math.max(prev[myId] ?? 0, messageId) }));
+    }
+  }, [groupId, myId]);
+
+  // 메시지 m의 "안 읽은 인원 수" — 보낸 사람을 제외하고 아직 m을 읽지 않은 활성 멤버 수(카카오톡식).
+  const unreadCountFor = (msg: ChatMessage) =>
+    Object.entries(reads).filter(
+      ([uid, last]) => Number(uid) !== msg.senderId && last < msg.id,
+    ).length;
 
   const toast = useToast();
   const [deletingMsgId, setDeletingMsgId] = useState<number | null>(null);
@@ -60,6 +85,12 @@ export default function GroupChatPage({ groupId }: Props) {
     enabled: !!groupId,
   });
 
+  const readsQuery = useQuery({
+    queryKey: ['chat', groupId, 'reads'],
+    queryFn: () => getChatReads(groupId),
+    enabled: !!groupId,
+  });
+
   useEffect(() => {
     if (historyQuery.data) {
       setMessages(historyQuery.data);
@@ -67,7 +98,20 @@ export default function GroupChatPage({ groupId }: Props) {
   }, [historyQuery.data]);
 
   useEffect(() => {
+    if (readsQuery.data) {
+      setReads(Object.fromEntries(readsQuery.data.map((r: ChatRead) => [r.userId, r.lastReadMessageId])));
+    }
+  }, [readsQuery.data]);
+
+  // 연결됨 + 메시지가 있으면 최신 메시지를 읽음 처리(중복 전송은 publishRead가 차단).
+  useEffect(() => {
+    if (!connected || messages.length === 0) return;
+    publishRead(messages[messages.length - 1].id);
+  }, [connected, messages, publishRead]);
+
+  useEffect(() => {
     let attempts = 0;
+    lastSentReadRef.current = 0;
     const client = new Client({
       brokerURL: WS_URL,
       connectHeaders: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
@@ -80,6 +124,15 @@ export default function GroupChatPage({ groupId }: Props) {
           try {
             const msg = JSON.parse(frame.body) as ChatMessage;
             setMessages((prev) => [...prev, msg]);
+          } catch {
+            // ignore
+          }
+        });
+        // 읽음 이벤트 — 멤버의 읽음 위치 갱신(메시지별 안 읽음 수 실시간 반영).
+        client.subscribe(`/topic/group/${groupId}/chat/read`, (frame) => {
+          try {
+            const r = JSON.parse(frame.body) as ChatRead;
+            setReads((prev) => ({ ...prev, [r.userId]: Math.max(prev[r.userId] ?? 0, r.lastReadMessageId) }));
           } catch {
             // ignore
           }
@@ -176,9 +229,19 @@ export default function GroupChatPage({ groupId }: Props) {
               >
                 {msg.content}
               </button>
-              <span className="mt-0.5 text-[10px] text-muted">
-                {new Date(msg.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-              </span>
+              {(() => {
+                const unread = unreadCountFor(msg);
+                const time = new Date(msg.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                // 카카오톡식: 안 읽은 인원 수를 말풍선 옆(시간 근처)에 작게. 내 메시지는 시간 왼쪽, 받은 메시지는 오른쪽.
+                return (
+                  <span className={cn('mt-0.5 flex items-center gap-1', isMe ? 'flex-row' : 'flex-row-reverse')}>
+                    {unread > 0 && (
+                      <span className="text-[10px] font-bold leading-none text-[#F4B740]">{unread}</span>
+                    )}
+                    <span className="text-[10px] text-muted">{time}</span>
+                  </span>
+                );
+              })()}
               {/* 내 메시지 탭 시 삭제 메뉴 */}
               {isMe && menuOpen && (
                 <div className="mt-1 flex items-center gap-1.5">

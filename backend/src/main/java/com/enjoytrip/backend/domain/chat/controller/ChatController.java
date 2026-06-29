@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.enjoytrip.backend.domain.chat.dto.ChatMessageResponse;
+import com.enjoytrip.backend.domain.chat.dto.ChatReadRequest;
+import com.enjoytrip.backend.domain.chat.dto.ChatReadResponse;
 import com.enjoytrip.backend.domain.chat.dto.ChatSendRequest;
 import com.enjoytrip.backend.domain.chat.service.ChatService;
 import com.enjoytrip.backend.global.response.ApiResponse;
@@ -49,5 +51,28 @@ public class ChatController {
             Principal principal
     ) {
         chatService.send(groupId, principal, request);
+    }
+
+    /** 읽음 상태 조회 (REST). 활성 멤버별 마지막으로 읽은 메시지 id 목록. */
+    @GetMapping("/reads")
+    public ResponseEntity<ApiResponse<List<ChatReadResponse>>> getReads(
+            @PathVariable Long groupId,
+            Principal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success("OK", chatService.getReads(groupId, principal)));
+    }
+
+    /**
+     * 읽음 처리 (STOMP).
+     * 클라이언트: stompClient.publish({ destination: '/app/groups/{id}/chat/read', body: JSON.stringify({lastReadMessageId}) })
+     * 브로드캐스트: /topic/group/{id}/chat/read
+     */
+    @MessageMapping("/groups/{groupId}/chat/read")
+    public void markRead(
+            @DestinationVariable Long groupId,
+            @Payload ChatReadRequest request,
+            Principal principal
+    ) {
+        chatService.markRead(groupId, principal, request.lastReadMessageId());
     }
 }

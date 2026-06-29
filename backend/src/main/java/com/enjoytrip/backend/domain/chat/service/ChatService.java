@@ -2,6 +2,8 @@ package com.enjoytrip.backend.domain.chat.service;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -11,10 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.enjoytrip.backend.domain.auth.entity.User;
 import com.enjoytrip.backend.domain.auth.repository.UserRepository;
 import com.enjoytrip.backend.domain.chat.dto.ChatMessageResponse;
+import com.enjoytrip.backend.domain.chat.dto.ChatReadResponse;
 import com.enjoytrip.backend.domain.chat.dto.ChatSendRequest;
 import com.enjoytrip.backend.domain.chat.entity.ChatMessage;
+import com.enjoytrip.backend.domain.chat.entity.ChatRead;
 import com.enjoytrip.backend.domain.chat.repository.ChatMessageRepository;
+import com.enjoytrip.backend.domain.chat.repository.ChatReadRepository;
 import com.enjoytrip.backend.domain.group.entity.TravelGroup;
+import com.enjoytrip.backend.domain.group.repository.GroupMemberRepository;
 import com.enjoytrip.backend.domain.group.repository.TravelGroupRepository;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.global.exception.BusinessException;
@@ -30,8 +36,10 @@ public class ChatService {
     private static final int PAGE_SIZE = 50;
 
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatReadRepository chatReadRepository;
     private final TravelGroupRepository travelGroupRepository;
     private final UserRepository userRepository;
+    private final GroupMemberRepository groupMemberRepository;
     private final GroupAccessValidator groupAccessValidator;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -63,6 +71,45 @@ public class ChatService {
 
         ChatMessageResponse response = ChatMessageResponse.from(message);
         messagingTemplate.convertAndSend("/topic/group/" + groupId + "/chat", response);
+    }
+
+    /**
+     * 그룹 채팅의 멤버별 읽음 위치를 반환한다(활성 멤버 전원, 기록 없으면 0).
+     * 프론트는 메시지 m에 대해 (senderId 제외) lastReadMessageId < m.id 인 멤버 수를 "안 읽음"으로 표시한다.
+     */
+    @Transactional(readOnly = true)
+    public List<ChatReadResponse> getReads(Long groupId, Principal principal) {
+        User user = findUserByPrincipal(principal);
+        groupAccessValidator.validateMember(groupId, user.getId());
+
+        Map<Long, Long> readMap = chatReadRepository.findByGroupId(groupId).stream()
+                .collect(Collectors.toMap(ChatRead::getUserId, ChatRead::getLastReadMessageId));
+
+        return groupMemberRepository.findByTravelGroupIdAndLeftAtIsNull(groupId).stream()
+                .map(m -> m.getUser().getId())
+                .map(uid -> new ChatReadResponse(uid, readMap.getOrDefault(uid, 0L)))
+                .toList();
+    }
+
+    /** 멤버의 읽음 위치를 전진시키고(더 최신일 때만) 변경 시 그룹에 브로드캐스트한다. */
+    public void markRead(Long groupId, Principal principal, Long lastReadMessageId) {
+        if (lastReadMessageId == null || lastReadMessageId <= 0) {
+            return;
+        }
+        User user = findUserByPrincipal(principal);
+        groupAccessValidator.validateMember(groupId, user.getId());
+
+        ChatRead read = chatReadRepository.findByGroupIdAndUserId(groupId, user.getId())
+                .orElseGet(() -> ChatRead.of(groupId, user.getId()));
+        boolean changed = read.advanceTo(lastReadMessageId);
+        if (!changed && read.getId() != null) {
+            return; // 이미 같은 위치 이상 → 저장/브로드캐스트 생략
+        }
+        chatReadRepository.save(read);
+
+        messagingTemplate.convertAndSend(
+                "/topic/group/" + groupId + "/chat/read",
+                new ChatReadResponse(user.getId(), read.getLastReadMessageId()));
     }
 
     private User findUserByPrincipal(Principal principal) {
