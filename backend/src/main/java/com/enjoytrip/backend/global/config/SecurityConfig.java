@@ -17,6 +17,7 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -111,7 +112,8 @@ public class SecurityConfig {
 				// 그룹 커버 이미지도 홈/목록/상세에서 <img src>로 직접 로드되므로 조회는 공개한다.
 				.requestMatchers(HttpMethod.GET, "/api/groups/*/cover").permitAll()
 				// WebSocket 핸드셰이크는 HTTP 레벨 인증을 건너뛰고 STOMP CONNECT 프레임에서 JWT로 인증한다.
-				.requestMatchers("/ws", "/ws/**").permitAll()
+				// Spring Security 6의 MVC 기반 requestMatchers는 WebSocket 엔드포인트를 인식 못하므로 AntPathRequestMatcher 사용.
+				.requestMatchers(AntPathRequestMatcher.antMatcher("/ws"), AntPathRequestMatcher.antMatcher("/ws/**")).permitAll()
 				// 나머지 요청은 인증이 필요하게
 				.anyRequest().authenticated())
 		.exceptionHandling(exceptions -> exceptions
