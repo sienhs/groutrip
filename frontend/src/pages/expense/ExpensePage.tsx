@@ -136,7 +136,7 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v: number) => formatWon(v)}
+                          formatter={(v) => formatWon(v as number)}
                           contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E8E4F0' }}
                         />
                       </PieChart>
