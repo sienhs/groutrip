@@ -63,6 +63,7 @@ public class AuthController {
 				.accessToken(loginResponse.getAccessToken())
 				.name(loginResponse.getName())
 				.email(loginResponse.getEmail())
+				.onboarded(loginResponse.getOnboarded())
 				.build();
 		return ResponseEntity.ok(ApiResponse.success("소셜 로그인 성공", safeResponse));
 	}

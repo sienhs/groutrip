@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
-import { updateMyName, updateMyPayout } from '../../api/user';
+import { updateMyName, updateMyPayout, markOnboarded } from '../../api/user';
 import { cn } from '../../lib/cn';
-import { isOnboarded, markOnboarded } from '../../lib/onboarding';
+import { isOnboardedLocal, markOnboardedLocal } from '../../lib/onboarding';
 import Button from '../../components/Button';
 
 type Step = 'consent' | 'profile' | 'style' | 'payout';
@@ -52,7 +52,7 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (user && isOnboarded(user.id)) navigate('/', { replace: true });
+    if (user && isOnboardedLocal(user.id)) navigate('/', { replace: true });
   }, [user, navigate]);
 
   if (!user) return null;
@@ -84,7 +84,13 @@ export default function OnboardingPage() {
       if (travelGroup || travelStyle || travelDest) {
         localStorage.setItem(`travel_style_${user.id}`, JSON.stringify({ travelGroup, travelStyle, travelDest }));
       }
-      markOnboarded(user.id);
+      // 서버에 온보딩 완료 기록(계정 단위 — 다른 기기/재로그인에도 1회만). 로컬은 보조 캐시.
+      try {
+        await markOnboarded();
+      } catch {
+        // 서버 기록 실패해도 흐름은 진행(로컬 캐시로 최소 보장).
+      }
+      markOnboardedLocal(user.id);
       const redirect = sessionStorage.getItem('post_login_redirect');
       if (redirect) {
         sessionStorage.removeItem('post_login_redirect');

@@ -15,6 +15,8 @@ interface Props {
   groupId: number;
   currentUserId: number;
   isOwner: boolean;
+  /** 지정 시 목록이 아니라 해당 글 상세로 바로 진입(상단 고정 공지 클릭 등). */
+  initialPostId?: number | null;
 }
 
 // ── 읽은 공지 ID를 localStorage에서 관리 ──────────────────────────────────────
@@ -44,8 +46,8 @@ export function markNoticesRead(groupId: number, userId: number, ids: number[]) 
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
-export default function GroupBoardPage({ groupId, currentUserId, isOwner }: Props) {
-  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+export default function GroupBoardPage({ groupId, currentUserId, isOwner, initialPostId = null }: Props) {
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(initialPostId);
   const [composing, setComposing] = useState(false);
 
   // 게시판 탭이 마운트되면 현재 공지를 모두 읽음 처리

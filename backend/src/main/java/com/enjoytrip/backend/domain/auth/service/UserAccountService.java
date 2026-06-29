@@ -54,6 +54,13 @@ public class UserAccountService {
         return new PayoutResult(user.getPayoutLink(), user.getPayoutAccount());
     }
 
+    /** 온보딩(동의/초기설정) 완료 처리. 계정당 1회만 노출하기 위해 서버에 기록한다. */
+    public void markOnboarded(String email) {
+        User user = findActiveUser(email);
+        user.markOnboarded();
+        log.info("온보딩 완료: userId={}", user.getId());
+    }
+
     /** 서비스 계층 반환용 간단 보관 타입. */
     public record PayoutResult(String payoutLink, String payoutAccount) {
     }

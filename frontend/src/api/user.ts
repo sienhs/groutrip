@@ -24,6 +24,11 @@ export const updateMyName = async (name: string): Promise<string> => {
   return res.data.data;
 };
 
+/** 온보딩(동의/초기설정) 완료를 서버에 기록(계정당 1회). */
+export const markOnboarded = async (): Promise<void> => {
+  await instance.post<ApiResponse<null>>('/api/users/me/onboarded');
+};
+
 /** 정산 받을 링크/계좌(미설정이면 null). */
 export interface Payout {
   payoutLink: string | null;
@@ -60,9 +65,8 @@ export const deleteAccount = async (): Promise<void> => {
 export const uploadMyAvatar = async (file: File): Promise<void> => {
   const form = new FormData();
   form.append('avatar', file);
-  await instance.post<ApiResponse<unknown>>('/api/users/me/avatar', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  // Content-Type을 수동 지정하지 않는다 — 브라우저가 multipart boundary를 자동으로 붙여야 서버가 파싱한다.
+  await instance.post<ApiResponse<unknown>>('/api/users/me/avatar', form);
 };
 
 /** 프로필 사진 절대 URL(공개 조회). 없으면 404 → Avatar가 이니셜로 폴백. version으로 캐시 버스트. */

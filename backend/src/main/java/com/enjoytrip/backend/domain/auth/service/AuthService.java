@@ -57,6 +57,7 @@ public class AuthService {
 				.accessToken(accessToken)
 				.name(user.getName())
 				.email(user.getEmail())
+				.onboarded(user.isOnboarded())
 				.refreshToken(refreshToken)
 				.build();
 	}

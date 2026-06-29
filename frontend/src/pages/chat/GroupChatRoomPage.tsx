@@ -27,6 +27,8 @@ export default function GroupChatRoomPage() {
 
   const [panel, setPanel] = useState<Panel>('chat');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // 게시판 패널 진입 시 바로 열 글 id(상단 고정 공지 클릭). 목록부터면 null.
+  const [boardPostId, setBoardPostId] = useState<number | null>(null);
 
   const { data: group } = useQuery({
     queryKey: groupQueryKeys.detail(groupId),
@@ -82,11 +84,13 @@ export default function GroupChatRoomPage() {
     if (group.pinnedType === 'VOTE' && group.pinnedRefId) {
       navigate(`/groups/${groupId}/votes/${group.pinnedRefId}`);
     } else if (group.pinnedType === 'POST') {
-      setPanel('board'); // 게시판에서 공지글 확인
+      setBoardPostId(group.pinnedRefId ?? null); // 해당 공지글 상세로 바로 진입
+      setPanel('board');
     }
   };
 
   const openPanel = (p: Panel) => {
+    if (p === 'board') setBoardPostId(null); // 메뉴에서 들어오면 목록부터
     setPanel(p);
     setDrawerOpen(false);
   };
@@ -144,7 +148,7 @@ export default function GroupChatRoomPage() {
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
               {panel === 'gallery' && <GroupGalleryPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />}
-              {panel === 'board' && <GroupBoardPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />}
+              {panel === 'board' && <GroupBoardPage key={`board-${boardPostId ?? 'list'}`} groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} initialPostId={boardPostId} />}
               {panel === 'members' && (
                 <MembersPanel members={members} currentUserId={currentUserId} inviteCode={group?.inviteCode ?? ''} onShare={shareInvite} />
               )}

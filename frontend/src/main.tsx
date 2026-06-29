@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ToastProvider from './components/Toast'
 import './index.css'
 import App from './App.tsx'
+// 부팅 시점에 beforeinstallprompt를 가로채려면 일찍 import 해야 한다.
+import './lib/pwa'
 
 // React Query 전역 기본값.
 // - staleTime 30s: 같은 데이터로 재마운트되는 화면 전환 시 중복 네트워크 요청을 막는다.

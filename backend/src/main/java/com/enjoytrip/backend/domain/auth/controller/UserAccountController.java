@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,6 +47,15 @@ public class UserAccountController {
     ) {
         String name = userAccountService.updateName(userDetails.getUsername(), request.name());
         return ResponseEntity.ok(ApiResponse.success("이름이 변경되었습니다.", name));
+    }
+
+    @PostMapping("/onboarded")
+    @Operation(summary = "온보딩 완료 처리", description = "개인정보 동의/초기설정을 마쳤음을 서버에 기록한다(계정당 1회).")
+    public ResponseEntity<ApiResponse<Void>> markOnboarded(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        userAccountService.markOnboarded(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("온보딩이 완료되었습니다."));
     }
 
     @GetMapping("/payout")

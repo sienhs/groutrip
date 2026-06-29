@@ -204,16 +204,24 @@ export default function GroupChatPage({ groupId }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       {/* 메시지 목록 — min-h-0로 남은 높이만 차지하고 내부 스크롤(입력창은 아래 고정) */}
-      <div className="scrollbar-hide min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
+      <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {historyQuery.isLoading && (
           <p className="text-center text-[13px] text-muted">불러오는 중...</p>
         )}
-        {messages.map((msg) => {
+        {messages.map((msg, i) => {
           const isMe = msg.senderId === currentUser?.id;
           const menuOpen = activeMenuId === msg.id;
+          // 연속 메시지 묶기(카카오톡식): 같은 사람 연속이면 이름은 묶음 첫 줄에만,
+          // 시간은 같은 분(分) 묶음의 마지막 줄에만 표시한다.
+          const prev = messages[i - 1];
+          const next = messages[i + 1];
+          const minuteOf = (s: string) => Math.floor(new Date(s).getTime() / 60000);
+          const firstOfGroup = !prev || prev.senderId !== msg.senderId;
+          const lastOfGroup = !next || next.senderId !== msg.senderId || minuteOf(next.createdAt) !== minuteOf(msg.createdAt);
+          const showName = !isMe && firstOfGroup;
           return (
-            <div key={msg.id} className={cn('flex flex-col', isMe ? 'items-end' : 'items-start')}>
-              {!isMe && (
+            <div key={msg.id} className={cn('flex flex-col', isMe ? 'items-end' : 'items-start', firstOfGroup ? 'mt-3' : 'mt-0.5', i === 0 && 'mt-0')}>
+              {showName && (
                 <span className="mb-0.5 text-[11px] font-semibold text-muted">{msg.senderName}</span>
               )}
               <button
@@ -231,6 +239,8 @@ export default function GroupChatPage({ groupId }: Props) {
               </button>
               {(() => {
                 const unread = unreadCountFor(msg);
+                // 시간은 같은 분 연속 묶음의 마지막 줄에만. 안 읽은 인원 수는 항상(있으면) 표시.
+                if (!lastOfGroup && unread === 0) return null;
                 const time = new Date(msg.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
                 // 카카오톡식: 안 읽은 인원 수를 말풍선 옆(시간 근처)에 작게. 내 메시지는 시간 왼쪽, 받은 메시지는 오른쪽.
                 return (
@@ -238,7 +248,7 @@ export default function GroupChatPage({ groupId }: Props) {
                     {unread > 0 && (
                       <span className="text-[10px] font-bold leading-none text-[#F4B740]">{unread}</span>
                     )}
-                    <span className="text-[10px] text-muted">{time}</span>
+                    {lastOfGroup && <span className="text-[10px] text-muted">{time}</span>}
                   </span>
                 );
               })()}

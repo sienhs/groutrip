@@ -62,9 +62,18 @@ public class User extends BaseEntity {
 	@Column(name = "payout_account", length = 512)
 	private String payoutAccount;
 
+	// 온보딩(개인정보 동의 등) 완료 여부. 계정당 1회만 노출하기 위해 서버에서 관리한다.
+	@Column(nullable = false)
+	private boolean onboarded;
+
 	// FR-MYPAGE: 표시 이름을 변경한다.
 	public void updateName(String name) {
 		this.name = name;
+	}
+
+	// 온보딩 완료 처리(다른 기기/재로그인 시 다시 노출되지 않도록).
+	public void markOnboarded() {
+		this.onboarded = true;
 	}
 
 	/** 정산 받을 링크/계좌 설정. 빈 문자열은 null로 정규화해 '미설정'으로 저장한다. */

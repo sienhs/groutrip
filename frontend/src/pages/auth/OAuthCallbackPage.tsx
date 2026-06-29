@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { exchangeOAuthCode } from '../../api/auth';
 import useAuthStore from '../../store/authStore';
-import { isOnboarded } from '../../lib/onboarding';
+import { markOnboardedLocal } from '../../lib/onboarding';
 import { Card } from '../../components';
 import AuthBrand from './AuthBrand';
 
@@ -31,10 +31,13 @@ export default function OAuthCallbackPage() {
           name: response.name,
           email: response.email,
         });
-        if (!isOnboarded(response.userId)) {
+        // 온보딩 완료 여부는 서버가 계정 단위로 관리한다(다른 기기/재로그인에도 1회만 노출).
+        if (!response.onboarded) {
           navigate('/onboarding', { replace: true });
           return;
         }
+        // 서버가 완료로 응답하면 로컬 캐시도 맞춰 둔다.
+        markOnboardedLocal(response.userId);
         const redirect = sessionStorage.getItem('post_login_redirect');
         if (redirect) {
           sessionStorage.removeItem('post_login_redirect');

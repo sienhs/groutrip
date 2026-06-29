@@ -13,6 +13,7 @@ import { pushSupported, currentPermission, requestPermission, subscribePush } fr
 import { cn } from '../../lib/cn';
 import PayoutSection from './PayoutSection';
 import TripStatsSection from './TripStatsSection';
+import InstallSection from './InstallSection';
 
 /**
  * 마이페이지 — 프로필(이름 변경), 여행 통계, 페르소나, 앱 설정(테마/알림), 계정 탈퇴.
@@ -210,6 +211,11 @@ export default function MyPage() {
 
       {/* 내 여행 통계 + 도전과제 — 자체 조회 섹션 */}
       <TripStatsSection />
+
+      {/* 홈 화면에 추가(PWA 설치) — 설치 가능할 때만 노출 */}
+      <div className="mt-5">
+        <InstallSection />
+      </div>
 
       {/* 앱 설정 (기기 단위) */}
       <p className="mb-2 mt-6 text-[12px] font-extrabold tracking-wide text-muted">앱 설정</p>

@@ -53,12 +53,14 @@ export default function TripStatsSection() {
             <StatItem value={`${stats.visitedRegions}`} label="방문 지역" />
             <StatItem value={`${stats.bookmarkCount}`} label="담은 장소" />
           </div>
+          {/* 내 결제 총액(정산총합)은 화면에 노출하지 않는다. 데이터/계산은 유지하고 표시만 숨김.
           <div className="rounded-card border border-border bg-surface px-4 py-3.5">
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-semibold text-muted">내 결제 총액</span>
               <span className="text-[18px] font-extrabold text-primary">{stats.totalSpending.toLocaleString('ko-KR')}원</span>
             </div>
           </div>
+          */}
         </div>
       ) : null}
 
