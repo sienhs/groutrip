@@ -15,7 +15,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -75,17 +74,6 @@ public class SecurityConfig {
 	}
 	
 	
-	// WebSocket 핸드셰이크(/ws)는 보안 필터 체인에서 완전히 제외한다.
-	// 인증은 HTTP 레벨이 아니라 STOMP CONNECT 프레임(WebSocketAuthInterceptor)에서 JWT로 처리한다.
-	// ⚠️ 멀티 SecurityFilterChain(@Order) + permitAll 방식은 Spring Boot 4/Security 7에서
-	//    /ws를 선점하지 못해 401을 냈다(메인 체인 RestAuthenticationEntryPoint). web.ignoring()은
-	//    FilterChainProxy 진입 전에 /ws를 걸러내므로 체인 순서와 무관하게 인증 자체가 적용되지 않는다.
-	//    getRequestURI() 직접 검사로 MVC 핸들러 매핑 의존성도 제거한다.
-	@Bean
-	public WebSecurityCustomizer webSecurityCustomizer() {
-		return web -> web.ignoring().requestMatchers(request -> request.getRequestURI().startsWith("/ws"));
-	}
-
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
 		http
@@ -123,8 +111,10 @@ public class SecurityConfig {
 				// 그룹 커버 이미지도 홈/목록/상세에서 <img src>로 직접 로드되므로 조회는 공개한다.
 				.requestMatchers(HttpMethod.GET, "/api/groups/*/cover").permitAll()
 				// WebSocket 핸드셰이크는 HTTP 레벨 인증을 건너뛰고 STOMP CONNECT 프레임에서 JWT로 인증한다.
-				// (HTTP 레벨 /ws 허용은 websocketChain()에서 처리 — 여기서도 명시적으로 선언)
-				.requestMatchers("/ws", "/ws/**").permitAll()
+				// ⚠️ Spring Security 7/Boot 4의 requestMatchers(String)은 MVC 핸들러 매핑 기반이라
+				//    @RequestMapping이 아닌 WebSocket(SimpleUrlHandlerMapping) 엔드포인트 /ws 를 매칭하지 못해
+				//    .anyRequest().authenticated()로 떨어져 401을 냈다. getRequestURI() 직접 검사 람다로 확실히 매칭한다.
+				.requestMatchers(request -> request.getRequestURI().startsWith("/ws")).permitAll()
 				// 나머지 요청은 인증이 필요하게
 				.anyRequest().authenticated())
 		.exceptionHandling(exceptions -> exceptions
