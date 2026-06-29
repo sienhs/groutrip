@@ -39,9 +39,9 @@ export const updateGroup = async (
 export const uploadGroupCover = async (groupId: number, file: File): Promise<TravelGroup> => {
   const form = new FormData();
   form.append('cover', file);
-  const res = await instance.post<ApiResponse<TravelGroup>>(`/api/groups/${groupId}/cover`, form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  // Content-Type을 수동 지정하지 않는다 — 브라우저가 multipart 경계(boundary)를 자동으로 붙여야
+  // 서버가 본문을 파싱할 수 있다. 'multipart/form-data'만 지정하면 boundary가 빠져 업로드가 실패한다.
+  const res = await instance.post<ApiResponse<TravelGroup>>(`/api/groups/${groupId}/cover`, form);
   return res.data.data;
 };
 

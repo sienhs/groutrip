@@ -80,6 +80,8 @@ export default function GroupDetailPage() {
   const tab: TabKey = (TAB_KEYS as string[]).includes(tabParam ?? '') ? (tabParam as TabKey) : 'place';
   const setTab = (k: TabKey) => setSearchParams({ tab: k }, { replace: true });
   const [editOpen, setEditOpen] = useState(false);
+  // 커버 이미지 캐시버스트 — 수정에서 새 이미지를 올리면 같은 URL이라도 강제로 다시 받게 한다.
+  const [coverVer, setCoverVer] = useState(0);
 
   // 데스크톱(lg+): 보관함을 우측 고정 패널로 빼고, 탭은 좌측 메인(일정/투표/정산/사진/멤버)만.
   // 모바일: 기존 단일 컬럼 + 전체 탭(장소 포함).
@@ -205,7 +207,7 @@ export default function GroupDetailPage() {
       <div className={cn('relative h-[150px] overflow-hidden', group ? gradientForKey(group.coverImageKey) : 'bg-[#EEECF6]')}>
         {group?.coverImageKey === 'CUSTOM' && (
           <img
-            src={groupCoverUrl(group.id)}
+            src={coverVer ? `${groupCoverUrl(group.id)}?v=${coverVer}` : groupCoverUrl(group.id)}
             alt=""
             aria-hidden
             className="absolute inset-0 h-full w-full object-cover"
@@ -328,6 +330,7 @@ export default function GroupDetailPage() {
                 isOwner={isOwner}
                 inviteCode={group?.inviteCode ?? ''}
                 onCopyInvite={copyInviteCode}
+                onShareInvite={copyInviteLink}
                 onRefresh={refreshGroupAndMembers}
                 onExit={() => navigate('/groups')}
               />
@@ -348,7 +351,7 @@ export default function GroupDetailPage() {
         <GroupEditModal
           group={group}
           onClose={() => setEditOpen(false)}
-          onSaved={(updated) => queryClient.setQueryData(groupQueryKeys.detail(groupId), updated)}
+          onSaved={(updated) => { queryClient.setQueryData(groupQueryKeys.detail(groupId), updated); setCoverVer(Date.now()); }}
           onDeleted={() => navigate('/groups')}
         />
       )}
@@ -366,6 +369,7 @@ interface MemberTabProps {
   isOwner: boolean;
   inviteCode: string;
   onCopyInvite: () => void;
+  onShareInvite: () => void;
   onRefresh: () => Promise<void>;
   onExit: () => void;
 }
@@ -378,6 +382,7 @@ function MemberTab({
   isOwner,
   inviteCode,
   onCopyInvite,
+  onShareInvite,
   onRefresh,
   onExit,
 }: MemberTabProps) {
@@ -435,6 +440,17 @@ function MemberTab({
           </div>
           <Button size="sm" variant="secondary" onClick={onCopyInvite}>코드 복사</Button>
         </div>
+        {/* 초대 링크 공유 — 링크 한 번으로 바로 참여 */}
+        <button
+          type="button"
+          onClick={onShareInvite}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#E86A92] to-[#C25478] py-2.5 text-[14px] font-extrabold text-white shadow-md shadow-[#C25478]/30 active:scale-[.98]"
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <circle cx="18" cy="5" r="2.4" /><circle cx="6" cy="12" r="2.4" /><circle cx="18" cy="19" r="2.4" /><path d="m8.1 13.2 7.8 4.6M15.9 6.2 8.1 10.8" />
+          </svg>
+          초대 링크 공유하기
+        </button>
         {isOwner && (
           <button
             type="button"

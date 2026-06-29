@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal, { ConfirmModal } from '../../components/Modal';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import DestinationAutocomplete from '../../components/DestinationAutocomplete';
 import { useToast } from '../../components/Toast';
-import { updateGroup, dissolveGroup } from '../../api/group';
+import { updateGroup, dissolveGroup, uploadGroupCover, groupCoverUrl } from '../../api/group';
 import { isKnownRegion } from '../../lib/regions';
 import { COVER_GRADIENT, COVER_LABEL, COVER_PRESETS } from './groupUi';
 import { cn } from '../../lib/cn';
 import type { CoverPreset, TravelGroup } from '../../types/group';
+
+const PRESET_SET = new Set<string>(COVER_PRESETS);
 
 interface Props {
   group: TravelGroup;
@@ -29,8 +31,36 @@ export default function GroupEditModal({ group, onClose, onSaved, onDeleted }: P
   const [freeDestination, setFreeDestination] = useState(isKnownRegion(group.destination) ? '' : group.destination);
   const [start, setStart] = useState(group.startDate);
   const [end, setEnd] = useState(group.endDate);
-  const [cover, setCover] = useState<CoverPreset>((group.coverImageKey as CoverPreset) ?? 'SUNSET');
+  // 기존 커버: 프리셋이면 그 값, 커스텀('CUSTOM')이면 프리셋 기본값으로 두고 keepCustom으로 유지한다.
+  const [cover, setCover] = useState<CoverPreset>(
+    PRESET_SET.has(group.coverImageKey) ? (group.coverImageKey as CoverPreset) : 'SUNSET',
+  );
+  // 새로 올린 파일(있으면 우선), 없고 keepCustom이면 기존 커스텀 이미지 유지.
+  const [customFile, setCustomFile] = useState<File | null>(null);
+  const [keepCustom, setKeepCustom] = useState(group.coverImageKey === 'CUSTOM');
   const [saving, setSaving] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const newPreview = useMemo(() => (customFile ? URL.createObjectURL(customFile) : null), [customFile]);
+  useEffect(() => () => {
+    if (newPreview) URL.revokeObjectURL(newPreview);
+  }, [newPreview]);
+
+  // 미리보기에 쓸 커스텀 이미지 URL: 새 파일 > 기존 커스텀 유지 > 없음.
+  const customPreviewUrl = newPreview ?? (keepCustom ? groupCoverUrl(group.id) : null);
+  const isCustom = !!customFile || keepCustom;
+
+  const onPickCover = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('이미지가 너무 커요', '5MB 이하 이미지를 올려주세요.');
+      return;
+    }
+    setCustomFile(file);
+    setKeepCustom(false);
+  };
 
   // 로컬 기준 오늘/내일(YYYY-MM-DD). 여행이 이미 시작됐으면 시작일은 변경 불가(백엔드도 거부),
   // 종료일은 최소 내일(현재+1)부터 수정 가능.
@@ -65,13 +95,18 @@ export default function GroupEditModal({ group, onClose, onSaved, onDeleted }: P
     if (!valid) return;
     setSaving(true);
     try {
-      const updated = await updateGroup(group.id, {
+      let updated = await updateGroup(group.id, {
         title: title.trim(),
         destination: dest,
         startDate: start,
         endDate: end,
-        coverImageKey: cover,
+        // 새 파일이 있거나 기존 커스텀 유지면 CUSTOM, 아니면 선택한 프리셋.
+        coverImageKey: isCustom ? 'CUSTOM' : cover,
       });
+      // 새로 올린 파일이 있으면 멀티파트로 업로드(coverImageKey는 서버에서 CUSTOM 처리).
+      if (customFile) {
+        updated = await uploadGroupCover(group.id, customFile);
+      }
       toast.success('그룹 정보를 수정했어요', updated.title);
       onSaved(updated);
       onClose();
@@ -101,8 +136,16 @@ export default function GroupEditModal({ group, onClose, onSaved, onDeleted }: P
       }
     >
       <div className="space-y-4">
-        <div className={cn('flex h-20 items-end rounded-card p-3', COVER_GRADIENT[cover])}>
-          <span className="text-[15px] font-extrabold text-white drop-shadow">{title.trim() || COVER_LABEL[cover]}</span>
+        <div className={cn('relative flex h-20 items-end overflow-hidden rounded-card p-3', COVER_GRADIENT[cover])}>
+          {customPreviewUrl && (
+            <img
+              src={customPreviewUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+            />
+          )}
+          <span className="relative text-[15px] font-extrabold text-white drop-shadow">{title.trim() || COVER_LABEL[cover]}</span>
         </div>
 
         <Input label="그룹 이름" value={title} maxLength={30} onChange={(e) => setTitle(e.target.value)} />
@@ -141,23 +184,56 @@ export default function GroupEditModal({ group, onClose, onSaved, onDeleted }: P
         </div>
 
         <div>
-          <span className="mb-2 block text-[13px] font-bold text-foreground">커버</span>
+          <span className="mb-2 block text-[13px] font-bold text-foreground">
+            커버 <span className="font-medium text-[#ABA6B8]">(프리셋 또는 직접 올리기)</span>
+          </span>
           <div className="grid grid-cols-4 gap-2">
+            {/* 직접 올리기 */}
+            <button
+              type="button"
+              aria-label="커버 이미지 직접 올리기"
+              aria-pressed={isCustom}
+              onClick={() => coverInputRef.current?.click()}
+              className={cn(
+                'flex h-11 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-[#FFCFEB] bg-[#FAFAFF] text-[#C25478] transition-transform active:scale-95',
+                isCustom && 'ring-2 ring-primary ring-offset-2 ring-offset-surface',
+              )}
+            >
+              {customPreviewUrl ? (
+                <img src={customPreviewUrl} alt="" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                  <circle cx="12" cy="13" r="3" stroke="currentColor" strokeWidth="1.8" />
+                </svg>
+              )}
+            </button>
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={onPickCover} />
+
             {COVER_PRESETS.map((c) => (
               <button
                 key={c}
                 type="button"
                 aria-label={COVER_LABEL[c]}
-                aria-pressed={cover === c}
-                onClick={() => setCover(c)}
+                aria-pressed={!isCustom && cover === c}
+                onClick={() => { setCustomFile(null); setKeepCustom(false); setCover(c); }}
                 className={cn(
                   'h-11 rounded-[10px] transition-transform active:scale-95',
                   COVER_GRADIENT[c],
-                  cover === c && 'ring-2 ring-primary ring-offset-2 ring-offset-surface',
+                  !isCustom && cover === c && 'ring-2 ring-primary ring-offset-2 ring-offset-surface',
                 )}
               />
             ))}
           </div>
+          {isCustom && (
+            <button
+              type="button"
+              onClick={() => { setCustomFile(null); setKeepCustom(false); }}
+              className="mt-1.5 text-[12px] font-semibold text-[#9A95A8]"
+            >
+              직접 올린 이미지 취소(프리셋 사용)
+            </button>
+          )}
         </div>
 
         {/* 위험 구역 — 그룹 삭제(Owner, FR-GROUP-06) */}
