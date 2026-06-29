@@ -158,8 +158,9 @@ public class SettlementService {
         groupAccessValidator.validateMember(groupId, actor.getId());
 
         List<Settlement> settlements = settlementRepository.findByTravelGroupIdOrderByIdAsc(groupId);
+        // 미시작은 오류가 아니라 정상 상태다 → 404 대신 started=false 로 200 응답(프론트 콘솔 404 제거).
         if (settlements.isEmpty()) {
-            throw new BusinessException(ErrorCode.SETTLEMENT_NOT_FOUND);
+            return SettlementProgressResponse.notStarted(groupId);
         }
         return toProgress(groupId, settlements);
     }
@@ -225,6 +226,7 @@ public class SettlementService {
     private SettlementProgressResponse toProgress(Long groupId, List<Settlement> settlements) {
         return new SettlementProgressResponse(
                 groupId,
+                true, // 저장된 송금이 있으므로 시작된 상태
                 !settlements.isEmpty() && settlements.stream().allMatch(Settlement::isCompleted),
                 settlements.stream().map(SettlementRecordResponse::from).toList()
         );

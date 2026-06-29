@@ -12,7 +12,7 @@ import {
 } from '../../api/settlement';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { CATEGORY_LABEL, EXPENSE_CATEGORIES, expenseIcon, formatWon, type Expense, type ExpenseCategory } from '../../types/expense';
-import type { PaymentLinks, SettlementProgress, SettlementRecord, SettlementStatus } from '../../types/settlement';
+import type { PaymentLinks, SettlementRecord, SettlementStatus } from '../../types/settlement';
 
 interface FallbackTransfer {
   fromName: string;
@@ -174,17 +174,12 @@ export default function SettlementPanel({
   const settlementKey = [...groupQueryKeys.expenses(groupId), 'settlement'] as const;
   const settlementQuery = useQuery({
     queryKey: settlementKey,
-    queryFn: async (): Promise<{ started: boolean; progress: SettlementProgress | null }> => {
-      try {
-        return { started: true, progress: await getSettlementProgress(groupId) };
-      } catch {
-        return { started: false, progress: null }; // 404 = 미시작
-      }
-    },
+    // 백엔드가 미시작도 200(started=false)으로 응답하므로 try/catch 없이 그대로 사용한다.
+    queryFn: () => getSettlementProgress(groupId),
     enabled: Number.isFinite(groupId),
   });
-  const started = settlementQuery.data?.started ?? null; // null = 로딩
-  const progress = settlementQuery.data?.progress ?? null;
+  const started = settlementQuery.data ? settlementQuery.data.started : null; // null = 로딩
+  const progress = settlementQuery.data?.started ? settlementQuery.data : null;
 
   // 정산 변화 → 정산/지출 요약 모두 갱신(본인 즉시 + 다른 멤버는 SSE로).
   const refresh = () => {

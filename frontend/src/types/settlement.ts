@@ -15,9 +15,10 @@ export interface SettlementRecord {
   receiverConfirmedAt: string | null;
 }
 
-/** 정산 진행 상태(시작 이후). */
+/** 정산 진행 상태. started=false 이면 아직 정산 미시작(transfers 비어 있음). */
 export interface SettlementProgress {
   groupId: number;
+  started: boolean;
   completed: boolean;
   transfers: SettlementRecord[];
 }
