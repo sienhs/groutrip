@@ -34,10 +34,12 @@ type Status = 'loading' | 'done' | 'error';
 export default function BookmarkListPage({
   groupId: groupIdProp,
   planExists = false,
+  onGoVote,
 }: {
   groupId?: number;
   /** 그룹에 여행 계획(숙소 선정/예약)이 있으면 true → 계획 진입을 장소 추가에 합쳐 노출한다. */
   planExists?: boolean;
+  onGoVote?: () => void;
 }) {
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
@@ -69,6 +71,11 @@ export default function BookmarkListPage({
   const [editing, setEditing] = useState<BookmarkResponse | null>(null);
   const [deleting, setDeleting] = useState<BookmarkResponse | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const nudgeKey = `nudge_vote_${groupId}`;
+  const [voteNudgeDismissed, setVoteNudgeDismissed] = useState(
+    () => !!localStorage.getItem(nudgeKey),
+  );
 
   // 보관함 목록 — 필터/정렬은 키 뒤에 덧붙여, SSE는 prefix(['bookmarks', groupId])로 무효화한다.
   const bookmarksQuery = useQuery({
@@ -168,6 +175,36 @@ export default function BookmarkListPage({
           />
         </div>
       </div>
+
+      {/* 투표 제안 — 보관함 3개 이상이고 아직 투표 탭으로 이동 안 한 경우 */}
+      {!voteNudgeDismissed && onGoVote && category === null && items.length >= 3 && (
+        <div className="mt-3 flex items-center gap-3 rounded-card border border-[#FFCFEB] bg-[#FFF0F7] px-3.5 py-3">
+          <span className="text-[20px]">🗳️</span>
+          <p className="min-w-0 flex-1 text-[12.5px] font-semibold leading-snug text-[#AD5575]">
+            장소가 {items.length}곳 쌓였어요. 투표로 어디 갈지 결정해볼까요?
+          </p>
+          <button
+            type="button"
+            onClick={onGoVote}
+            className="shrink-0 rounded-button bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground"
+          >
+            투표하기
+          </button>
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => {
+              localStorage.setItem(nudgeKey, '1');
+              setVoteNudgeDismissed(true);
+            }}
+            className="shrink-0 text-muted"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* 목록 */}
       <div className="mt-4 space-y-3">

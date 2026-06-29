@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Header from './Header';
 import BottomNav from './BottomNav';
 import SideNav from './SideNav';
+import ErrorBoundary from './ErrorBoundary';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -41,7 +42,9 @@ export default function AppLayout({
       <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background shadow-sm md:shadow-none">
         {!hideHeader && <Header title={title} showBack={showBack} actions={headerActions} />}
         {/* 본문 폭은 창 크기에 따라 단계적으로 넓어진다(가독성을 위해 상한은 둔다). */}
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-5 md:px-6 md:py-8 lg:max-w-4xl lg:px-8 2xl:max-w-5xl">{children}</main>
+        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-5 md:px-6 md:py-8 lg:max-w-4xl lg:px-8 2xl:max-w-5xl">
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </main>
         {!hideBottomNav && <BottomNav />}
       </div>
     </div>

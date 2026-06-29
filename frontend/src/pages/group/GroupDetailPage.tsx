@@ -18,7 +18,6 @@ import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
 import VoteTab from '../vote/VoteTab';
 import GroupGalleryPage from '../gallery/GroupGalleryPage';
 import GroupEditModal from './GroupEditModal';
-import GroupPersonaCard from './GroupPersonaCard';
 import GroupAccommodations from './GroupAccommodations';
 import GroupChatPage from '../chat/GroupChatPage';
 import GroupBoardPage, { getReadNoticeIds, markNoticesRead } from '../board/GroupBoardPage';
@@ -187,7 +186,7 @@ export default function GroupDetailPage() {
     }
   }, [group?.inviteCode, toast]);
 
-  // 초대 링크 복사(배너 공유 아이콘) — 바로 합류 가능한 /join/:code 링크.
+  // 초대 링크 공유(배너 공유 아이콘) — Web Share API 우선, 지원 안 하면 클립보드.
   const copyInviteLink = useCallback(async () => {
     const code = group?.inviteCode;
     if (!code) {
@@ -195,13 +194,25 @@ export default function GroupDetailPage() {
       return;
     }
     const link = `${window.location.origin}/join/${code}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${group?.title ?? '여행'} 그룹 초대`,
+          text: '함께 여행 계획을 만들어요!',
+          url: link,
+        });
+        return;
+      } catch (e) {
+        if ((e as DOMException).name === 'AbortError') return;
+      }
+    }
     try {
       await navigator.clipboard.writeText(link);
       toast.success('초대 링크를 복사했어요', '링크를 공유하면 바로 참여할 수 있어요.');
     } catch {
       toast.info('초대 링크', link);
     }
-  }, [group?.inviteCode, toast]);
+  }, [group?.inviteCode, group?.title, toast]);
 
   // 멤버 변경(강퇴/위임/코드 재발급) 후 그룹·멤버 캐시를 무효화해 다시 불러온다.
   const refreshGroupAndMembers = useCallback(async () => {
@@ -320,6 +331,17 @@ export default function GroupDetailPage() {
       {/* 우리 숙소(날짜별 선정/예약) */}
       <GroupAccommodations groupId={groupId} startDate={group?.startDate} endDate={group?.endDate} />
 
+      {/* 자동 맥락 넛지 */}
+      {!loading && group && (
+        <GroupNudges
+          groupId={groupId}
+          memberCount={members.length}
+          endDate={group.endDate}
+          onInvite={copyInviteCode}
+          onRecap={() => navigate(`/groups/${groupId}/recap`)}
+        />
+      )}
+
       {/* 작업 영역 — 데스크톱(lg+)은 좌(탭 콘텐츠) + 우(보관함 고정 패널) 2-pane */}
       <div className="flex-1 lg:flex lg:items-start lg:gap-5 lg:px-4">
         {/* LEFT: 탭 + 콘텐츠 */}
@@ -333,7 +355,7 @@ export default function GroupDetailPage() {
             ) : leftTab === 'schedule' ? (
               <ScheduleBuilderPage groupId={groupId} isOwner={isOwner} />
             ) : leftTab === 'place' ? (
-              <BookmarkListPage groupId={groupId} planExists={planExists} />
+              <BookmarkListPage groupId={groupId} planExists={planExists} onGoVote={() => setTab('vote')} />
             ) : leftTab === 'vote' ? (
               <VoteTab groupId={groupId} isOwner={isOwner} />
             ) : leftTab === 'settle' ? (
@@ -363,7 +385,7 @@ export default function GroupDetailPage() {
         <aside className="hidden lg:block lg:w-[380px] lg:shrink-0">
           <div className="scrollbar-hide sticky top-0 max-h-dvh overflow-y-auto px-4 pb-24 pt-4">
             <h2 className="mb-3 text-[13px] font-extrabold tracking-wide text-muted">보관함</h2>
-            <BookmarkListPage groupId={groupId} planExists={planExists} />
+            <BookmarkListPage groupId={groupId} planExists={planExists} onGoVote={() => setTab('vote')} />
           </div>
         </aside>
       </div>
@@ -450,9 +472,6 @@ function MemberTab({
 
   return (
     <div>
-      {/* 그룹 여행 성향(일치율/충돌 차원 절충 안내) */}
-      <GroupPersonaCard groupId={groupId} />
-
       {/* 초대 코드 */}
       <div className="mb-3.5 rounded-card border border-border bg-surface p-3.5">
         <div className="flex items-center justify-between">
@@ -573,6 +592,96 @@ function MemberTab({
                   : '재발급'
         }
       />
+    </div>
+  );
+}
+
+function GroupNudges({
+  groupId,
+  memberCount,
+  endDate,
+  onInvite,
+  onRecap,
+}: {
+  groupId: number;
+  memberCount: number;
+  endDate: string;
+  onInvite: () => void;
+  onRecap: () => void;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const isCompleted = endDate < today;
+  const isSolo = memberCount === 1;
+
+  const [dismissedInvite, setDismissedInvite] = useState(
+    () => !!localStorage.getItem(`nudge_invite_${groupId}`),
+  );
+  const [dismissedRecap, setDismissedRecap] = useState(
+    () => !!localStorage.getItem(`nudge_recap_${groupId}`),
+  );
+
+  if (!isSolo && !isCompleted) return null;
+
+  return (
+    <div className="space-y-2 border-b border-border px-4 py-3">
+      {isSolo && !dismissedInvite && (
+        <NudgeBanner
+          icon="👥"
+          message="아직 나 혼자예요. 친구를 초대해서 함께 계획해요!"
+          actionLabel="초대 코드 복사"
+          onAction={onInvite}
+          onDismiss={() => {
+            localStorage.setItem(`nudge_invite_${groupId}`, '1');
+            setDismissedInvite(true);
+          }}
+        />
+      )}
+      {isCompleted && !dismissedRecap && (
+        <NudgeBanner
+          icon="📸"
+          message="여행이 끝났어요! 함께한 순간을 회고로 남겨보세요."
+          actionLabel="회고 보기"
+          onAction={onRecap}
+          onDismiss={() => {
+            localStorage.setItem(`nudge_recap_${groupId}`, '1');
+            setDismissedRecap(true);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function NudgeBanner({
+  icon, message, actionLabel, onAction, onDismiss,
+}: {
+  icon: string;
+  message: string;
+  actionLabel: string;
+  onAction: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-card border border-border bg-surface px-3.5 py-3">
+      <span className="text-[20px]">{icon}</span>
+      <p className="min-w-0 flex-1 text-[12.5px] font-semibold leading-snug text-foreground">{message}</p>
+      <button
+        type="button"
+        onClick={onAction}
+        className="shrink-0 rounded-button bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground"
+      >
+        {actionLabel}
+      </button>
+      <button
+        type="button"
+        aria-label="닫기"
+        onClick={onDismiss}
+        className="shrink-0 text-muted"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </button>
     </div>
   );
 }

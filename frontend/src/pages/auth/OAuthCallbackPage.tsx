@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { exchangeOAuthCode } from '../../api/auth';
-import { getMyPreference } from '../../api/survey';
 import useAuthStore from '../../store/authStore';
+import { isOnboarded } from '../../lib/onboarding';
 import { Card } from '../../components';
 import AuthBrand from './AuthBrand';
 
@@ -31,19 +31,17 @@ export default function OAuthCallbackPage() {
           name: response.name,
           email: response.email,
         });
-        // 초대 링크 등으로 진입했다면 원래 경로로 복귀(설문 분기보다 우선).
+        if (!isOnboarded(response.userId)) {
+          navigate('/onboarding', { replace: true });
+          return;
+        }
         const redirect = sessionStorage.getItem('post_login_redirect');
         if (redirect) {
           sessionStorage.removeItem('post_login_redirect');
           navigate(redirect, { replace: true });
           return;
         }
-        try {
-          await getMyPreference();
-          navigate('/', { replace: true });
-        } catch {
-          navigate('/survey', { replace: true });
-        }
+        navigate('/', { replace: true });
       } catch {
         setError('인증 정보가 만료되었습니다. 소셜 로그인을 다시 시도해주세요.');
       }

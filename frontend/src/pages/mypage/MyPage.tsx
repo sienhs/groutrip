@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../../components/AppLayout';
 import Avatar from '../../components/Avatar';
@@ -9,6 +9,7 @@ import { deleteAccount, updateMyName, uploadMyAvatar, userAvatarUrl } from '../.
 import { logout } from '../../api/auth';
 import useAuthStore from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { pushSupported, currentPermission, requestPermission, subscribePush } from '../../lib/push';
 import { cn } from '../../lib/cn';
 import PayoutSection from './PayoutSection';
 import TripStatsSection from './TripStatsSection';
@@ -33,6 +34,25 @@ export default function MyPage() {
 
   const [delOpen, setDelOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Web Push 구독
+  const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>(currentPermission);
+  const [subscribing, setSubscribing] = useState(false);
+  const handleEnablePush = useCallback(async () => {
+    setSubscribing(true);
+    try {
+      const perm = await requestPermission();
+      setPushPerm(perm);
+      if (perm === 'granted') {
+        await subscribePush();
+        toast.success('푸시 알림을 켰어요', '그룹 활동 알림을 받을 수 있어요.');
+      }
+    } catch {
+      toast.error('알림 설정에 실패했어요', '잠시 후 다시 시도해 주세요.');
+    } finally {
+      setSubscribing(false);
+    }
+  }, [toast]);
   const avatarRef = useRef<HTMLInputElement>(null);
   const [avatarVersion, setAvatarVersion] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -191,27 +211,33 @@ export default function MyPage() {
       {/* 내 여행 통계 + 도전과제 — 자체 조회 섹션 */}
       <TripStatsSection />
 
-      {/* 페르소나 */}
-      <button type="button" onClick={() => navigate('/survey/result')}
-        className="mt-4 flex w-full items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-3 text-left">
-        <span className="text-[22px]">🍜</span>
-        <div className="flex-1">
-          <div className="text-[14px] font-extrabold">내 여행 페르소나</div>
-          <div className="text-[12px] text-muted">설문 결과 보기</div>
-        </div>
-        <span className="text-[12px] font-bold text-[#C25478]">결과 보기 ›</span>
-      </button>
-
       {/* 앱 설정 (기기 단위) */}
       <p className="mb-2 mt-6 text-[12px] font-extrabold tracking-wide text-muted">앱 설정</p>
       <div className="overflow-hidden rounded-card border border-border bg-surface">
         <ToggleRow label="다크 모드" on={theme === 'dark'} onChange={toggleTheme} border />
-        <ToggleRow label="알림 표시" on={notificationsEnabled} onChange={() => setNotificationsEnabled(!notificationsEnabled)} />
+        <ToggleRow label="인앱 알림 표시" on={notificationsEnabled} onChange={() => setNotificationsEnabled(!notificationsEnabled)} border />
+        {pushSupported() && (
+          <div className="flex w-full items-center px-3.5 py-[13px]">
+            <div className="min-w-0 flex-1">
+              <span className="text-[15px] font-semibold">푸시 알림</span>
+              <p className="text-[12px] text-muted">
+                {pushPerm === 'granted' ? '켜짐 — 그룹 활동 알림을 받아요' : pushPerm === 'denied' ? '차단됨 — 브라우저 설정에서 허용해 주세요' : '꺼짐'}
+              </p>
+            </div>
+            {pushPerm !== 'granted' && pushPerm !== 'denied' && (
+              <Button size="sm" variant="secondary" loading={subscribing} onClick={handleEnablePush}>
+                알림 켜기
+              </Button>
+            )}
+            {pushPerm === 'granted' && (
+              <span className="text-[13px] font-bold text-primary">✓ 켜짐</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 메뉴 */}
       <div className="mt-3.5 overflow-hidden rounded-card border border-border bg-surface">
-        <MenuRow label="설문 다시하기" onClick={() => navigate('/survey')} border />
         <MenuRow label="개인정보처리방침" onClick={() => navigate('/privacy')} border />
         <MenuRow label="이용약관" onClick={() => navigate('/terms')} border />
         <MenuRow label="로그아웃" onClick={handleLogout} />

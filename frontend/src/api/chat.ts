@@ -8,3 +8,7 @@ export const getChatMessages = async (groupId: number, before?: number): Promise
   });
   return res.data.data;
 };
+
+export const deleteChatMessage = async (groupId: number, messageId: number): Promise<void> => {
+  await instance.delete(`/api/groups/${groupId}/chat/messages/${messageId}`);
+};

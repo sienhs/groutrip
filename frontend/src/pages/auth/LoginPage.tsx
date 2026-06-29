@@ -3,24 +3,40 @@ import { getOAuthAuthorizationUrl } from '../../api/auth';
 import { Card } from '../../components';
 import AuthBrand from './AuthBrand';
 
+const FEATURES = [
+  {
+    emoji: '🗓️',
+    title: '함께 만드는 일정',
+    desc: '날짜별 일정을 팀원과 실시간으로 함께 짜고, 지도로 동선을 한눈에 확인하세요.',
+  },
+  {
+    emoji: '📍',
+    title: '장소 보관함 & 투표',
+    desc: '가고 싶은 장소를 모아두고 투표로 결정해요. AI 추천도 받을 수 있어요.',
+  },
+  {
+    emoji: '💸',
+    title: '간편 비용 정산',
+    desc: '여행 중 쓴 비용을 기록하고, 여행이 끝나면 자동으로 정산해 드려요.',
+  },
+];
+
 /**
- * 로그인 — SNS(카카오/구글) 전용. 이메일/비밀번호 로그인·회원가입은 제공하지 않는다.
- * 소셜 로그인 성공 후 처리(성향 설문 분기 등)는 /oauth/callback(OAuthCallbackPage)에서 한다.
+ * 로그인 — SNS(카카오/구글) 전용.
+ * PC(md 이상)에서는 서비스 소개와 로그인 폼을 나란히 표시한다.
  */
 export default function LoginPage() {
   const handleOAuthLogin = (provider: 'google' | 'kakao') => {
     window.location.assign(getOAuthAuthorizationUrl(provider));
   };
 
-  return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center bg-background px-6 py-10">
+  const loginCard = (
+    <div className="w-full max-w-md">
       <AuthBrand subtitle="함께 만드는 우리의 여행" />
-
       <Card padding="lg">
         <p className="mb-5 text-center text-[13px] text-muted">
           SNS 계정으로 간편하게 시작하세요
         </p>
-
         <div className="flex flex-col gap-3">
           <button
             type="button"
@@ -47,7 +63,6 @@ export default function LoginPage() {
           </button>
         </div>
       </Card>
-
       <p className="mt-6 text-center text-[12px] text-muted">
         시작하면 <Link to="/terms" className="font-semibold underline underline-offset-2">이용약관</Link>
         {' 및 '}
@@ -55,5 +70,49 @@ export default function LoginPage() {
         에 동의하는 것으로 간주됩니다.
       </p>
     </div>
+  );
+
+  return (
+    <>
+      {/* 모바일 레이아웃 */}
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-6 py-10 md:hidden">
+        {loginCard}
+      </div>
+
+      {/* PC 레이아웃 (md 이상) */}
+      <div className="hidden min-h-dvh md:flex">
+        {/* 왼쪽: 서비스 소개 */}
+        <div className="flex flex-1 flex-col justify-center bg-gradient-to-br from-[#FFF0F7] to-[#F3ECFF] px-16 py-16 dark:from-[#2A1A23] dark:to-[#1E1528]">
+          <div className="max-w-lg">
+            <div className="mb-2 text-[13px] font-bold tracking-widest text-[#C25478]">GROUTRIP</div>
+            <h1 className="text-[38px] font-extrabold leading-tight tracking-tight text-foreground">
+              친구와 함께하는<br />여행, 더 쉽게
+            </h1>
+            <p className="mt-4 text-[16px] leading-relaxed text-muted">
+              일정부터 정산까지, 그룹 여행의 모든 것을 한 곳에서 관리하세요.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-5">
+              {FEATURES.map((f) => (
+                <div key={f.title} className="flex items-start gap-4">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-white/70 text-[22px] shadow-sm dark:bg-white/10">
+                    {f.emoji}
+                  </span>
+                  <div>
+                    <div className="text-[15px] font-extrabold text-foreground">{f.title}</div>
+                    <div className="mt-0.5 text-[13px] leading-relaxed text-muted">{f.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 오른쪽: 로그인 폼 */}
+        <div className="flex w-[480px] shrink-0 flex-col items-center justify-center bg-background px-12 py-12">
+          {loginCard}
+        </div>
+      </div>
+    </>
   );
 }

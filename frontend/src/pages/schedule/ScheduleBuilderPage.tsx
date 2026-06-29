@@ -28,6 +28,7 @@ import {
   type TransportLeg,
   type TransportMode,
 } from '../../types/schedule';
+import { generateICS, downloadICS } from '../../lib/ics';
 import { cn } from '../../lib/cn';
 
 type LegState = TransportLeg | 'loading' | 'error' | undefined;
@@ -88,6 +89,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
   const [pickFor, setPickFor] = useState<Schedule | null>(null);
 
   const [activeIdx, setActiveIdx] = useState(0);
+  const autoScrolledRef = useRef(false);
   const [legs, setLegs] = useState<Record<string, LegState>>({}); // key: `${pair}:${mode}`
   const [legMode, setLegMode] = useState<Record<string, TransportMode>>({}); // pair → 선택 수단(기본 CAR)
   const [deleting, setDeleting] = useState<Schedule | null>(null);
@@ -120,12 +122,13 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
         getGroup(groupId),
         getAccommodations(groupId).catch(() => [] as Accommodation[]),
       ]);
-      return { schedules: sch, tripDates: enumerateDates(g.startDate, g.endDate), accommodations: accs };
+      return { schedules: sch, tripDates: enumerateDates(g.startDate, g.endDate), accommodations: accs, groupTitle: g.title };
     },
     enabled: Number.isFinite(groupId),
   });
   const schedules = scheduleQuery.data?.schedules ?? [];
   const tripDates = scheduleQuery.data?.tripDates ?? [];
+  const groupTitle = scheduleQuery.data?.groupTitle ?? '여행';
   const accommodations = scheduleQuery.data?.accommodations ?? [];
   const loading = scheduleQuery.isLoading;
   const error = scheduleQuery.isError;
@@ -143,6 +146,23 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
     ? tripDates
     : [...new Set(schedules.map((s) => s.scheduleDate))].sort();
   const activeDate = dates[Math.min(activeIdx, Math.max(0, dates.length - 1))];
+
+  // 처음 날짜 목록이 로드될 때 한 번만 오늘 날짜 탭으로 이동한다.
+  useEffect(() => {
+    if (dates.length === 0 || autoScrolledRef.current) return;
+    autoScrolledRef.current = true;
+    const today = new Date().toISOString().slice(0, 10);
+    const todayIdx = dates.indexOf(today);
+    if (todayIdx >= 0) {
+      setActiveIdx(todayIdx);
+    } else if (today > dates[dates.length - 1]) {
+      // 여행이 끝난 경우 마지막 날로
+      setActiveIdx(dates.length - 1);
+    }
+    // 여행 시작 전이면 0(첫날)을 그대로 유지
+  // dates 배열 자체가 바뀔 때만 실행
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dates.length > 0]);
   const stops = schedules
     .filter((s) => s.scheduleDate === activeDate)
     .sort((a, b) => a.orderIndex - b.orderIndex);
@@ -335,26 +355,43 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
         ))}
       </div>
 
-      {/* 우리 여행일정 지도에서 보기 — 일정 장소+숙소를 핀으로 */}
-      <button
-        type="button"
-        onClick={() => navigate(`/groups/${groupId}/map`)}
-        className="mt-3 flex w-full items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-3 text-left active:scale-[0.99]"
-      >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FCF0F9] text-[#C25478]">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6 9 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-            <path d="M9 3v15M15 6v15" stroke="currentColor" strokeWidth="1.8" />
+      {/* 우리 여행일정 지도에서 보기 + 캘린더 내보내기 */}
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          onClick={() => navigate(`/groups/${groupId}/map`)}
+          className="flex flex-1 items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-3 text-left active:scale-[0.99]"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FCF0F9] text-[#C25478]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6 9 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              <path d="M9 3v15M15 6v15" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-extrabold text-foreground">지도에서 보기</span>
+            <span className="block text-[12px] text-muted">핀으로 한눈에</span>
+          </span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M9 6l6 6-6 6" stroke="#C25478" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-extrabold text-foreground">우리 여행일정 지도에서 보기</span>
-          <span className="block text-[12px] text-muted">일정 장소와 숙소를 지도에 핀으로 한눈에</span>
-        </span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M9 6l6 6-6 6" stroke="#C25478" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const ics = generateICS(groupTitle, schedules);
+            downloadICS(`${groupTitle}_일정.ics`, ics);
+          }}
+          className="flex shrink-0 flex-col items-center justify-center gap-1 rounded-card border border-border bg-surface px-3.5 py-3 active:scale-[0.99]"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M12 14v4M10 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          <span className="text-[11px] font-bold text-muted">캘린더</span>
+        </button>
+      </div>
 
       {/* 이 날 묵는 숙소 — 일정 목록과 별개로 상단에 고정 표시 */}
       {stayHere && (

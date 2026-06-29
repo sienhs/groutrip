@@ -76,10 +76,7 @@ export default function HomePage() {
       )}
 
       {!loading && !error && isEmpty && (
-        <div className="mt-8">
-          <EmptyState title="아직 그룹이 없어요" description="첫 여행 그룹을 만들고 친구들을 초대해 보세요."
-            action={<Button onClick={() => navigate('/groups/new')}>그룹 만들기</Button>} />
-        </div>
+        <HomeFeatureIntro onCreateGroup={() => navigate('/groups/new')} />
       )}
 
       {!loading && !error && home && !isEmpty && (
@@ -139,15 +136,11 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: '여행 추천', to: '/recommend', bg: 'bg-[#E9F8EE]', fg: 'text-[#22A964]',
     icon: <path d="M12 3l2.2 5.8L20 9l-4.6 3.7L17 19l-5-3.4L7 19l1.6-6.3L4 9l5.8-.2L12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
   },
-  {
-    label: '내 성향', to: '/survey/result', bg: 'bg-[#F1E9FF]', fg: 'text-[#7C3AED]',
-    icon: <path d="M5 19V11M10 19V5M15 19v-6M20 19v-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />,
-  },
 ];
 
 function QuickActions({ navigate }: { navigate: (to: string) => void }) {
   return (
-    <div className="mt-4 grid grid-cols-4 gap-2">
+    <div className="mt-4 grid grid-cols-3 gap-2">
       {QUICK_ACTIONS.map((a) => (
         <button
           key={a.label}
@@ -249,5 +242,53 @@ function CompletedRow({ g, onClick }: { g: HomeGroupSummary; onClick: () => void
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </span>
     </Card>
+  );
+}
+
+const HOME_FEATURES = [
+  { emoji: '🗓️', title: '함께 짜는 일정', desc: '날짜별로 팀원 모두가 일정을 추가하고 순서를 조정해요.' },
+  { emoji: '📍', title: '장소 보관함 & 투표', desc: '가고 싶은 곳을 모아두고 투표로 함께 결정해요.' },
+  { emoji: '💸', title: '자동 비용 정산', desc: '지출을 기록하면 여행 후 1/N 자동으로 계산해드려요.' },
+  { emoji: '🏨', title: '숙소 계획', desc: '날짜별 숙소를 정하고 예약 정보를 팀원과 공유해요.' },
+  { emoji: '💬', title: '채팅 & 게시판', desc: '실시간 채팅과 공지로 팀원과 편하게 소통해요.' },
+] as const;
+
+function HomeFeatureIntro({ onCreateGroup }: { onCreateGroup: () => void }) {
+  return (
+    <div className="mt-6">
+      <div className="mb-5 rounded-2xl bg-gradient-to-br from-[#FFF0F7] to-[#F3ECFF] px-5 py-6 dark:from-[#2A1A23] dark:to-[#1E1528]">
+        <div className="text-[28px]">✈️</div>
+        <h2 className="mt-2 text-[21px] font-extrabold leading-snug tracking-tight">
+          첫 여행을 시작해요!
+        </h2>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-muted">
+          그룹을 만들고 친구들을 초대하면<br />일정부터 정산까지 한 곳에서 해결돼요.
+        </p>
+        <button
+          type="button"
+          onClick={onCreateGroup}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-button bg-primary px-5 py-2.5 text-[14px] font-extrabold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover"
+        >
+          새 그룹 만들기
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      <p className="mb-3 text-[12px] font-extrabold tracking-wide text-muted">그루트립으로 할 수 있는 것들</p>
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
+        {HOME_FEATURES.map((f) => (
+          <div
+            key={f.title}
+            className="w-[148px] shrink-0 rounded-card border border-border bg-surface px-3.5 py-3.5"
+          >
+            <span className="text-[22px]">{f.emoji}</span>
+            <p className="mt-2 text-[13px] font-extrabold text-foreground">{f.title}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">{f.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

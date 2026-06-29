@@ -29,6 +29,7 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
 
   const resolveActorNameRef = useRef(resolveActorName);
   const onEventRef = useRef(onEvent);
+  const reconnectAttemptsRef = useRef(0);
   useEffect(() => {
     resolveActorNameRef.current = resolveActorName;
     onEventRef.current = onEvent;
@@ -93,7 +94,14 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
       },
       reconnectDelay: 5000,
       onConnect: () => {
+        reconnectAttemptsRef.current = 0;
+        client.reconnectDelay = 5000;
         client.subscribe(`/topic/group/${groupId}`, (frame) => dispatch(frame.body));
+      },
+      onWebSocketClose: () => {
+        const delay = Math.min(5000 * Math.pow(2, reconnectAttemptsRef.current), 60_000);
+        reconnectAttemptsRef.current += 1;
+        client.reconnectDelay = delay;
       },
       onStompError: (frame) => {
         console.error('[WS] STOMP error', frame);

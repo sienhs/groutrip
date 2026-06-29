@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import Button from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
 import { ConfirmModal } from '../../components/Modal';
@@ -13,6 +14,18 @@ import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { expenseIcon, formatWon, type Expense } from '../../types/expense';
 import type { GroupMember } from '../../types/group';
 import useAuthStore from '../../store/authStore';
+
+const PIE_COLORS = ['#C25478', '#E86A92', '#A0C4FF', '#9BF6FF', '#CAFFBF', '#FFD6A5', '#FDFFB6', '#BDB2FF'];
+
+function buildPayerData(expenses: Expense[]) {
+  const map = new Map<string, number>();
+  for (const e of expenses) {
+    map.set(e.payerName, (map.get(e.payerName) ?? 0) + e.amount);
+  }
+  return Array.from(map.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+}
 
 /**
  * 정산 — 총 지출/1인당, 지출 내역, 정산 요약(누가 누구에게) + 송금 딥링크.
@@ -97,11 +110,60 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
             )}
           </div>
 
+          {/* 멤버별 지출 파이차트 */}
+          {expenses.length > 0 && (() => {
+            const data = buildPayerData(expenses);
+            return (
+              <section>
+                <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-muted">멤버별 지출</h2>
+                <div className="rounded-card border border-border bg-surface p-4">
+                  <div className="flex items-center gap-4">
+                    <ResponsiveContainer width={110} height={110}>
+                      <PieChart>
+                        <Pie
+                          data={data}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={28}
+                          outerRadius={50}
+                          paddingAngle={2}
+                          strokeWidth={0}
+                        >
+                          {data.map((_, i) => (
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(v: number) => formatWon(v)}
+                          contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E8E4F0' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <ul className="min-w-0 flex-1 space-y-1.5">
+                      {data.map((d, i) => (
+                        <li key={d.name} className="flex items-center gap-2">
+                          <span
+                            className="size-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">{d.name}</span>
+                          <span className="shrink-0 text-[13px] font-extrabold text-foreground">{formatWon(d.value)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
+
           {/* 내역 */}
           <section>
             <h2 className="mb-2.5 text-[13px] font-extrabold tracking-wide text-muted">지출 내역</h2>
             {expenses.length === 0 ? (
-              <EmptyState title="아직 지출이 없어요" description="+ 버튼으로 첫 지출을 추가해 보세요." />
+              <EmptyState title="아직 지출이 없어요" description="지출을 기록하면 여행 후 자동으로 1/N 정산해드려요." />
             ) : (
               <div className="space-y-2.5">
                 {expenses.slice(0, visibleCount).map((e) => (
@@ -147,6 +209,16 @@ export default function ExpensePage({ groupId: groupIdProp, members = [] }: { gr
               </div>
             )}
           </section>
+
+          {/* 미정산 리마인더 — 지출이 있고 아직 정산 내역이 남아 있을 때 */}
+          {expenses.length > 0 && (summary?.balances?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-3 rounded-card border border-[#FFCFEB] bg-[#FFF0F7] px-3.5 py-3">
+              <span className="text-[20px]">💸</span>
+              <p className="min-w-0 flex-1 text-[12.5px] font-semibold leading-snug text-[#AD5575]">
+                정산이 필요한 내역이 있어요. 아래에서 정산을 시작해 보세요.
+              </p>
+            </div>
+          )}
 
           {/* 정산 워크플로우 (시작/송금 딥링크/완료 확인) */}
           <SettlementPanel

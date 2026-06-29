@@ -8,11 +8,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // 라우트 단위 코드 스플리팅 — 각 페이지를 별도 청크로 분리해 초기 번들을 가볍게 한다.
 // 페이지 진입 시 해당 청크만 지연 로드되고, 로딩 동안 아래 RouteFallback 을 보여준다.
+const LandingPage = lazy(() => import('./pages/landing/LandingPage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const OAuthCallbackPage = lazy(() => import('./pages/auth/OAuthCallbackPage'));
+const OnboardingPage = lazy(() => import('./pages/auth/OnboardingPage'));
 const HomePage = lazy(() => import('./pages/home/HomePage'));
-const SurveyPage = lazy(() => import('./pages/survey/SurveyPage'));
-const SurveyResultPage = lazy(() => import('./pages/survey/SurveyResultPage'));
 const GroupListPage = lazy(() => import('./pages/group/GroupListPage'));
 const GroupCreatePage = lazy(() => import('./pages/group/GroupCreatePage'));
 const GroupDetailPage = lazy(() => import('./pages/group/GroupDetailPage'));
@@ -27,6 +27,12 @@ const MyPage = lazy(() => import('./pages/mypage/MyPage'));
 const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
+
+/** / 진입 시: 인증 여부에 따라 랜딩 또는 홈 렌더. ProtectedRoute를 거치지 않아 공개 접근 가능. */
+function RootRoute() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  return isAuthenticated ? <HomePage /> : <LandingPage />;
+}
 
 /** 라우트 청크 로딩 중 표시할 폴백(인증 복원 화면과 동일 톤). */
 function RouteFallback() {
@@ -77,16 +83,15 @@ function App() {
         <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+        <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
         {/* 공개 문서(인증 불필요) */}
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
-        <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-        <Route path="/survey" element={<ProtectedRoute><SurveyPage /></ProtectedRoute>} />
-        <Route path="/survey/result" element={<ProtectedRoute><SurveyResultPage /></ProtectedRoute>} />
+        <Route path="/" element={<RootRoute />} />
 
         {/* 그룹 (B 도메인 placeholder) */}
         <Route path="/groups" element={<ProtectedRoute><GroupListPage /></ProtectedRoute>} />
-        <Route path="/join/:code" element={<ProtectedRoute><JoinGroupPage /></ProtectedRoute>} />
+        <Route path="/join/:code" element={<JoinGroupPage />} />
         <Route path="/groups/new" element={<ProtectedRoute><GroupCreatePage /></ProtectedRoute>} />
         <Route path="/groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
         <Route path="/groups/:id/plan" element={<ProtectedRoute><TripPlanPage /></ProtectedRoute>} />

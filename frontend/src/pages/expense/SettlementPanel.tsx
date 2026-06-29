@@ -136,6 +136,7 @@ export default function SettlementPanel({
   // 송금 딥링크(설정ID→링크)와 로딩 상태. '송금하기' 클릭 시점에만 조회한다.
   const [payLinks, setPayLinks] = useState<Record<number, PaymentLinks>>({});
   const [payLoadingId, setPayLoadingId] = useState<number | null>(null);
+  const [payErrors, setPayErrors] = useState<Set<number>>(new Set());
   // 송금 안내 모달이 열린 송금 id(없으면 닫힘).
   const [sendModalId, setSendModalId] = useState<number | null>(null);
 
@@ -157,11 +158,13 @@ export default function SettlementPanel({
   const openPay = async (settlementId: number) => {
     if (payLinks[settlementId]) return;
     setPayLoadingId(settlementId);
+    setPayErrors((s) => { const n = new Set(s); n.delete(settlementId); return n; });
     try {
       const links = await getPaymentLinks(groupId, settlementId);
       setPayLinks((prev) => ({ ...prev, [settlementId]: links }));
     } catch {
       toast.error('송금 링크를 만들지 못했어요', '잠시 후 다시 시도해 주세요.');
+      setPayErrors((s) => new Set(s).add(settlementId));
     } finally {
       setPayLoadingId(null);
     }
@@ -317,7 +320,21 @@ export default function SettlementPanel({
             }
           >
             {!links ? (
-              <p className="py-6 text-center text-[13px] text-muted">송금 정보를 불러오는 중…</p>
+              payErrors.has(sendModalId) ? (
+                <div className="flex flex-col items-center gap-3 py-8">
+                  <p className="text-[13px] text-muted">송금 정보를 불러오지 못했어요.</p>
+                  <button
+                    type="button"
+                    onClick={() => openPay(sendModalId)}
+                    disabled={payLoadingId === sendModalId}
+                    className="rounded-button border border-border bg-surface px-4 py-2 text-[13px] font-bold text-foreground hover:bg-background disabled:opacity-60"
+                  >
+                    {payLoadingId === sendModalId ? '불러오는 중…' : '다시 시도'}
+                  </button>
+                </div>
+              ) : (
+                <p className="py-6 text-center text-[13px] text-muted">송금 정보를 불러오는 중…</p>
+              )
             ) : (
               <div className="space-y-3">
                 {/* 1) 받는 사람이 등록한 송금 링크/계좌(있으면 우선) */}
@@ -353,14 +370,24 @@ export default function SettlementPanel({
                   </p>
                 )}
 
-                {/* 2) 송금 앱 바로 열기(금액 프리필, 받는 사람은 앱에서 선택) */}
+                {/* 2) 송금 앱 바로 열기 + PC용 링크 복사 */}
                 <div>
                   <p className="mb-1.5 text-[11px] font-bold text-muted">송금 앱으로 열기 (금액 자동 입력)</p>
                   <div className="flex gap-2">
                     <a href={links.tossDeepLink} className="flex flex-1 items-center justify-center rounded-button bg-[#0064FF] px-3 py-2.5 text-[13px] font-extrabold text-white active:opacity-90">토스 ↗</a>
                     <a href={links.kakaoPayDeepLink} className="flex flex-1 items-center justify-center rounded-button bg-[#FFEB00] px-3 py-2.5 text-[13px] font-extrabold text-[#3C1E1E] active:opacity-90">카카오페이 ↗</a>
                   </div>
-                  <p className="mt-1.5 text-[11px] leading-snug text-[#ABA6B8]">앱이 안 열리면 휴대폰에서 시도해 주세요(PC는 미지원).</p>
+                  <div className="mt-2 flex gap-2">
+                    <button type="button" onClick={() => copyText(links.tossDeepLink, '토스 링크')}
+                      className="flex-1 rounded-button border border-[#0064FF]/30 bg-surface px-2 py-1.5 text-[11px] font-bold text-[#0064FF]">
+                      토스 링크 복사
+                    </button>
+                    <button type="button" onClick={() => copyText(links.kakaoPayDeepLink, '카카오페이 링크')}
+                      className="flex-1 rounded-button border border-[#D4B800]/40 bg-surface px-2 py-1.5 text-[11px] font-bold text-[#B8960A]">
+                      카카오페이 링크 복사
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-[11px] leading-snug text-[#ABA6B8]">PC에서는 링크를 복사해 휴대폰 브라우저에서 열어주세요.</p>
                 </div>
               </div>
             )}

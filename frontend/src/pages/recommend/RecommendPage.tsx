@@ -8,7 +8,6 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 import { getRecommendations } from '../../api/recommend';
-import { getGroupPersona, type GroupPersona } from '../../api/survey';
 import { searchPlaces, addBookmark, getBookmarks } from '../../api/place';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { contentTypeLabel, type RecommendItem } from '../../types/recommend';
@@ -24,28 +23,12 @@ function normalizeName(s: string): string {
   return s.replace(/\s+/g, '').toLowerCase();
 }
 
-/** 그룹 평균 성향에서 가장 두드러진 축을 한 줄 수식어로(백엔드 추천 이유와 동일한 기준). */
-function personaTrait(a: NonNullable<GroupPersona['average']>): string {
-  const dA = Math.abs(a.activity - 0.5);
-  const dF = Math.abs(a.food - 0.5);
-  const dU = Math.abs(a.urbanNature - 0.5);
-  if (dF >= dA && dF >= dU) return a.food >= 0.5 ? '먹거리를 즐기는' : '관광에 집중하는';
-  if (dA >= dU) return a.activity >= 0.5 ? '활동적인' : '여유로운';
-  return a.urbanNature >= 0.5 ? '도심을 즐기는' : '자연을 즐기는';
-}
-
 export default function RecommendPage({ groupId: groupIdProp }: { groupId?: number }) {
   const params = useParams<{ id: string }>();
   const groupId = groupIdProp ?? Number(params.id);
   const toast = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  // 추천이 어떤 그룹 성향에 맞춘 것인지 보여주기 위해 그룹 평균 성향을 함께 불러온다.
-  const { data: persona } = useQuery({
-    queryKey: groupQueryKeys.persona(groupId),
-    queryFn: () => getGroupPersona(groupId),
-  });
 
   const { data: items = [], isLoading: loading, isError: error, refetch } = useQuery({
     queryKey: ['recommend', groupId],
@@ -105,17 +88,11 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
       <div className="flex items-center gap-3 rounded-card bg-gradient-to-br from-[#FFEDF7] to-[#FFDDF0] px-4 py-3.5">
         <span className="text-[30px]">🧭</span>
         <div className="min-w-0">
-          <p className="text-[12px] font-bold text-[#AD5575]">그룹 성향 기반</p>
-          <p className="text-[16px] font-extrabold text-[#7D3854]">성향순 추천 코스</p>
-          {/* 어떤 성향에 맞춘 추천인지 표시(2/11) */}
-          <p className="mt-0.5 text-[12px] font-semibold text-[#9A4869]">
-            {persona?.average
-              ? `${personaTrait(persona.average)} 그룹 성향에 맞췄어요${persona.matchRate != null ? ` · 일치율 ${persona.matchRate}%` : ''}`
-              : '설문을 완료하면 그룹 성향 맞춤 추천을 받아요'}
-          </p>
+          <p className="text-[12px] font-bold text-[#AD5575]">TourAPI 기반</p>
+          <p className="text-[16px] font-extrabold text-[#7D3854]">추천 코스</p>
         </div>
       </div>
-      <p className="mt-4 text-[12px] font-bold text-muted">TourAPI · 성향 미응답 시 기본순</p>
+      <p className="mt-4 text-[12px] font-bold text-muted">TourAPI 제공</p>
 
       {/* 추천 → 계획 연결: 담은 장소를 그룹 보관함/일정에서 바로 이어서 짠다. */}
       <button
@@ -138,7 +115,7 @@ export default function RecommendPage({ groupId: groupIdProp }: { groupId?: numb
         )}
 
         {!loading && !error && items.length === 0 && (
-          <EmptyState title="추천 결과가 없어요" description="설문을 완료하면 더 정확한 추천을 받을 수 있어요." />
+          <EmptyState title="추천 결과가 없어요" description="목적지가 설정된 그룹이 있으면 맞춤 추천을 받을 수 있어요." />
         )}
 
         {!loading && !error && items.map((item) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import AppLayout from '../../components/AppLayout';
 import Badge from '../../components/Badge';
@@ -30,6 +30,7 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   const groupId = props.groupId ?? Number(params.id);
   const sessionId = props.sessionId ?? Number(params.voteId);
   const toast = useToast();
+  const navigate = useNavigate();
 
   const currentUserId = useAuthStore((s) => s.user?.id ?? -1);
   // 마감 권한(작성자 또는 Owner) 판단용 — 멤버 캐시 재사용(없으면 조회).
@@ -230,6 +231,7 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
           onScore={onScore}
           onClose={onClose}
           onAddCandidate={openAddCandidate}
+          onGoSchedule={() => navigate(`/groups/${groupId}?tab=schedule`)}
         />
       )}
 
@@ -380,9 +382,12 @@ export default function VoteDetailPage(props: { groupId?: number; sessionId?: nu
   );
 }
 
-function SessionBody({ session, busy, canClose, onScore, onClose, onAddCandidate }: { session: VoteSession; busy: boolean; canClose: boolean; onScore: (c: number, s: number) => void; onClose: () => void; onAddCandidate: () => void }) {
+function SessionBody({ session, busy, canClose, onScore, onClose, onAddCandidate, onGoSchedule }: { session: VoteSession; busy: boolean; canClose: boolean; onScore: (c: number, s: number) => void; onClose: () => void; onAddCandidate: () => void; onGoSchedule: () => void }) {
   const closed = session.status === 'CLOSED';
   const maxScore = Math.max(1, ...session.candidates.map((c) => c.totalScore));
+  const winner = closed && session.winnerCandidateId != null
+    ? session.candidates.find((c) => c.id === session.winnerCandidateId)
+    : null;
 
   return (
     <div>
@@ -395,6 +400,24 @@ function SessionBody({ session, busy, canClose, onScore, onClose, onAddCandidate
         <p className="mt-1 text-[13px] text-muted">
           {new Date(session.closesAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 마감
         </p>
+      )}
+
+      {/* 투표 확정 → 일정 추가 제안 */}
+      {winner && (
+        <div className="mt-4 flex items-center gap-3 rounded-card border border-[#FFCFEB] bg-[#FFF0F7] px-3.5 py-3">
+          <span className="text-[20px]">🎉</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-extrabold text-[#AD5575]">당선 장소가 결정됐어요!</p>
+            <p className="truncate text-[13px] font-bold text-foreground">{winner.place.name}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onGoSchedule}
+            className="shrink-0 rounded-button bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground"
+          >
+            일정에 추가
+          </button>
+        </div>
       )}
 
       <div className="mt-5 space-y-3">

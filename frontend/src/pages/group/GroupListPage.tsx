@@ -129,11 +129,13 @@ export default function GroupListPage() {
           />
         )}
 
-        {!loading && !error && shown.length === 0 && (
+        {!loading && !error && shown.length === 0 && filter === 'ALL' && (
+          <GroupListFeatureIntro onCreateGroup={() => navigate('/groups/new')} />
+        )}
+        {!loading && !error && shown.length === 0 && filter !== 'ALL' && (
           <EmptyState
-            title="그룹이 없어요"
-            description="새 여행 그룹을 만들어 보세요."
-            action={<Button onClick={() => navigate('/groups/new')}>그룹 만들기</Button>}
+            title="해당 상태의 그룹이 없어요"
+            description="다른 필터를 선택하거나 새 그룹을 만들어 보세요."
           />
         )}
 
@@ -182,5 +184,44 @@ export default function GroupListPage() {
         />
       </Modal>
     </AppLayout>
+  );
+}
+
+const LIST_FEATURES = [
+  { emoji: '🗓️', title: '일정', desc: '날짜별 일정을 함께 짜요' },
+  { emoji: '📍', title: '보관함 & 투표', desc: '장소 모으고 투표로 결정' },
+  { emoji: '💸', title: '자동 정산', desc: '지출 기록 → 자동 1/N' },
+] as const;
+
+function GroupListFeatureIntro({ onCreateGroup }: { onCreateGroup: () => void }) {
+  return (
+    <div className="py-2">
+      <div className="mb-4 rounded-2xl bg-gradient-to-br from-[#FFF0F7] to-[#F3ECFF] px-5 py-6 dark:from-[#2A1A23] dark:to-[#1E1528]">
+        <div className="text-[26px]">🌍</div>
+        <h2 className="mt-2 text-[19px] font-extrabold tracking-tight">첫 여행 그룹을 만들어요</h2>
+        <p className="mt-1 text-[13px] leading-relaxed text-muted">
+          그룹을 만들고 친구를 초대하면 일정·정산을 한 곳에서 관리할 수 있어요.
+        </p>
+        <button
+          type="button"
+          onClick={onCreateGroup}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-button bg-primary px-5 py-2.5 text-[14px] font-extrabold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover"
+        >
+          그룹 만들기
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-2.5">
+        {LIST_FEATURES.map((f) => (
+          <div key={f.title} className="rounded-card border border-border bg-surface px-3 py-3.5 text-center">
+            <span className="text-[20px]">{f.emoji}</span>
+            <p className="mt-1.5 text-[12px] font-extrabold text-foreground">{f.title}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted">{f.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
