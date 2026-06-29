@@ -81,8 +81,12 @@ public class SecurityConfig {
 	@Bean
 	@Order(0)
 	public SecurityFilterChain websocketChain(HttpSecurity http) throws Exception {
+		// 체인 선택 매처를 순수 URL 문자열 검사로 한다.
+		// Spring Security 7의 기본 매처(MvcRequestMatcher/PathPattern)는 MVC 핸들러 등록을 참고하는데,
+		// /ws 는 @RequestMapping이 아니라 WebSocket(SimpleUrlHandlerMapping) 엔드포인트라 매칭이 어긋날 수 있다.
+		// getRequestURI() 직접 검사는 MVC와 무관하게 항상 일치한다.
 		return http
-			.securityMatcher("/ws", "/ws/**")
+			.securityMatcher(request -> request.getRequestURI().startsWith("/ws"))
 			.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
 			.csrf(AbstractHttpConfigurer::disable)
 			.cors(cors -> cors.configurationSource(corsConfigurationSource))
