@@ -15,7 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
-import org.springframework.core.annotation.Order;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -75,22 +75,15 @@ public class SecurityConfig {
 	}
 	
 	
-	// WebSocket 핸드셰이크(/ws)는 HTTP 레벨 인증 없이 허용하고, 인증은 STOMP CONNECT 프레임에서 처리한다.
-	// Spring Security 7에서 일반 filterChain의 permitAll()이 WebSocket 경로를 올바르게 매칭하지 못하는 경우를 방지하기 위해
-	// 별도 체인을 최우선 순위로 등록한다.
+	// WebSocket 핸드셰이크(/ws)는 보안 필터 체인에서 완전히 제외한다.
+	// 인증은 HTTP 레벨이 아니라 STOMP CONNECT 프레임(WebSocketAuthInterceptor)에서 JWT로 처리한다.
+	// ⚠️ 멀티 SecurityFilterChain(@Order) + permitAll 방식은 Spring Boot 4/Security 7에서
+	//    /ws를 선점하지 못해 401을 냈다(메인 체인 RestAuthenticationEntryPoint). web.ignoring()은
+	//    FilterChainProxy 진입 전에 /ws를 걸러내므로 체인 순서와 무관하게 인증 자체가 적용되지 않는다.
+	//    getRequestURI() 직접 검사로 MVC 핸들러 매핑 의존성도 제거한다.
 	@Bean
-	@Order(0)
-	public SecurityFilterChain websocketChain(HttpSecurity http) throws Exception {
-		// 체인 선택 매처를 순수 URL 문자열 검사로 한다.
-		// Spring Security 7의 기본 매처(MvcRequestMatcher/PathPattern)는 MVC 핸들러 등록을 참고하는데,
-		// /ws 는 @RequestMapping이 아니라 WebSocket(SimpleUrlHandlerMapping) 엔드포인트라 매칭이 어긋날 수 있다.
-		// getRequestURI() 직접 검사는 MVC와 무관하게 항상 일치한다.
-		return http
-			.securityMatcher(request -> request.getRequestURI().startsWith("/ws"))
-			.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-			.csrf(AbstractHttpConfigurer::disable)
-			.cors(cors -> cors.configurationSource(corsConfigurationSource))
-			.build();
+	public WebSecurityCustomizer webSecurityCustomizer() {
+		return web -> web.ignoring().requestMatchers(request -> request.getRequestURI().startsWith("/ws"));
 	}
 
 	@Bean
