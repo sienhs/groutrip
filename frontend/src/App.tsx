@@ -22,6 +22,8 @@ const TripPlanPage = lazy(() => import('./pages/group/TripPlanPage'));
 const ScheduleMapPage = lazy(() => import('./pages/schedule/ScheduleMapPage'));
 const RecommendPage = lazy(() => import('./pages/recommend/RecommendPage'));
 const RecommendLandingPage = lazy(() => import('./pages/recommend/RecommendLandingPage'));
+const ChatLandingPage = lazy(() => import('./pages/chat/ChatLandingPage'));
+const GroupChatRoomPage = lazy(() => import('./pages/chat/GroupChatRoomPage'));
 const VoteDetailPage = lazy(() => import('./pages/vote/VoteDetailPage'));
 const MyPage = lazy(() => import('./pages/mypage/MyPage'));
 const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
@@ -101,6 +103,10 @@ function App() {
         {/* 추천: 전역 탭은 그룹 선택 랜딩, 실제 추천은 그룹 스코프 */}
         <Route path="/recommend" element={<ProtectedRoute><RecommendLandingPage /></ProtectedRoute>} />
         <Route path="/groups/:id/recommend" element={<ProtectedRoute><RecommendPage /></ProtectedRoute>} />
+
+        {/* 채팅: 전역 탭은 그룹(채팅방) 목록, 실제 채팅은 그룹 스코프 전체화면 */}
+        <Route path="/chat" element={<ProtectedRoute><ChatLandingPage /></ProtectedRoute>} />
+        <Route path="/groups/:id/chat" element={<ProtectedRoute><GroupChatRoomPage /></ProtectedRoute>} />
         <Route path="/groups/:id/votes/:voteId" element={<ProtectedRoute><VoteDetailPage /></ProtectedRoute>} />
 
         {/* 마이페이지 */}

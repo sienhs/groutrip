@@ -149,9 +149,9 @@ export default function GroupChatPage({ groupId }: Props) {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      {/* 메시지 목록 */}
-      <div className="scrollbar-hide flex-1 space-y-3 overflow-y-auto px-4 py-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      {/* 메시지 목록 — min-h-0로 남은 높이만 차지하고 내부 스크롤(입력창은 아래 고정) */}
+      <div className="scrollbar-hide min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {historyQuery.isLoading && (
           <p className="text-center text-[13px] text-muted">불러오는 중...</p>
         )}
@@ -205,8 +205,8 @@ export default function GroupChatPage({ groupId }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* 입력창 */}
-      <div className="relative border-t border-border bg-background px-3 pb-4 pt-2">
+      {/* 입력창 — shrink-0으로 항상 하단에 고정(메시지 증가에 밀리지 않음) */}
+      <div className="relative shrink-0 border-t border-border bg-background px-3 pb-4 pt-2">
         {/* 이모지 피커 */}
         {showEmoji && (
           <div

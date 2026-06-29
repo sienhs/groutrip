@@ -19,7 +19,6 @@ import VoteTab from '../vote/VoteTab';
 import GroupGalleryPage from '../gallery/GroupGalleryPage';
 import GroupEditModal from './GroupEditModal';
 import GroupAccommodations from './GroupAccommodations';
-import GroupChatPage from '../chat/GroupChatPage';
 import GroupBoardPage, { getReadNoticeIds, markNoticesRead } from '../board/GroupBoardPage';
 import {
   getGroup,
@@ -40,7 +39,7 @@ import { gradientForKey, ddayLabel, dateRange } from './groupUi';
 import { cn } from '../../lib/cn';
 import { type GroupMember } from '../../types/group';
 
-type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'gallery' | 'chat' | 'board' | 'member';
+type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'gallery' | 'board' | 'member';
 
 const BASE_TABS: TabItem[] = [
   { key: 'schedule', label: '일정' },
@@ -48,7 +47,6 @@ const BASE_TABS: TabItem[] = [
   { key: 'vote', label: '투표' },
   { key: 'settle', label: '정산' },
   { key: 'gallery', label: '사진' },
-  { key: 'chat', label: '채팅' },
   { key: 'board', label: '게시판' },
   { key: 'member', label: '멤버' },
 ];
@@ -362,8 +360,6 @@ export default function GroupDetailPage() {
               <ExpensePage groupId={groupId} members={members} />
             ) : leftTab === 'gallery' ? (
               <GroupGalleryPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
-            ) : leftTab === 'chat' ? (
-              <GroupChatPage groupId={groupId} />
             ) : leftTab === 'board' ? (
               <GroupBoardPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
             ) : leftTab === 'member' ? (
