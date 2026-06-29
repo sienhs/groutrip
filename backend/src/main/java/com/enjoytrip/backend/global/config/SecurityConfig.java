@@ -15,9 +15,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -75,6 +75,20 @@ public class SecurityConfig {
 	}
 	
 	
+	// WebSocket 핸드셰이크(/ws)는 HTTP 레벨 인증 없이 허용하고, 인증은 STOMP CONNECT 프레임에서 처리한다.
+	// Spring Security 7에서 일반 filterChain의 permitAll()이 WebSocket 경로를 올바르게 매칭하지 못하는 경우를 방지하기 위해
+	// 별도 체인을 최우선 순위로 등록한다.
+	@Bean
+	@Order(0)
+	public SecurityFilterChain websocketChain(HttpSecurity http) throws Exception {
+		return http
+			.securityMatcher("/ws", "/ws/**")
+			.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+			.csrf(AbstractHttpConfigurer::disable)
+			.cors(cors -> cors.configurationSource(corsConfigurationSource))
+			.build();
+	}
+
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
 		http
@@ -112,8 +126,8 @@ public class SecurityConfig {
 				// 그룹 커버 이미지도 홈/목록/상세에서 <img src>로 직접 로드되므로 조회는 공개한다.
 				.requestMatchers(HttpMethod.GET, "/api/groups/*/cover").permitAll()
 				// WebSocket 핸드셰이크는 HTTP 레벨 인증을 건너뛰고 STOMP CONNECT 프레임에서 JWT로 인증한다.
-				// Spring Security 6의 MVC 기반 requestMatchers는 WebSocket 엔드포인트를 인식 못하므로 AntPathRequestMatcher 사용.
-				.requestMatchers(AntPathRequestMatcher.antMatcher("/ws"), AntPathRequestMatcher.antMatcher("/ws/**")).permitAll()
+				// (HTTP 레벨 /ws 허용은 websocketChain()에서 처리 — 여기서도 명시적으로 선언)
+				.requestMatchers("/ws", "/ws/**").permitAll()
 				// 나머지 요청은 인증이 필요하게
 				.anyRequest().authenticated())
 		.exceptionHandling(exceptions -> exceptions
