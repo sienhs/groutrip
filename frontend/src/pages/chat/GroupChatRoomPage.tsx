@@ -99,7 +99,10 @@ export default function GroupChatRoomPage() {
 
   return (
     <AppLayout bleed hideBottomNav hideHeader>
-      <div className="flex h-full min-h-0 flex-1 flex-col">
+      {/* 데스크톱: 넓은 화면에서 채팅이 끝까지 늘어나지 않도록 가운데 정렬된 패널로 프레임(가독성).
+          모바일: 기존처럼 화면을 꽉 채운다. */}
+      <div className="flex h-full min-h-0 flex-1 flex-col md:items-center md:bg-[#F1EFF8]">
+      <div className="flex h-full min-h-0 w-full flex-1 flex-col bg-background md:max-w-3xl md:border-x md:border-border md:shadow-lg">
         {panel === 'chat' ? (
           <>
             {/* 헤더 */}
@@ -155,6 +158,7 @@ export default function GroupChatRoomPage() {
             </div>
           </>
         )}
+      </div>
       </div>
 
       {/* 우측 서랍 메뉴 */}

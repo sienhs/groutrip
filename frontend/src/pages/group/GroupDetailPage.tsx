@@ -16,6 +16,7 @@ import BookmarkListPage from '../place/BookmarkListPage';
 import ExpensePage from '../expense/ExpensePage';
 import ScheduleBuilderPage from '../schedule/ScheduleBuilderPage';
 import VoteTab from '../vote/VoteTab';
+import GroupBoardPage from '../board/GroupBoardPage';
 import GroupEditModal from './GroupEditModal';
 import GroupAccommodations from './GroupAccommodations';
 import {
@@ -36,13 +37,14 @@ import { gradientForKey, ddayLabel, dateRange } from './groupUi';
 import { cn } from '../../lib/cn';
 import { type GroupMember } from '../../types/group';
 
-type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'member';
+type TabKey = 'schedule' | 'place' | 'vote' | 'settle' | 'board' | 'member';
 
 const BASE_TABS: TabItem[] = [
   { key: 'schedule', label: '일정' },
   { key: 'place', label: '장소' },
   { key: 'vote', label: '투표' },
   { key: 'settle', label: '정산' },
+  { key: 'board', label: '게시판' },
   { key: 'member', label: '멤버' },
 ];
 
@@ -322,6 +324,8 @@ export default function GroupDetailPage() {
               <VoteTab groupId={groupId} isOwner={isOwner} />
             ) : leftTab === 'settle' ? (
               <ExpensePage groupId={groupId} members={members} />
+            ) : leftTab === 'board' ? (
+              <GroupBoardPage groupId={groupId} currentUserId={currentUserId} isOwner={isOwner} />
             ) : leftTab === 'member' ? (
               <MemberTab
                 groupId={groupId}
