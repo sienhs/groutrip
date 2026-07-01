@@ -287,10 +287,38 @@ public class ExpenseService {
      * 강퇴 처리(GroupService.kickMember) 트랜잭션 안에서 호출한다.
      */
     public void excludeMemberFromSplits(Long groupId, Long userId, Long actorId) {
+        // MEMBER_LEFT 는 지출/정산 캐시 키를 무효화하지 않으므로 정산 갱신 이벤트를 별도로 발행한다.
+        if (removeMemberFromSplits(groupId, userId)) {
+            publish(EventType.SETTLEMENT_UPDATED, groupId, actorId, Map.of());
+        }
+    }
+
+    /**
+     * 배포 전에 이미 강퇴됐지만 예전 데이터라 지출 분담에 그대로 남아 있는 멤버를 일괄 정리한다.
+     * 이런 멤버가 남아 있으면 정산에 계속 포함되고, 그 지출을 수정할 때 활성 멤버 검증에서 크래시가 난다.
+     * 부팅 시 1회 자가 치유 용도이며(대상이 없으면 아무 것도 하지 않음), 실시간 이벤트는 발행하지 않는다.
+     *
+     * @return 정리된 (그룹, 멤버) 쌍의 수
+     */
+    public int healLeftMemberSplits() {
+        int healed = 0;
+        for (Object[] target : expenseSplitRepository.findLeftMemberSplitTargets()) {
+            Long groupId = ((Number) target[0]).longValue();
+            Long userId = ((Number) target[1]).longValue();
+            if (removeMemberFromSplits(groupId, userId)) {
+                healed++;
+            }
+        }
+        return healed;
+    }
+
+    // 한 그룹에서 특정 멤버를 모든 활성 지출의 분담 대상에서 빼고 남은 참여자끼리 균등 재분담한다.
+    // 분담 대상이 그 멤버뿐이던 지출은 soft delete 한다. 실제 변경이 있었으면 true.
+    private boolean removeMemberFromSplits(Long groupId, Long userId) {
         List<Expense> expenses = expenseRepository.findByTravelGroupIdAndDeletedAtIsNullOrderByPaidAtDescIdDesc(groupId);
         List<Long> expenseIds = expenses.stream().map(Expense::getId).toList();
         if (expenseIds.isEmpty()) {
-            return;
+            return false;
         }
         Map<Long, List<ExpenseSplit>> splitsByExpenseId = expenseSplitRepository.findByExpenseIdIn(expenseIds).stream()
                 .collect(Collectors.groupingBy(split -> split.getExpense().getId()));
@@ -317,11 +345,7 @@ public class ExpenseService {
             }
             changed = true;
         }
-
-        // MEMBER_LEFT 는 지출/정산 캐시 키를 무효화하지 않으므로 정산 갱신 이벤트를 별도로 발행한다.
-        if (changed) {
-            publish(EventType.SETTLEMENT_UPDATED, groupId, actorId, Map.of());
-        }
+        return changed;
     }
 
     // 총액을 남은 참여자 수로 균등 분배하고, 1원 단위 나머지는 앞에서부터 배분한다(EQUAL 분담 규칙과 동일).

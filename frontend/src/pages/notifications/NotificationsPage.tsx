@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../../components/AppLayout';
 import EmptyState from '../../components/EmptyState';
 import { useNotificationStore } from '../../store/notificationStore';
-import { pathForNotification, timeAgo } from '../../lib/notifications';
+import { timeAgo } from '../../lib/notifications';
 import { cn } from '../../lib/cn';
 import type { ToastType } from '../../components/Toast';
 
@@ -16,19 +17,17 @@ const DOT: Record<ToastType, string> = {
 /** 알림 센터 — 전체 알림 목록. 클릭 시 해당 그룹 탭으로 딥링크. */
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { items, unread, markRead, markAllRead, clear } = useNotificationStore();
+  const { items, unread, markRead, markAllRead, hydrate } = useNotificationStore();
 
-  const headerActions = items.length > 0 && (
-    <div className="flex items-center gap-3">
-      {unread > 0 && (
-        <button type="button" onClick={markAllRead} className="text-[12px] font-bold text-primary">
-          모두 읽음
-        </button>
-      )}
-      <button type="button" onClick={clear} className="text-[12px] font-bold text-muted">
-        전체 삭제
-      </button>
-    </div>
+  // 화면 진입 시 서버에서 최신 알림을 불러온다(다른 기기 활동 반영).
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  const headerActions = unread > 0 && (
+    <button type="button" onClick={markAllRead} className="text-[12px] font-bold text-primary">
+      모두 읽음
+    </button>
   );
 
   return (
@@ -45,7 +44,7 @@ export default function NotificationsPage() {
               type="button"
               onClick={() => {
                 markRead(n.id);
-                navigate(pathForNotification(n));
+                navigate(n.targetPath);
               }}
               className={cn(
                 'flex w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-primary/5',

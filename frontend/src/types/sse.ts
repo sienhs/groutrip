@@ -69,12 +69,17 @@ export const EVENT_META: Record<GroupEventType, EventMeta> = {
   COMMENT_ADDED: { text: '댓글을 달았습니다', toast: 'info', domain: 'board' },
 };
 
-/** 알림 목록/드롭다운에서 쓰는 정규화된 알림 항목. */
+/**
+ * 알림 목록/드롭다운에서 쓰는 정규화된 알림 항목.
+ * 서버(NotificationResponse)를 매핑한 형태 — id는 서버 DB id, targetPath는 서버가 만든 딥링크,
+ * toast 색상은 type으로부터 EVENT_META에서 파생, ts는 createdAt, read는 readAt 유무.
+ */
 export interface AppNotification {
-  id: string;
+  id: number;
   groupId: number;
   type: GroupEventType;
   message: string;
+  targetPath: string;
   toast: ToastType;
   ts: string;
   read: boolean;

@@ -26,4 +26,18 @@ public interface ExpenseSplitRepository extends JpaRepository<ExpenseSplit, Long
     @Modifying
     @Query("DELETE FROM ExpenseSplit split WHERE split.expense.travelGroup.id = :groupId")
     void deleteByTravelGroupId(@Param("groupId") Long groupId);
+
+    /**
+     * 이미 그룹을 떠났는데(leftAt) 아직 활성 지출의 분담 대상으로 남아 있는 (groupId, userId) 쌍.
+     * 예전에 강퇴돼 정리되지 못한 데이터를 부팅 시 자가 치유하는 데 쓴다.
+     */
+    @Query("""
+            SELECT DISTINCT split.expense.travelGroup.id, split.user.id
+            FROM ExpenseSplit split, GroupMember member
+            WHERE member.travelGroup.id = split.expense.travelGroup.id
+              AND member.user.id = split.user.id
+              AND member.leftAt IS NOT NULL
+              AND split.expense.deletedAt IS NULL
+            """)
+    List<Object[]> findLeftMemberSplitTargets();
 }

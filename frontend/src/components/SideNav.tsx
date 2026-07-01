@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/cn';
 import { NAV } from './navConfig';
 import { useNotificationStore } from '../store/notificationStore';
-import { pathForNotification, timeAgo } from '../lib/notifications';
+import { timeAgo } from '../lib/notifications';
 import type { ToastType } from './Toast';
 
 const DOT: Record<ToastType, string> = {
@@ -21,7 +22,13 @@ export default function SideNav() {
   const items = useNotificationStore((s) => s.items);
   const unread = useNotificationStore((s) => s.unread);
   const markRead = useNotificationStore((s) => s.markRead);
+  const hydrate = useNotificationStore((s) => s.hydrate);
   const recent = items.slice(0, 3);
+
+  // 데스크톱 사이드바 마운트 시 서버에서 알림을 불러온다(헤더 벨이 없는 화면 대비).
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
   return (
     <aside
@@ -88,7 +95,7 @@ export default function SideNav() {
                 type="button"
                 onClick={() => {
                   markRead(n.id);
-                  navigate(pathForNotification(n));
+                  navigate(n.targetPath);
                 }}
                 className={cn(
                   'flex w-full gap-2.5 rounded-button px-3 py-2 text-left transition-colors hover:bg-border/40',

@@ -3,9 +3,8 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../store/notificationStore';
 import { cn } from '../lib/cn';
-import { pathForNotification, timeAgo } from '../lib/notifications';
+import { timeAgo } from '../lib/notifications';
 import type { ToastType } from './Toast';
-import type { GroupEventType } from '../types/sse';
 
 const DOT: Record<ToastType, string> = {
   success: 'bg-success',
@@ -20,8 +19,13 @@ const DOT: Record<ToastType, string> = {
  */
 export default function NotificationBell() {
   const navigate = useNavigate();
-  const { items, unread, markRead } = useNotificationStore();
+  const { items, unread, markRead, hydrate } = useNotificationStore();
   const [open, setOpen] = useState(false);
+
+  // 벨은 대부분의 인증 화면 헤더에 있으므로, 마운트 시 서버에서 알림을 불러와 배지를 동기화한다.
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
@@ -48,11 +52,11 @@ export default function NotificationBell() {
     });
   };
 
-  // 알림 클릭: 읽음 처리 후 해당 그룹의 관련 탭으로 이동(딥링크).
-  const openNotification = (id: string, groupId: number, type: GroupEventType) => {
+  // 알림 클릭: 읽음 처리 후 서버가 만든 딥링크로 이동.
+  const openNotification = (id: number, targetPath: string) => {
     markRead(id);
     setOpen(false);
-    navigate(pathForNotification({ groupId, type }));
+    navigate(targetPath);
   };
 
   return (
@@ -94,7 +98,7 @@ export default function NotificationBell() {
                   <button
                     key={n.id}
                     type="button"
-                    onClick={() => openNotification(n.id, n.groupId, n.type)}
+                    onClick={() => openNotification(n.id, n.targetPath)}
                     className={cn(
                       'flex w-full gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-primary/5',
                       !n.read && 'bg-primary/10',

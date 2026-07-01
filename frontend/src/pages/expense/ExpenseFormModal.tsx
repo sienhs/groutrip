@@ -40,7 +40,15 @@ export default function ExpenseFormModal({ open, groupId, members, expense, onCl
     setMemo(expense?.memo ?? '');
     setAmount(expense ? String(expense.amount) : '');
     setPayerId(expense ? String(expense.payerId) : String(members[0]?.userId ?? ''));
-    setParticipants((expense?.splits.map((s) => s.userId) ?? members.map((m) => m.userId)).map(String));
+    // 강퇴된(비활성) 멤버는 분담 대상에서 제외한다. 예전 지출의 splits에 남아 있어도 다시 전송하지 않아
+    // "활성 멤버가 아님" 검증 크래시를 막고, 저장 시 남은 인원으로 재분담되도록 한다.
+    const activeIds = new Set(members.map((m) => m.userId));
+    setParticipants(
+      (expense
+        ? expense.splits.map((s) => s.userId).filter((id) => activeIds.has(id))
+        : members.map((m) => m.userId)
+      ).map(String),
+    );
     setCategory(expense?.category ?? 'MEAL');
   }, [open, expense, members]);
 

@@ -25,7 +25,6 @@ interface Options {
 export function useGroupStream({ groupId, currentUserId, resolveActorName, onEvent, enabled = true }: Options) {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const addNotification = useNotificationStore((s) => s.add);
 
   const resolveActorNameRef = useRef(resolveActorName);
   const onEventRef = useRef(onEvent);
@@ -66,6 +65,10 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
       const meta = EVENT_META[evt.type];
       if (!meta) return;
 
+      // 이 이벤트에 대한 알림은 백엔드가 이미 DB에 저장했으므로, 벨/목록을 서버와 다시 동기화한다.
+      // (인앱 토스트 on/off와 무관하게 다른 기기에서도 보이도록 항상 갱신.)
+      useNotificationStore.getState().hydrate();
+
       if (!useSettingsStore.getState().notificationsEnabled) {
         invalidateForEvent(evt.type);
         return;
@@ -75,15 +78,6 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
       const message = `${actor}님이 ${meta.text}`;
 
       toast.show(meta.toast, message);
-      addNotification({
-        id: `${evt.type}-${evt.ts}-${evt.actorId}`,
-        groupId: evt.groupId,
-        type: evt.type,
-        message,
-        toast: meta.toast,
-        ts: evt.ts,
-        read: false,
-      });
       invalidateForEvent(evt.type);
     };
 
@@ -114,5 +108,5 @@ export function useGroupStream({ groupId, currentUserId, resolveActorName, onEve
 
     client.activate();
     return () => { client.deactivate(); };
-  }, [groupId, currentUserId, enabled, queryClient, toast, addNotification]);
+  }, [groupId, currentUserId, enabled, queryClient, toast]);
 }
