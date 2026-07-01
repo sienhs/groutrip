@@ -10,6 +10,8 @@ public record GroupMemberResponse(
         Long memberId,
         Long userId,
         String name,
+        // 관리자가 붙인 장난 배지/칭호(없으면 null). 멤버 목록에서 이름 옆에 표시된다.
+        String badge,
         GroupRole role,
         LocalDateTime joinedAt
 ) {
@@ -18,6 +20,7 @@ public record GroupMemberResponse(
                 member.getId(),
                 member.getUser().getId(),
                 member.getUser().getName(),
+                member.getUser().getBadge(),
                 member.getRole(),
                 member.getJoinedAt()
         );

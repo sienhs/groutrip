@@ -1,5 +1,6 @@
 package com.enjoytrip.backend.domain.auth.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,4 +20,7 @@ public interface UserRepository extends JpaRepository<User, Long>{
 	
 	// 이메일 중복 체크
 	boolean existsByEmail(String email);
+
+	// 관리자 화면: 탈퇴하지 않은 전체 사용자 목록(id 오름차순).
+	List<User> findByDeletedAtIsNullOrderByIdAsc();
 }

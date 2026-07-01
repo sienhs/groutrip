@@ -19,6 +19,19 @@ export const selectAccommodation = async (
   return res.data.data;
 };
 
+/** 숙소 장소 재선택(상세주소 변경). 새 googlePlaceId로 교체하고 예약 상태/일자는 유지된다. */
+export const changeAccommodationPlace = async (
+  groupId: number,
+  accommodationId: number,
+  body: { googlePlaceId: string; sigungu?: string },
+): Promise<Accommodation> => {
+  const res = await instance.patch<ApiResponse<Accommodation>>(
+    `/api/groups/${groupId}/accommodations/${accommodationId}/place`,
+    body,
+  );
+  return res.data.data;
+};
+
 /** 그룹 숙소 선정/예약 목록(최근순). 계획 재진입 시 상태 복원용. */
 export const getAccommodations = async (groupId: number): Promise<Accommodation[]> => {
   const res = await instance.get<ApiResponse<Accommodation[]>>(

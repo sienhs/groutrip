@@ -21,8 +21,9 @@ public class CustomUserDetailService implements UserDetailsService {
 	@Override
 	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 		// FR-AUTH-06: 탈퇴한 사용자는 남아있는 Access Token으로도 인증되지 않도록 제외한다.
+		// 관리자 제재로 정지된 계정도 남은 토큰으로 인증되지 않도록 함께 제외한다.
 		return userRepository.findByEmail(email)
-				.filter(user -> !user.isWithdrawn())
+				.filter(user -> !user.isWithdrawn() && !user.isBanned())
 				.map(user -> org.springframework.security.core.userdetails.User
 						.withUsername(user.getEmail())
 						.password(user.getPassword())

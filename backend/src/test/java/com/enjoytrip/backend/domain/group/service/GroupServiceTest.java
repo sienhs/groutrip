@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
+import com.enjoytrip.backend.domain.expense.service.ExpenseService;
 import com.enjoytrip.backend.domain.group.dto.GroupCreateRequest;
 import com.enjoytrip.backend.domain.group.dto.GroupResponse;
 import com.enjoytrip.backend.domain.group.entity.GroupMember;
@@ -47,7 +48,8 @@ class GroupServiceTest {
                 currentUserResolver,
                 groupAccessValidator,
                 mock(ApplicationEventPublisher.class),
-                mock(com.enjoytrip.backend.global.storage.ObjectStorageService.class)
+                mock(com.enjoytrip.backend.global.storage.ObjectStorageService.class),
+                mock(ExpenseService.class)
         );
     }
 

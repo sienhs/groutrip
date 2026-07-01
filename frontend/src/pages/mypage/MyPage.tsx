@@ -1,5 +1,6 @@
-import { useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getIsAdmin } from '../../api/admin';
 import AppLayout from '../../components/AppLayout';
 import Avatar from '../../components/Avatar';
 import Button from '../../components/Button';
@@ -35,6 +36,12 @@ export default function MyPage() {
 
   const [delOpen, setDelOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // 관리자(운영자 본인)만 관리 메뉴를 노출한다. 실제 권한은 백엔드가 검증한다.
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    getIsAdmin().then(setIsAdmin).catch(() => setIsAdmin(false));
+  }, []);
 
   // Web Push 구독
   const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>(currentPermission);
@@ -244,6 +251,7 @@ export default function MyPage() {
 
       {/* 메뉴 */}
       <div className="mt-3.5 overflow-hidden rounded-card border border-border bg-surface">
+        {isAdmin && <MenuRow label="🛠 관리자" onClick={() => navigate('/admin')} border />}
         <MenuRow label="개인정보처리방침" onClick={() => navigate('/privacy')} border />
         <MenuRow label="이용약관" onClick={() => navigate('/terms')} border />
         <MenuRow label="로그아웃" onClick={handleLogout} />

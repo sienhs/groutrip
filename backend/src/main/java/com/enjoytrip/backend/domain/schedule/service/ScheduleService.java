@@ -117,8 +117,8 @@ public class ScheduleService {
         Schedule schedule = findSchedule(groupId, scheduleId);
 
         validateTimeRange(request.startTime(), request.endTime());
-        schedule.update(request.startTime(), request.endTime(), request.memo(), request.estimatedCost(),
-                request.transportMode(), request.status(), user);
+        schedule.update(request.title(), request.startTime(), request.endTime(), request.memo(),
+                request.estimatedCost(), request.transportMode(), request.status(), user);
 
         ScheduleResponse response = toResponse(schedule);
         eventPublisher.publishEvent(DomainEvent.of(EventType.SCHEDULE_UPDATED, groupId, user.getId(), response));

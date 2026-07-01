@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.enjoytrip.backend.domain.accommodation.dto.AccommodationPlaceUpdateRequest;
 import com.enjoytrip.backend.domain.accommodation.dto.AccommodationResponse;
 import com.enjoytrip.backend.domain.accommodation.dto.AccommodationSelectRequest;
 import com.enjoytrip.backend.domain.accommodation.entity.Accommodation;
@@ -78,6 +79,24 @@ public class AccommodationService {
                 .build());
         // 선정한 숙소를 그룹 보관함(LODGING)에도 등록해 '장소' 탭에 바로 보이게 한다.
         placeService.ensureBookmarked(group, place, user, PlaceCategory.LODGING);
+        return toResponse(groupId, acc);
+    }
+
+    /**
+     * 숙소 장소 재선택(상세주소 변경). 새 googlePlaceId로 Place를 확보해 교체하고 보관함도 갱신한다.
+     * 예약 상태·사진·숙박 일자는 유지하며, 이미 등록된 숙박 지출 금액은 정산 화면에서 별도 정정한다.
+     */
+    public AccommodationResponse changePlace(Long groupId, Long accommodationId,
+                                             AccommodationPlaceUpdateRequest request) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, user.getId());
+        Accommodation acc = accommodationRepository.findByIdAndTravelGroupId(accommodationId, groupId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+        Place place = placeService.resolvePlace(request.googlePlaceId());
+        acc.changePlace(place, request.sigungu());
+        // 새 장소를 그룹 보관함(LODGING)에도 등록해 '장소' 탭에 반영한다.
+        placeService.ensureBookmarked(acc.getTravelGroup(), place, user, PlaceCategory.LODGING);
         return toResponse(groupId, acc);
     }
 

@@ -12,6 +12,7 @@ import com.enjoytrip.backend.domain.group.service.CurrentUserResolver;
 import com.enjoytrip.backend.domain.group.service.GroupAccessValidator;
 import com.enjoytrip.backend.domain.shopping.dto.ShoppingItemCreateRequest;
 import com.enjoytrip.backend.domain.shopping.dto.ShoppingItemResponse;
+import com.enjoytrip.backend.domain.shopping.dto.ShoppingItemUpdateRequest;
 import com.enjoytrip.backend.domain.shopping.entity.ShoppingItem;
 import com.enjoytrip.backend.domain.shopping.repository.ShoppingItemRepository;
 import com.enjoytrip.backend.global.exception.BusinessException;
@@ -58,6 +59,18 @@ public class ShoppingItemService {
         groupAccessValidator.validateMember(groupId, user.getId());
         ShoppingItem item = findItem(groupId, itemId);
         item.toggleChecked();
+        return ShoppingItemResponse.from(item);
+    }
+
+    public ShoppingItemResponse updateItem(Long groupId, Long itemId, ShoppingItemUpdateRequest request) {
+        User user = currentUserResolver.getCurrentUser();
+        groupAccessValidator.validateMember(groupId, user.getId());
+        ShoppingItem item = findItem(groupId, itemId);
+        // 삭제와 동일하게, 항목을 추가한 본인만 수정할 수 있다.
+        if (!item.isOwnedBy(user.getId())) {
+            throw new BusinessException(ErrorCode.SHOPPING_ITEM_FORBIDDEN);
+        }
+        item.edit(request.name(), request.quantity());
         return ShoppingItemResponse.from(item);
     }
 

@@ -66,9 +66,27 @@ public class User extends BaseEntity {
 	@Column(nullable = false)
 	private boolean onboarded;
 
+	// 관리자 제재: 정지된 계정은 로그인/인증이 차단된다(친구들끼리 쓰는 장난용).
+	@Column(nullable = false)
+	private boolean banned;
+
+	// 관리자 제재: 이름 옆에 강제로 붙는 장난 배지/칭호(예: "밥차톨"). null이면 없음.
+	@Column(length = 30)
+	private String badge;
+
 	// FR-MYPAGE: 표시 이름을 변경한다.
 	public void updateName(String name) {
 		this.name = name;
+	}
+
+	// 관리자: 계정 정지/해제.
+	public void setBanned(boolean banned) {
+		this.banned = banned;
+	}
+
+	// 관리자: 장난 배지/칭호 설정(빈 값은 제거).
+	public void setBadge(String badge) {
+		this.badge = (badge == null || badge.isBlank()) ? null : badge.trim();
 	}
 
 	// 온보딩 완료 처리(다른 기기/재로그인 시 다시 노출되지 않도록).

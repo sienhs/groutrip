@@ -237,7 +237,7 @@ public class ExpenseService {
         groupAccessValidator.validateMember(groupId, user.getId());
         Expense expense = findActiveExpense(groupId, expenseId);
 
-        GroupMember payerMember = groupAccessValidator.validateMember(groupId, request.payerId());
+        User payerUser = resolveUpdatedPayer(groupId, expense, request.payerId());
         List<ResolvedSplit> resolvedSplits = resolveSplits(
                 groupId,
                 request.amount(),
@@ -247,7 +247,7 @@ public class ExpenseService {
         );
 
         expense.update(
-                payerMember.getUser(),
+                payerUser,
                 request.amount(),
                 request.category(),
                 request.splitType(),
@@ -278,6 +278,75 @@ public class ExpenseService {
 
         expense.softDelete();
         publish(EventType.EXPENSE_DELETED, groupId, user.getId(), Map.of("expenseId", expenseId));
+    }
+
+    /**
+     * FR-GROUP-05 연계: 멤버 강퇴 시 그 멤버를 모든 활성 지출의 분담 대상에서 제외하고,
+     * 남은 참여자끼리 총액을 균등 재분담해 정산에서 빠지도록 한다. 결제 이력(payer)은 보존한다.
+     * 분담 대상이 강퇴 멤버뿐이던 지출은 부담할 사람이 없어 soft delete 한다.
+     * 강퇴 처리(GroupService.kickMember) 트랜잭션 안에서 호출한다.
+     */
+    public void excludeMemberFromSplits(Long groupId, Long userId, Long actorId) {
+        List<Expense> expenses = expenseRepository.findByTravelGroupIdAndDeletedAtIsNullOrderByPaidAtDescIdDesc(groupId);
+        List<Long> expenseIds = expenses.stream().map(Expense::getId).toList();
+        if (expenseIds.isEmpty()) {
+            return;
+        }
+        Map<Long, List<ExpenseSplit>> splitsByExpenseId = expenseSplitRepository.findByExpenseIdIn(expenseIds).stream()
+                .collect(Collectors.groupingBy(split -> split.getExpense().getId()));
+
+        boolean changed = false;
+        for (Expense expense : expenses) {
+            List<ExpenseSplit> splits = splitsByExpenseId.getOrDefault(expense.getId(), List.of());
+            boolean involved = splits.stream().anyMatch(split -> split.getUser().getId().equals(userId));
+            if (!involved) {
+                continue;
+            }
+
+            List<User> remaining = splits.stream()
+                    .map(ExpenseSplit::getUser)
+                    .filter(participant -> !participant.getId().equals(userId))
+                    .toList();
+
+            expenseSplitRepository.deleteByExpenseId(expense.getId());
+            if (remaining.isEmpty()) {
+                // 강퇴 멤버가 유일한 분담 대상이었다 → 부담할 사람이 없어 지출을 삭제한다.
+                expense.softDelete();
+            } else {
+                expenseSplitRepository.saveAll(recomputeEqualSplits(expense, remaining));
+            }
+            changed = true;
+        }
+
+        // MEMBER_LEFT 는 지출/정산 캐시 키를 무효화하지 않으므로 정산 갱신 이벤트를 별도로 발행한다.
+        if (changed) {
+            publish(EventType.SETTLEMENT_UPDATED, groupId, actorId, Map.of());
+        }
+    }
+
+    // 총액을 남은 참여자 수로 균등 분배하고, 1원 단위 나머지는 앞에서부터 배분한다(EQUAL 분담 규칙과 동일).
+    private List<ExpenseSplit> recomputeEqualSplits(Expense expense, List<User> participants) {
+        long baseAmount = expense.getAmount() / participants.size();
+        long remainder = expense.getAmount() % participants.size();
+        List<ExpenseSplit> splits = new ArrayList<>();
+        for (int i = 0; i < participants.size(); i++) {
+            long owedAmount = baseAmount + (i < remainder ? 1 : 0);
+            splits.add(ExpenseSplit.builder()
+                    .expense(expense)
+                    .user(participants.get(i))
+                    .owedAmount(owedAmount)
+                    .build());
+        }
+        return splits;
+    }
+
+    // 결제자는 활성 멤버 중에서 고르는 것이 원칙이나, 기존 결제자가 강퇴된 경우엔
+    // 결제 이력 보존을 위해 그대로 유지하는 것을 허용한다(정산엔 '받을 돈'으로 남는다).
+    private User resolveUpdatedPayer(Long groupId, Expense expense, Long payerId) {
+        if (expense.getPayer().getId().equals(payerId)) {
+            return expense.getPayer();
+        }
+        return groupAccessValidator.validateMember(groupId, payerId).getUser();
     }
 
     // FR-EXPENSE-01: 중복 참여자를 제거한 뒤 모두 현재 그룹 멤버인지 확인한다.

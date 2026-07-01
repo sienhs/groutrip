@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.enjoytrip.backend.domain.auth.entity.User;
+import com.enjoytrip.backend.domain.expense.service.ExpenseService;
 import com.enjoytrip.backend.domain.group.dto.GroupCreateRequest;
 import com.enjoytrip.backend.domain.group.dto.GroupMemberResponse;
 import com.enjoytrip.backend.domain.group.dto.GroupResponse;
@@ -45,6 +46,7 @@ public class GroupService {
     private final GroupAccessValidator groupAccessValidator;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectStorageService objectStorage;
+    private final ExpenseService expenseService;
 
     private static final long MAX_COVER_BYTES = 5L * 1024 * 1024; // 5MB
     private static final String COVER_STORAGE_PREFIX = "group-covers";
@@ -301,6 +303,8 @@ public class GroupService {
         }
 
         targetMember.leave();
+        // 강퇴 멤버를 지출 분담에서 제외하고 남은 참여자끼리 재분담(정산 반영). 결제 이력은 보존한다.
+        expenseService.excludeMemberFromSplits(groupId, targetUserId, user.getId());
         publish(EventType.MEMBER_LEFT, groupId, user.getId(), Map.of("userId", targetUserId));
     }
 

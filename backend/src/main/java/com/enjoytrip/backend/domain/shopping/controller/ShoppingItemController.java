@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.enjoytrip.backend.domain.shopping.dto.ShoppingItemCreateRequest;
 import com.enjoytrip.backend.domain.shopping.dto.ShoppingItemResponse;
+import com.enjoytrip.backend.domain.shopping.dto.ShoppingItemUpdateRequest;
 import com.enjoytrip.backend.domain.shopping.service.ShoppingItemService;
 import com.enjoytrip.backend.global.response.ApiResponse;
 
@@ -46,6 +47,14 @@ public class ShoppingItemController {
             @PathVariable Long groupId,
             @PathVariable Long itemId) {
         return ResponseEntity.ok(ApiResponse.success("OK", shoppingItemService.toggleCheck(groupId, itemId)));
+    }
+
+    @PatchMapping("/{itemId}")
+    public ResponseEntity<ApiResponse<ShoppingItemResponse>> updateItem(
+            @PathVariable Long groupId,
+            @PathVariable Long itemId,
+            @RequestBody @Valid ShoppingItemUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("OK", shoppingItemService.updateItem(groupId, itemId, request)));
     }
 
     @DeleteMapping("/{itemId}")

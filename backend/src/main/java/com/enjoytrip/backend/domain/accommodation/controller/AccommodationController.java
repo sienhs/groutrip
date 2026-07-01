@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.enjoytrip.backend.domain.accommodation.dto.AccommodationPlaceUpdateRequest;
 import com.enjoytrip.backend.domain.accommodation.dto.AccommodationResponse;
 import com.enjoytrip.backend.domain.accommodation.dto.AccommodationSelectRequest;
 import com.enjoytrip.backend.domain.accommodation.service.AccommodationService;
@@ -70,6 +72,17 @@ public class AccommodationController {
     ) {
         AccommodationResponse response = accommodationService.confirmBooking(groupId, accommodationId, reservationPrice, photo);
         return ResponseEntity.ok(ApiResponse.success("예약 완료를 기록했습니다.", response));
+    }
+
+    @RequiredGroupMember
+    @PatchMapping("/{accommodationId}/place")
+    @Operation(summary = "숙소 장소 변경", description = "이미 선정한 숙소의 장소를 다른 Google placeId로 다시 선택한다(상세주소 변경). 예약 상태/일자는 유지된다.")
+    public ResponseEntity<ApiResponse<AccommodationResponse>> changePlace(
+            @PathVariable Long groupId,
+            @PathVariable Long accommodationId,
+            @RequestBody @Valid AccommodationPlaceUpdateRequest request) {
+        AccommodationResponse response = accommodationService.changePlace(groupId, accommodationId, request);
+        return ResponseEntity.ok(ApiResponse.success("숙소 장소를 변경했습니다.", response));
     }
 
     @RequiredGroupMember

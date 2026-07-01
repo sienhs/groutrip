@@ -26,6 +26,8 @@ export interface GroupMember {
   memberId: number;
   userId: number;
   name: string;
+  /** 관리자가 붙인 장난 배지/칭호(없으면 null). */
+  badge?: string | null;
   role: GroupRole;
   joinedAt: string; // ISO
 }

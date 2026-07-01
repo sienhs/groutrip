@@ -92,7 +92,11 @@ public enum ErrorCode {
 
     // Shopping
     SHOPPING_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "장보기 항목을 찾을 수 없습니다."),
-    SHOPPING_ITEM_FORBIDDEN(HttpStatus.FORBIDDEN, "본인이 추가한 항목만 삭제할 수 있습니다.");
+    SHOPPING_ITEM_FORBIDDEN(HttpStatus.FORBIDDEN, "본인이 추가한 항목만 삭제할 수 있습니다."),
+
+    // Admin
+    ADMIN_FORBIDDEN(HttpStatus.FORBIDDEN, "관리자만 사용할 수 있습니다."),
+    ACCOUNT_BANNED(HttpStatus.FORBIDDEN, "정지된 계정입니다.");
 
     /**
      * HTTP 응답 상태코드

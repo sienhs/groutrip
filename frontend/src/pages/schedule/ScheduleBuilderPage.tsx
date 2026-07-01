@@ -8,6 +8,7 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { ConfirmModal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import ScheduleAddModal from './ScheduleAddModal';
+import ScheduleEditModal from './ScheduleEditModal';
 import PlacePickerModal from '../place/PlacePickerModal';
 import { getSchedules, deleteSchedule, reorderSchedules, getTransportLeg, updateSchedule, setSchedulePlace, setScheduleCost } from '../../api/schedule';
 import { createVoteSession, getVoteSessions } from '../../api/vote';
@@ -94,6 +95,7 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
   const [legMode, setLegMode] = useState<Record<string, TransportMode>>({}); // pair → 선택 수단(기본 CAR)
   const [deleting, setDeleting] = useState<Schedule | null>(null);
   const [delLoading, setDelLoading] = useState(false);
+  const [editing, setEditing] = useState<Schedule | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   // 예상 비용 인라인 편집(어떤 일정의 비용을 고치는 중인지 + 입력값 + 결제자).
   const [costEditId, setCostEditId] = useState<number | null>(null);
@@ -541,6 +543,10 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
                   <span className="cursor-grab text-[#B6B1C4] active:cursor-grabbing" aria-hidden>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 7h.01M8 12h.01M8 17h.01M15 7h.01M15 12h.01M15 17h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
                   </span>
+                  <button type="button" aria-label="수정" onClick={() => setEditing(stop)}
+                    className="flex size-7 items-center justify-center rounded-button text-[#8A8699] hover:bg-[#F3EEFF] hover:text-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18 10l-4-4L4 16v4ZM14 6l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </button>
                   <button type="button" aria-label="삭제" onClick={() => setDeleting(stop)}
                     className="flex size-7 items-center justify-center rounded-button text-[#8A8699] hover:bg-[#FEE2E2] hover:text-danger">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 7V5h4v2M6 7l1 13h10l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -577,6 +583,15 @@ export default function ScheduleBuilderPage({ groupId: groupIdProp, isOwner = fa
           defaultStart={stops.length ? stops[stops.length - 1].endTime : undefined}
           onClose={() => setAddOpen(false)}
           onAdded={() => { setLegs({}); load(); }}
+        />
+      )}
+
+      {editing && (
+        <ScheduleEditModal
+          groupId={groupId}
+          schedule={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setLegs({}); load(); }}
         />
       )}
 

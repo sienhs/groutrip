@@ -478,6 +478,11 @@ function MemberTab({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 text-[15px] font-extrabold">
                     <span className="truncate">{m.name}</span>
+                    {m.badge && (
+                      <span className="shrink-0 rounded-full bg-[#FFF0E6] px-2 py-0.5 text-[11px] font-bold text-[#E07830]">
+                        {m.badge}
+                      </span>
+                    )}
                     {isMe && <span className="shrink-0 text-[11px] font-bold text-[#9A95A8]">(나)</span>}
                   </div>
                   <div className="text-[12px] text-muted">

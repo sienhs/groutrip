@@ -108,9 +108,13 @@ public class Schedule extends BaseEntity {
         this.updatedBy = updatedBy;
     }
 
-    // FR-SCHEDULE-02: 시간/메모/예상비용/이동수단/상태를 수정하고 마지막 수정자를 갱신한다.
-    public void update(LocalTime startTime, LocalTime endTime, String memo, Long estimatedCost,
+    // FR-SCHEDULE-02: 제목/시간/메모/예상비용/이동수단/상태를 수정하고 마지막 수정자를 갱신한다.
+    public void update(String title, LocalTime startTime, LocalTime endTime, String memo, Long estimatedCost,
                        TransportMode transportMode, ScheduleStatus status, User editor) {
+        // 빈 일정만 제목으로 식별하므로, 장소가 정해진 일정의 제목은 건드리지 않는다.
+        if (this.place == null) {
+            this.title = title;
+        }
         this.startTime = startTime;
         this.endTime = endTime;
         this.memo = memo;

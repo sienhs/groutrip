@@ -64,6 +64,12 @@ public class ShoppingItem {
         this.isChecked = !this.isChecked;
     }
 
+    // 항목 이름/수량 수정(추가한 본인만). 체크 상태는 유지한다.
+    public void edit(String name, String quantity) {
+        this.name = name;
+        this.quantity = quantity;
+    }
+
     public boolean isOwnedBy(Long userId) {
         return this.addedBy.getId().equals(userId);
     }

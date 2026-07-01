@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addShoppingItem, deleteShoppingItem, getShoppingItems, toggleShoppingItem } from '../api/shopping';
+import { addShoppingItem, deleteShoppingItem, getShoppingItems, toggleShoppingItem, updateShoppingItem } from '../api/shopping';
 import { groupQueryKeys } from '../queryKeys/groupQueryKeys';
 import { cn } from '../lib/cn';
 import type { ShoppingItem } from '../types/shopping';
@@ -55,6 +55,16 @@ export default function ShoppingListCard({ groupId, currentUserId, isOwner }: Pr
   const deleteMutation = useMutation({
     mutationFn: (itemId: number) => deleteShoppingItem(groupId, itemId),
     onSuccess: invalidate,
+  });
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const editMutation = useMutation({
+    mutationFn: (v: { itemId: number; name: string; quantity?: string }) =>
+      updateShoppingItem(groupId, v.itemId, v.name, v.quantity),
+    onSuccess: () => {
+      setEditingId(null);
+      invalidate();
+    },
   });
 
   const unchecked = items.filter((i: ShoppingItem) => !i.checked);
@@ -122,9 +132,14 @@ export default function ShoppingListCard({ groupId, currentUserId, isOwner }: Pr
             <ItemRow
               key={item.id}
               item={item}
-              canDelete={canDelete(item)}
+              canModify={canDelete(item)}
+              editing={editingId === item.id}
+              saving={editMutation.isPending}
               onToggle={() => toggleMutation.mutate(item.id)}
               onDelete={() => deleteMutation.mutate(item.id)}
+              onEditStart={() => setEditingId(item.id)}
+              onEditCancel={() => setEditingId(null)}
+              onEditSave={(name, quantity) => editMutation.mutate({ itemId: item.id, name, quantity })}
             />
           ))}
 
@@ -137,9 +152,14 @@ export default function ShoppingListCard({ groupId, currentUserId, isOwner }: Pr
             <ItemRow
               key={item.id}
               item={item}
-              canDelete={canDelete(item)}
+              canModify={canDelete(item)}
+              editing={editingId === item.id}
+              saving={editMutation.isPending}
               onToggle={() => toggleMutation.mutate(item.id)}
               onDelete={() => deleteMutation.mutate(item.id)}
+              onEditStart={() => setEditingId(item.id)}
+              onEditCancel={() => setEditingId(null)}
+              onEditSave={(name, quantity) => editMutation.mutate({ itemId: item.id, name, quantity })}
             />
           ))}
 
@@ -176,12 +196,78 @@ export default function ShoppingListCard({ groupId, currentUserId, isOwner }: Pr
 
 interface ItemRowProps {
   item: ShoppingItem;
-  canDelete: boolean;
+  canModify: boolean;
+  editing: boolean;
+  saving: boolean;
   onToggle: () => void;
   onDelete: () => void;
+  onEditStart: () => void;
+  onEditCancel: () => void;
+  onEditSave: (name: string, quantity?: string) => void;
 }
 
-function ItemRow({ item, canDelete, onToggle, onDelete }: ItemRowProps) {
+function ItemRow({
+  item,
+  canModify,
+  editing,
+  saving,
+  onToggle,
+  onDelete,
+  onEditStart,
+  onEditCancel,
+  onEditSave,
+}: ItemRowProps) {
+  const [name, setName] = useState(item.name);
+  const [quantity, setQuantity] = useState(item.quantity ?? '');
+
+  // 편집을 열 때마다 현재 값으로 초기화한다.
+  useEffect(() => {
+    if (editing) {
+      setName(item.name);
+      setQuantity(item.quantity ?? '');
+    }
+  }, [editing, item.name, item.quantity]);
+
+  if (editing) {
+    const submit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!name.trim()) return;
+      onEditSave(name.trim(), quantity.trim() || undefined);
+    };
+    return (
+      <form onSubmit={submit} className="flex items-center gap-2 px-4 py-2.5">
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={100}
+          className="min-w-0 flex-1 rounded-button border border-border bg-background px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FF9F66]/40"
+        />
+        <input
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          placeholder="수량"
+          maxLength={50}
+          className="w-16 shrink-0 rounded-button border border-border bg-background px-2 py-1.5 text-[13px] placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[#FF9F66]/40"
+        />
+        <button
+          type="submit"
+          disabled={!name.trim() || saving}
+          className="shrink-0 rounded-button bg-[#FF9F66] px-2.5 py-1.5 text-[13px] font-bold text-white disabled:opacity-40"
+        >
+          저장
+        </button>
+        <button
+          type="button"
+          onClick={onEditCancel}
+          className="shrink-0 rounded-button border border-border px-2.5 py-1.5 text-[13px] font-bold text-muted"
+        >
+          취소
+        </button>
+      </form>
+    );
+  }
+
   return (
     <div className={cn('flex items-center gap-3 px-4 py-2.5', item.checked && 'opacity-50')}>
       <button
@@ -209,17 +295,29 @@ function ItemRow({ item, canDelete, onToggle, onDelete }: ItemRowProps) {
         )}
       </span>
 
-      {canDelete && (
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="삭제"
-          className="shrink-0 rounded p-1 text-muted hover:text-danger"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
+      {canModify && (
+        <>
+          <button
+            type="button"
+            onClick={onEditStart}
+            aria-label="수정"
+            className="shrink-0 rounded p-1 text-muted hover:text-[#E07830]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M4 20h4L18 10l-4-4L4 16v4ZM14 6l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="삭제"
+            className="shrink-0 rounded p-1 text-muted hover:text-danger"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </>
       )}
     </div>
   );

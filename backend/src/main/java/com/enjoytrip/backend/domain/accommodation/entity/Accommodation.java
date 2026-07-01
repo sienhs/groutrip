@@ -103,6 +103,12 @@ public class Accommodation extends BaseEntity {
         }
     }
 
+    /** 숙소 장소를 다른 곳으로 다시 선택한다(상세주소 변경). 예약 상태/사진/일자는 유지한다. */
+    public void changePlace(Place place, String sigungu) {
+        this.place = place;
+        this.sigungu = sigungu;
+    }
+
     public boolean hasPhoto() {
         return bookingPhotoKey != null && !bookingPhotoKey.isBlank();
     }

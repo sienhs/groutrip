@@ -15,6 +15,10 @@ import jakarta.validation.constraints.Size;
  */
 public record ScheduleUpdateRequest(
 
+        // 빈 일정(장소 미정)의 제목 수정용. 장소 기반 일정에선 무시된다.
+        @Size(max = 100)
+        String title,
+
         @NotNull
         LocalTime startTime,
 

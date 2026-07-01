@@ -26,6 +26,7 @@ const ChatLandingPage = lazy(() => import('./pages/chat/ChatLandingPage'));
 const GroupChatRoomPage = lazy(() => import('./pages/chat/GroupChatRoomPage'));
 const VoteDetailPage = lazy(() => import('./pages/vote/VoteDetailPage'));
 const MyPage = lazy(() => import('./pages/mypage/MyPage'));
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
@@ -111,6 +112,7 @@ function App() {
 
         {/* 마이페이지 */}
         <Route path="/mypage" element={<ProtectedRoute><MyPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
         </Routes>
       </Suspense>

@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAccommodations, deleteAccommodation } from '../../api/accommodation';
 import { placePhotoSrc } from '../../api/place';
 import { groupQueryKeys } from '../../queryKeys/groupQueryKeys';
 import { cn } from '../../lib/cn';
+import AccommodationPlaceEditModal from './AccommodationPlaceEditModal';
 import type { Accommodation } from '../../types/accommodation';
 
 /** 'YYYY-MM-DD' → 'M/D'. */
@@ -54,6 +56,7 @@ export default function GroupAccommodations({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [editing, setEditing] = useState<Accommodation | null>(null);
   const { data: accs } = useQuery({
     queryKey: groupQueryKeys.accommodations(groupId),
     queryFn: () => getAccommodations(groupId),
@@ -121,6 +124,13 @@ export default function GroupAccommodations({
                   ) : (
                     <div className="text-[10px] text-muted">{a.status === 'BOOKED' ? '예약 완료' : '선정됨'}</div>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setEditing(a)}
+                    className="mt-0.5 text-[10px] font-bold text-primary underline-offset-2 hover:underline"
+                  >
+                    장소 변경
+                  </button>
                 </div>
                 <button
                   type="button"
@@ -146,6 +156,17 @@ export default function GroupAccommodations({
         >
           아직 숙소 미선택: {missing.map(shortDate).join(', ')} · 숙소 정하기 →
         </button>
+      )}
+
+      {editing && (
+        <AccommodationPlaceEditModal
+          groupId={groupId}
+          accommodation={editing}
+          onClose={() => setEditing(null)}
+          onChanged={() => {
+            queryClient.invalidateQueries({ queryKey: groupQueryKeys.accommodations(groupId) });
+          }}
+        />
       )}
     </div>
   );

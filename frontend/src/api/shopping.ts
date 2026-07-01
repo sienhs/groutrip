@@ -10,6 +10,14 @@ export const addShoppingItem = (groupId: number, name: string, quantity?: string
     .post<ApiResponse<ShoppingItem>>(`/api/groups/${groupId}/shopping-items`, { name, quantity: quantity ?? null })
     .then((r) => r.data.data);
 
+export const updateShoppingItem = (groupId: number, itemId: number, name: string, quantity?: string) =>
+  instance
+    .patch<ApiResponse<ShoppingItem>>(`/api/groups/${groupId}/shopping-items/${itemId}`, {
+      name,
+      quantity: quantity ?? null,
+    })
+    .then((r) => r.data.data);
+
 export const toggleShoppingItem = (groupId: number, itemId: number) =>
   instance
     .patch<ApiResponse<ShoppingItem>>(`/api/groups/${groupId}/shopping-items/${itemId}/check`)

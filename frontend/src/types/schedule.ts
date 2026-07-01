@@ -43,6 +43,8 @@ export interface ScheduleCreateRequest {
 }
 
 export interface ScheduleUpdateRequest {
+  /** 빈 일정 제목(장소 기반 일정에선 무시됨) */
+  title?: string;
   startTime?: string;
   endTime?: string;
   memo?: string;
